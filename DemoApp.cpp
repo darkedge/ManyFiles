@@ -16,6 +16,7 @@ static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
 static constexpr float MJ_96_DPI = 96.0f;
 // In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
 static constexpr float MJ_POINT = (1.0f / 72.0f);
+static float s_BaseDpiScale;
 
 // __ImageBase is better than GetCurrentModule()
 // Can be cast to a HINSTANCE
@@ -39,7 +40,7 @@ static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pDWriteTextFormat;
 
 static const wchar_t* s_pTextWide;
-static UINT32 s_TextSize;
+static UINT32 s_TextLength;
 
 static void OnResize(UINT width, UINT height)
 {
@@ -87,11 +88,11 @@ static HRESULT TextDraw()
 
   // Create a D2D rect that is the same size as the window.
   D2D1_RECT_F layoutRect = D2D1::RectF(
-      static_cast<FLOAT>(rc.top) / s_DpiScale, static_cast<FLOAT>(rc.left) / s_DpiScale,
-      static_cast<FLOAT>(rc.right - rc.left) / s_DpiScale, static_cast<FLOAT>(rc.bottom - rc.top) / s_DpiScale);
+      static_cast<FLOAT>(rc.top) / s_BaseDpiScale, static_cast<FLOAT>(rc.left) / s_BaseDpiScale,
+      static_cast<FLOAT>(rc.right - rc.left) / s_BaseDpiScale, static_cast<FLOAT>(rc.bottom - rc.top) / s_BaseDpiScale);
 
   // Use the DrawText method of the D2D render target interface to draw.
-  s_pRenderTarget->DrawTextW(s_pTextWide, s_TextSize, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
+  s_pRenderTarget->DrawTextW(s_pTextWide, s_TextLength, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
 
   return S_OK;
 }
@@ -135,7 +136,7 @@ static void CalculateDpiScale()
 
 static FLOAT ConvertPointSizeToDIP(FLOAT points)
 {
-  return (points * MJ_POINT) * MJ_96_DPI * s_DpiScale;
+  return (points * MJ_POINT) * MJ_96_DPI * s_DpiScale / s_BaseDpiScale;
 }
 
 static HRESULT CreateDeviceIndependentResources()
@@ -159,10 +160,9 @@ static HRESULT CreateDeviceIndependentResources()
   }
 
   // The string to display.
-  s_pTextWide = L"Hello World using DirectWrite!";
-  s_TextSize  = (UINT32)wcslen(s_pTextWide);
+  s_pTextWide  = L"Hello World using DirectWrite!";
+  s_TextLength = (UINT32)wcslen(s_pTextWide);
 
-  // Create a text format using Gabriola with a font size of 72.
   // This sets the default font, weight, stretch, style, and locale.
   if (SUCCEEDED(hr))
   {
@@ -293,6 +293,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   if (SUCCEEDED(hr))
   {
     s_DpiScale = (float)dpiX / MJ_96_DPI;
+    s_BaseDpiScale = s_DpiScale;
   }
 
   if (SUCCEEDED(hr))
