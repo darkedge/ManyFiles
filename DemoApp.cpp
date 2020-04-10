@@ -323,13 +323,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   if (SUCCEEDED(hr))
   {
-    ShowWindow(s_Hwnd, SW_SHOWNORMAL);
-    UpdateWindow(s_Hwnd);
+    hr = DrawD2DContent();
   }
 
   if (SUCCEEDED(hr))
   {
-    hr = DrawD2DContent();
+    ShowWindow(s_Hwnd, SW_SHOWNORMAL);
+    UpdateWindow(s_Hwnd);
   }
 
   if (SUCCEEDED(hr))
