@@ -7,6 +7,7 @@
 #include <shellscalingapi.h> // MDT_EFFECTIVE_DPI
 
 #include "mj_common.h"
+#include "lorem_ipsum.h"
 
 static constexpr UINT WINDOW_WIDTH  = 640;
 static constexpr UINT WINDOW_HEIGHT = 480;
@@ -27,6 +28,8 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 static HWND s_Hwnd;
 
+static HCURSOR s_cursorType;
+
 // how much to scale a design that assumes 96-DPI pixels
 static float s_DpiScale;
 
@@ -38,9 +41,6 @@ static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
 // DirectWrite
 static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pDWriteTextFormat;
-
-static const wchar_t* s_pTextWide;
-static UINT32 s_TextLength;
 
 static void OnResize(UINT width, UINT height)
 {
@@ -92,7 +92,8 @@ static HRESULT TextDraw()
       static_cast<FLOAT>(rc.right - rc.left) / s_BaseDpiScale, static_cast<FLOAT>(rc.bottom - rc.top) / s_BaseDpiScale);
 
   // Use the DrawText method of the D2D render target interface to draw.
-  s_pRenderTarget->DrawTextW(s_pTextWide, s_TextLength, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
+  s_pRenderTarget->DrawTextW(pLoremIpsum, (UINT32)wcslen(pLoremIpsum), s_pDWriteTextFormat.Get(), layoutRect,
+                             s_pBrush.Get());
 
   return S_OK;
 }
@@ -159,10 +160,6 @@ static HRESULT CreateDeviceIndependentResources()
                              reinterpret_cast<IUnknown**>(s_pDWriteFactory.ReleaseAndGetAddressOf()));
   }
 
-  // The string to display.
-  s_pTextWide  = L"Hello World using DirectWrite!";
-  s_TextLength = (UINT32)wcslen(s_pTextWide);
-
   // This sets the default font, weight, stretch, style, and locale.
   if (SUCCEEDED(hr))
   {
@@ -173,17 +170,6 @@ static HRESULT CreateDeviceIndependentResources()
         L"en-us", s_pDWriteTextFormat.ReleaseAndGetAddressOf());
   }
 
-  // Center align (horizontally) the text.
-  if (SUCCEEDED(hr))
-  {
-    hr = s_pDWriteTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    hr = s_pDWriteTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-  }
-
   return hr;
 }
 
@@ -191,6 +177,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 {
   switch (message)
   {
+  case WM_SETCURSOR:
+    if (LOWORD(lParam) == HTCLIENT)
+    {
+      SetCursor(s_cursorType);
+      return TRUE;
+    }
+    break;
   case WM_SIZE:
   {
     UINT width  = LOWORD(lParam);
@@ -244,30 +237,28 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
   (void)pCmdLine;
   (void)nCmdShow;
 
-  MJ_UNINITIALIZED WNDCLASSEX wcex;
-
-  // Return failure unless CreateDeviceIndependentResources returns SUCCEEDED.
   HRESULT hr = S_OK;
 
-  ATOM atom;
-
   // Register window class.
-  wcex.cbSize        = sizeof(WNDCLASSEX);
-  wcex.style         = CS_HREDRAW | CS_VREDRAW;
-  wcex.lpfnWndProc   = WndProc;
-  wcex.cbClsExtra    = 0;
-  wcex.cbWndExtra    = sizeof(LONG_PTR);
-  wcex.hInstance     = HINST_THISCOMPONENT;
-  wcex.hbrBackground = nullptr;
-  wcex.lpszMenuName  = nullptr;
-  wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
-  wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-  wcex.lpszClassName = TEXT("DemoApp");
-  wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
+  {
+    MJ_UNINITIALIZED WNDCLASSEX wcex;
+    wcex.cbSize        = sizeof(WNDCLASSEX);
+    wcex.style         = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc   = WndProc;
+    wcex.cbClsExtra    = 0;
+    wcex.cbWndExtra    = sizeof(LONG_PTR);
+    wcex.hInstance     = HINST_THISCOMPONENT;
+    wcex.hbrBackground = nullptr;
+    wcex.lpszMenuName  = nullptr;
+    wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
+    wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+    wcex.lpszClassName = TEXT("DemoApp");
+    wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
 
-  atom = RegisterClassExW(&wcex);
+    hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
+  }
 
-  hr = atom ? S_OK : E_FAIL;
+  s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
 
   // We currently assume that the application will always be created on the primary monitor.
   MJ_UNINITIALIZED UINT dpiX;
@@ -305,6 +296,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     hr = s_Hwnd ? S_OK : E_FAIL;
   }
 
+  // Draw initial contents to prevent a blank screen flash
   if (SUCCEEDED(hr))
   {
     hr = DrawD2DContent();
