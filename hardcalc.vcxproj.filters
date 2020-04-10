@@ -4,4 +4,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="DemoApp.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mj_common.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="DeclareDPIAware.manifest" />
+  </ItemGroup>
 </Project>
