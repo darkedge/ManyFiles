@@ -106,7 +106,7 @@ static HRESULT DrawD2DContent()
     s_pRenderTarget->BeginDraw();
 
     s_pRenderTarget->SetTransform(D2D1::IdentityMatrix());
-    s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
+    s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::WhiteSmoke));
 
     if (SUCCEEDED(hr))
     {
@@ -191,18 +191,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 {
   switch (message)
   {
-  case WM_NCCREATE:
-    // When this API is called on a top-level window, its caption bar, top-level scrollbars,
-    // system menu and menubar will DPI scale when the application’s DPI changes.
-    EnableNonClientDpiScaling(hwnd);
-    break;
   case WM_SIZE:
   {
     UINT width  = LOWORD(lParam);
     UINT height = HIWORD(lParam);
     OnResize(width, height);
   }
-    return 0;
+  break;
   case WM_DPICHANGED:
   {
     CalculateDpiScale();
@@ -226,17 +221,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   break;
   case WM_PAINT:
   case WM_DISPLAYCHANGE:
-  {
     ValidateRect(hwnd, nullptr);
     DrawD2DContent();
-  }
-    return 0;
-
+    break;
   case WM_DESTROY:
-  {
     PostQuitMessage(0);
-  }
-    return 1;
+    break;
   }
 
   return DefWindowProcW(hwnd, message, wParam, lParam);
@@ -244,17 +234,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
 HMONITOR GetPrimaryMonitor()
 {
-#if 0
-  POINT ptZero = { 0, 0 };
-  return MonitorFromPoint(ptZero, MONITOR_DEFAULTTOPRIMARY);
-#elif 1
   return MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
-#else
-  return MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY);
-#endif
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR pCmdLine, _In_ int nCmdShow)
 {
   (void)hInstance;
   (void)hPrevInstance;
@@ -292,7 +275,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
   if (SUCCEEDED(hr))
   {
-    s_DpiScale = (float)dpiX / MJ_96_DPI;
+    s_DpiScale     = (float)dpiX / MJ_96_DPI;
     s_BaseDpiScale = s_DpiScale;
   }
 
