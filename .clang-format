@@ -1,0 +1,14 @@
+BasedOnStyle: Microsoft
+AlignConsecutiveAssignments: true
+IndentWidth: 2
+PointerAlignment: Left
+SortIncludes: false
+Cpp11BracedListStyle: false
+#AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+NamespaceIndentation: All
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+AlignEscapedNewlines: DontAlign
+AlwaysBreakTemplateDeclarations: Yes
