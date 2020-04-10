@@ -8,6 +8,10 @@
 
 #include "mj_common.h"
 
+static constexpr UINT WINDOW_WIDTH  = 640;
+static constexpr UINT WINDOW_HEIGHT = 480;
+static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
+
 // One logical inch equals 96 pixels. // TODO: This can change!
 static constexpr float MJ_96_DPI = 96.0f;
 // In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
@@ -23,8 +27,6 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 static HWND s_Hwnd;
 
 // how much to scale a design that assumes 96-DPI pixels
-// static float s_DpiScaleX;
-// static float s_DpiScaleY;
 static float s_DpiScale;
 
 // Direct2D
@@ -85,8 +87,8 @@ static HRESULT TextDraw()
 
   // Create a D2D rect that is the same size as the window.
   D2D1_RECT_F layoutRect = D2D1::RectF(
-      static_cast<FLOAT>(rc.top) * s_DpiScale, static_cast<FLOAT>(rc.left) * s_DpiScale,
-      static_cast<FLOAT>(rc.right - rc.left), static_cast<FLOAT>(rc.bottom - rc.top));
+      static_cast<FLOAT>(rc.top) / s_DpiScale, static_cast<FLOAT>(rc.left) / s_DpiScale,
+      static_cast<FLOAT>(rc.right - rc.left) / s_DpiScale, static_cast<FLOAT>(rc.bottom - rc.top) / s_DpiScale);
 
   // Use the DrawText method of the D2D render target interface to draw.
   s_pRenderTarget->DrawTextW(s_pTextWide, s_TextSize, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
@@ -103,7 +105,7 @@ static HRESULT DrawD2DContent()
     s_pRenderTarget->BeginDraw();
 
     s_pRenderTarget->SetTransform(D2D1::IdentityMatrix());
-    s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+    s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
 
     if (SUCCEEDED(hr))
     {
@@ -201,18 +203,27 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     OnResize(width, height);
   }
     return 0;
-
   case WM_DPICHANGED:
   {
     CalculateDpiScale();
     CreateDeviceIndependentResources();
-    RECT* const pRect = (RECT*)lParam;
-    SetWindowPos(hwnd, NULL, pRect->left, pRect->top, pRect->right - pRect->left, pRect->bottom - pRect->top,
-                 SWP_NOZORDER | SWP_NOACTIVATE);
+
+    // Ensure the client area is scaled properly
+    RECT* pRect           = (RECT*)lParam;
+    RECT windowRect       = { 0, 0, (LONG)(WINDOW_WIDTH * s_DpiScale), (LONG)(WINDOW_HEIGHT * s_DpiScale) };
+    const bool hasMenu    = false;
+    const DWORD dwExStyle = 0;
+    UINT dpi              = GetDpiForWindow(s_Hwnd);
+    AdjustWindowRectExForDpi(&windowRect, dwStyle, hasMenu, dwExStyle, dpi);
+    windowRect.right  = pRect->left + (windowRect.right - windowRect.left);
+    windowRect.bottom = pRect->top + (windowRect.bottom - windowRect.top);
+    windowRect.left   = pRect->left;
+    windowRect.top    = pRect->top;
+
+    SetWindowPos(hwnd, NULL, windowRect.left, windowRect.top, windowRect.right - windowRect.left,
+                 windowRect.bottom - windowRect.top, SWP_NOZORDER | SWP_NOACTIVATE);
   }
   break;
-    // return 0;
-
   case WM_PAINT:
   case WM_DISPLAYCHANGE:
   {
@@ -250,7 +261,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   (void)pCmdLine;
   (void)nCmdShow;
 
-  WNDCLASSEX wcex;
+  MJ_UNINITIALIZED WNDCLASSEX wcex;
 
   // Return failure unless CreateDeviceIndependentResources returns SUCCEEDED.
   HRESULT hr = S_OK;
@@ -291,10 +302,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   if (SUCCEEDED(hr))
   {
+    // Get window rectangle
+    RECT windowRect       = { 0, 0, (LONG)(WINDOW_WIDTH * s_DpiScale), (LONG)(WINDOW_HEIGHT * s_DpiScale) };
+    const bool hasMenu    = false;
+    const DWORD dwExStyle = 0;
+    AdjustWindowRectExForDpi(&windowRect, dwStyle, hasMenu, dwExStyle, dpiX);
+    const LONG windowWidth  = windowRect.right - windowRect.left;
+    const LONG windowHeight = windowRect.bottom - windowRect.top;
+
     // Create window.
-    s_Hwnd = CreateWindowExW(0, TEXT("DemoApp"), TEXT("Simple DirectWrite Hello World"), WS_OVERLAPPEDWINDOW,
-                             CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(640.0f * s_DpiScale),
-                             static_cast<int>(480.0f * s_DpiScale), nullptr, nullptr, HINST_THISCOMPONENT, nullptr);
+    s_Hwnd = CreateWindowExW(0, TEXT("DemoApp"), TEXT("hardcalc"), dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
+                             static_cast<int>(windowWidth), static_cast<int>(windowHeight), nullptr, nullptr,
+                             HINST_THISCOMPONENT, nullptr);
   }
 
   if (SUCCEEDED(hr))
