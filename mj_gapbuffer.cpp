@@ -54,7 +54,7 @@ void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
 
 void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
 {
-  if (pBuf->pCursor > pBuf->pBufBegin) // Note: Skip last '\0' due to pasted text
+  if (pBuf->pCursor > pBuf->pBufBegin)
   {
     if (pBuf->pCursor == pBuf->pGapEnd)
     {
@@ -64,6 +64,25 @@ void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
     {
       pBuf->pCursor--;
     }
+  }
+}
+
+void mj::GapBufferDeleteAtCursor(GapBuffer* pBuf)
+{
+  if (pBuf->pCursor < (pBuf->pBufEnd - 1)) // Note: Skip last '\0' due to pasted text
+  {
+    CursorUpdate(pBuf);
+    pBuf->pGapEnd++;
+  }
+}
+
+void mj::GapBufferBackspaceAtCursor(GapBuffer* pBuf)
+{
+  if (pBuf->pCursor > pBuf->pBufBegin)
+  {
+    CursorUpdate(pBuf);
+    pBuf->pCursor--;
+    pBuf->pGapBegin--;
   }
 }
 

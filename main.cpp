@@ -101,11 +101,13 @@ static HRESULT TextDraw()
   static wchar_t buf[1024] = {}; // TODO: Small buffer!
   int numBytes =
       mj::win32::Widen(buf, s_GapBuffer.pBufBegin, (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
-  s_pRenderTarget->DrawTextW(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
+  s_pRenderTarget->DrawText(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
   layoutRect.top += 20;
   numBytes = mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd), sizeof(buf));
-  s_pRenderTarget->DrawTextW(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
+  s_pRenderTarget->DrawText(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
   // Random rectangle test
   s_pRenderTarget->DrawRectangle(D2D1_RECT_F{ 50.0f, 50.0f, 100.0f / s_BaseDpiScale, 100.0f / s_BaseDpiScale },
@@ -208,8 +210,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   }
     return 0;
   case WM_CHAR:
-    mj::GapBufferInsertCharacterAtCursor(&s_GapBuffer, (wchar_t)wParam);
-    DrawD2DContent();
+    if (iswprint((wint_t)wParam))
+    {
+      mj::GapBufferInsertCharacterAtCursor(&s_GapBuffer, (wchar_t)wParam);
+      DrawD2DContent();
+    }
     break;
   case WM_KEYDOWN:
     switch (wParam)
@@ -222,7 +227,16 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
       mj::GapBufferIncrementCursor(&s_GapBuffer);
       DrawD2DContent();
       break;
+    case VK_DELETE:
+      mj::GapBufferDeleteAtCursor(&s_GapBuffer);
+      DrawD2DContent();
+      break;
+    case VK_BACK:
+      mj::GapBufferBackspaceAtCursor(&s_GapBuffer);
+      DrawD2DContent();
+      break;
     }
+    break;
   case WM_SETCURSOR:
     if (LOWORD(lParam) == HTCLIENT)
     {
