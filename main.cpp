@@ -11,6 +11,7 @@
 #include "loremipsum.h"
 #include "mj_gapbuffer.h"
 #include "mj_win32.h"
+#include <string>
 
 static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 static constexpr UINT WINDOW_WIDTH  = 640;
@@ -31,6 +32,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #endif
 
 static HWND s_Hwnd;
+static std::wstring s_Line;
 
 static HCURSOR s_cursorType;
 
@@ -45,6 +47,7 @@ static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
 // DirectWrite
 static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pDWriteTextFormat;
+static Microsoft::WRL::ComPtr<IDWriteTextLayout> s_pDWriteTextLayout;
 
 static mj::GapBuffer s_GapBuffer;
 
@@ -64,10 +67,10 @@ static HRESULT CreateDeviceResources()
 {
   HRESULT hr = S_OK;
 
-  RECT rc;
-  GetClientRect(s_Hwnd, &rc);
+  RECT rect;
+  GetClientRect(s_Hwnd, &rect);
 
-  D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+  D2D1_SIZE_U size = D2D1::SizeU(rect.right - rect.left, rect.bottom - rect.top);
 
   if (!s_pRenderTarget)
   {
@@ -83,19 +86,47 @@ static HRESULT CreateDeviceResources()
     }
   }
 
+  // Create a text layout using the text format.
+  if (SUCCEEDED(hr))
+  {
+    float width  = rect.right / s_BaseDpiScale;
+    float height = rect.bottom / s_BaseDpiScale;
+
+    wchar_t buf[1024]; // TODO: Small buffer!
+    int numBytes =
+        mj::win32::Widen(buf, s_GapBuffer.pBufBegin, s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin, sizeof(buf));
+    numBytes += mj::win32::Widen(&buf[numBytes], s_GapBuffer.pGapEnd, s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd,
+                                 sizeof(buf) - numBytes);
+    s_Line = std::wstring(buf);
+
+    hr = s_pDWriteFactory->CreateTextLayout(
+        s_Line.c_str(),            // The string to be laid out and formatted.
+        s_Line.length(),           // The length of the string.
+        s_pDWriteTextFormat.Get(), // The text format to apply to the string (contains font information, etc).
+        width,                     // The width of the layout box.
+        height,                    // The height of the layout box.
+        s_pDWriteTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
+    );
+
+    unsigned int position = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
+    DWRITE_TEXT_RANGE textRange = { position, 1 };
+    s_pDWriteTextLayout->SetUnderline(true, textRange);
+  }
+
   return hr;
 }
 
 static HRESULT TextDraw()
 {
-  MJ_UNINITIALIZED RECT rc;
+  MJ_UNINITIALIZED RECT rect;
 
-  GetClientRect(s_Hwnd, &rc);
+  GetClientRect(s_Hwnd, &rect);
 
   // Create a D2D rect that is the same size as the window.
-  D2D1_RECT_F layoutRect = D2D1::RectF(
-      static_cast<FLOAT>(rc.top) / s_BaseDpiScale, static_cast<FLOAT>(rc.left) / s_BaseDpiScale,
-      static_cast<FLOAT>(rc.right - rc.left) / s_BaseDpiScale, static_cast<FLOAT>(rc.bottom - rc.top) / s_BaseDpiScale);
+  D2D1_RECT_F layoutRect =
+      D2D1::RectF(static_cast<FLOAT>(rect.top) / s_BaseDpiScale, static_cast<FLOAT>(rect.left) / s_BaseDpiScale,
+                  static_cast<FLOAT>(rect.right - rect.left) / s_BaseDpiScale,
+                  static_cast<FLOAT>(rect.bottom - rect.top) / s_BaseDpiScale);
 
   // Use the DrawText method of the D2D render target interface to draw.
   static wchar_t buf[1024] = {}; // TODO: Small buffer!
@@ -108,6 +139,9 @@ static HRESULT TextDraw()
   numBytes = mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd), sizeof(buf));
   s_pRenderTarget->DrawText(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get(),
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+  s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 40.0f }, s_pDWriteTextLayout.Get(), s_pBrush.Get(),
+                                  D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
   // Random rectangle test
   s_pRenderTarget->DrawRectangle(D2D1_RECT_F{ 50.0f, 50.0f, 100.0f / s_BaseDpiScale, 100.0f / s_BaseDpiScale },
@@ -123,7 +157,6 @@ static HRESULT DrawD2DContent()
   if (!(s_pRenderTarget->CheckWindowState() & D2D1_WINDOW_STATE_OCCLUDED))
   {
     s_pRenderTarget->BeginDraw();
-
     s_pRenderTarget->SetTransform(D2D1::IdentityMatrix());
     s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::WhiteSmoke));
 
