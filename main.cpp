@@ -8,10 +8,11 @@
 #include <shellscalingapi.h> // MDT_EFFECTIVE_DPI
 
 #include "mj_common.h"
-#include "lorem_ipsum.h"
-#include "buffer.h"
+#include "loremipsum.h"
+#include "mj_gapbuffer.h"
 #include "mj_win32.h"
 
+static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 static constexpr UINT WINDOW_WIDTH  = 640;
 static constexpr UINT WINDOW_HEIGHT = 480;
 static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
@@ -45,7 +46,7 @@ static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
 static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pDWriteTextFormat;
 
-static GapBuffer s_GapBuffer;
+static mj::GapBuffer s_GapBuffer;
 
 static void OnResize(UINT width, UINT height)
 {
@@ -98,12 +99,13 @@ static HRESULT TextDraw()
 
   // Use the DrawText method of the D2D render target interface to draw.
   static wchar_t buf[1024] = {}; // TODO: Small buffer!
-  int numBytes =
-      mj::win32::Widen(buf, s_GapBuffer.pBufferBegin, (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufferBegin), sizeof(buf));
+  int numBytes             = mj::win32::Widen(buf, s_GapBuffer.pBufBegin,
+                                  (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
   s_pRenderTarget->DrawTextW(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
 
   layoutRect.top += 20;
-  numBytes = mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufferEnd - s_GapBuffer.pGapEnd), sizeof(buf));
+  numBytes =
+      mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd), sizeof(buf));
   s_pRenderTarget->DrawTextW(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
 
   // Random rectangle test
@@ -207,17 +209,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   }
     return 0;
   case WM_CHAR:
-    InsertCharacterAtCursor((wchar_t)wParam, &s_GapBuffer);
+    // InsertCharacterAtCursor((wchar_t)wParam, &s_GapBuffer);
     break;
   case WM_KEYDOWN:
     switch (wParam)
     {
     case VK_LEFT:
-      MoveCursorLeft(&s_GapBuffer);
+      mj::GapBufferDecrementCursor(&s_GapBuffer);
       DrawD2DContent();
       break;
     case VK_RIGHT:
-      MoveCursorRight(&s_GapBuffer);
+      mj::GapBufferIncrementCursor(&s_GapBuffer);
       DrawD2DContent();
       break;
     }
@@ -281,31 +283,41 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
   (void)pCmdLine;
   (void)nCmdShow;
 
-  BufferInit(&s_GapBuffer);
-  SetBufferText(&s_GapBuffer, pLoremIpsumShort);
-
   HRESULT hr = S_OK;
 
-  // Register window class.
+  // Init memory for buffer
+  void* pMemory = VirtualAlloc(0, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  if (!pMemory)
   {
-    MJ_UNINITIALIZED WNDCLASSEX wcex;
-    wcex.cbSize        = sizeof(WNDCLASSEX);
-    wcex.style         = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc   = WndProc;
-    wcex.cbClsExtra    = 0;
-    wcex.cbWndExtra    = sizeof(LONG_PTR);
-    wcex.hInstance     = HINST_THISCOMPONENT;
-    wcex.hbrBackground = nullptr;
-    wcex.lpszMenuName  = nullptr;
-    wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
-    wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-    wcex.lpszClassName = TEXT("DemoApp");
-    wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
-
-    hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
+    hr = E_FAIL;
   }
 
-  s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
+  if (SUCCEEDED(hr))
+  {
+    mj::GapBufferInit(&s_GapBuffer, pMemory, ((char*)pMemory) + BUFFER_SIZE);
+    mj::GapBufferSetText(&s_GapBuffer, pLoremIpsum);
+
+    // Register window class.
+    {
+      MJ_UNINITIALIZED WNDCLASSEX wcex;
+      wcex.cbSize        = sizeof(WNDCLASSEX);
+      wcex.style         = CS_HREDRAW | CS_VREDRAW;
+      wcex.lpfnWndProc   = WndProc;
+      wcex.cbClsExtra    = 0;
+      wcex.cbWndExtra    = sizeof(LONG_PTR);
+      wcex.hInstance     = HINST_THISCOMPONENT;
+      wcex.hbrBackground = nullptr;
+      wcex.lpszMenuName  = nullptr;
+      wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
+      wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+      wcex.lpszClassName = TEXT("DemoApp");
+      wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
+
+      hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
+    }
+
+    s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
+  }
 
   // We currently assume that the application will always be created on the primary monitor.
   MJ_UNINITIALIZED UINT dpiX;
@@ -366,7 +378,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     }
   }
 
-  BufferFree(&s_GapBuffer);
+  MJ_DISCARD(VirtualFree(pMemory, 0, MEM_RELEASE));
 
   return 0;
 }
