@@ -20,6 +20,20 @@ static void CursorUpdate(mj::GapBuffer* pBuf)
     CopyMemory(pBuf->pGapBegin, pBuf->pGapEnd, numBytes);
     pBuf->pGapEnd = pBuf->pCursor;
     pBuf->pGapBegin += numBytes;
+    pBuf->pCursor = pBuf->pGapBegin;
+  }
+}
+
+void mj::GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c)
+{
+  CursorUpdate(pBuf);
+  char buf[8];
+  int numBytes = mj::win32::Narrow(buf, &c, 1, sizeof(buf));
+  if (numBytes > 0)
+  {
+    CopyMemory(pBuf->pCursor, buf, numBytes);
+    pBuf->pCursor += numBytes;
+    pBuf->pGapBegin = pBuf->pCursor;
   }
 }
 
@@ -35,7 +49,6 @@ void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
     {
       pBuf->pCursor++;
     }
-    CursorUpdate(pBuf);
   }
 }
 
@@ -51,7 +64,6 @@ void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
     {
       pBuf->pCursor--;
     }
-    CursorUpdate(pBuf);
   }
 }
 

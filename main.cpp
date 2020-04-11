@@ -99,13 +99,12 @@ static HRESULT TextDraw()
 
   // Use the DrawText method of the D2D render target interface to draw.
   static wchar_t buf[1024] = {}; // TODO: Small buffer!
-  int numBytes             = mj::win32::Widen(buf, s_GapBuffer.pBufBegin,
-                                  (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
+  int numBytes =
+      mj::win32::Widen(buf, s_GapBuffer.pBufBegin, (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
   s_pRenderTarget->DrawTextW(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
 
   layoutRect.top += 20;
-  numBytes =
-      mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd), sizeof(buf));
+  numBytes = mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd), sizeof(buf));
   s_pRenderTarget->DrawTextW(buf, numBytes, s_pDWriteTextFormat.Get(), layoutRect, s_pBrush.Get());
 
   // Random rectangle test
@@ -209,7 +208,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   }
     return 0;
   case WM_CHAR:
-    // InsertCharacterAtCursor((wchar_t)wParam, &s_GapBuffer);
+    mj::GapBufferInsertCharacterAtCursor(&s_GapBuffer, (wchar_t)wParam);
+    DrawD2DContent();
     break;
   case WM_KEYDOWN:
     switch (wParam)

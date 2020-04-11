@@ -12,6 +12,7 @@ namespace mj
     char* pCursor;
   };
 
+  void GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c);
   void GapBufferIncrementCursor(GapBuffer* pBuf);
   void GapBufferDecrementCursor(GapBuffer* pBuf);
   void GapBufferInit(GapBuffer* pBuf, void* pBegin, void* pEnd);
