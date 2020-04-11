@@ -1,12 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="buffer.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="DemoApp.cpp" />
+    <ClCompile Include="mj_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mj_common.h" />
     <ClInclude Include="lorem_ipsum.h" />
+    <ClInclude Include="buffer.h" />
+    <ClInclude Include="mj_win32.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />

@@ -84,12 +84,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DemoApp.cpp" />
+    <ClCompile Include="buffer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mj_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="buffer.h" />
     <ClInclude Include="lorem_ipsum.h" />
     <ClInclude Include="mj_common.h" />
+    <ClInclude Include="mj_win32.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />
