@@ -133,9 +133,12 @@ void mj::GapBufferDeleteAtCursor(GapBuffer* pBuf)
 
 void mj::GapBufferBackspaceAtCursor(GapBuffer* pBuf)
 {
-  OutputDebugStringA("BackspaceAtCursor\n");
-  if (pBuf->pCursor > pBuf->pBufBegin)
+  // If cursor is left of gap, cursor must be > buffer begin
+  // If cursor is right of gap, gap begin must be > buffer begin
+  if (((pBuf->pGapBegin >= pBuf->pCursor) && (pBuf->pCursor > pBuf->pBufBegin))     //
+      || ((pBuf->pGapBegin > pBuf->pBufBegin) && (pBuf->pCursor >= pBuf->pGapEnd))) //
   {
+    OutputDebugStringA("BackspaceAtCursor\n");
     CursorUpdate(pBuf);
     pBuf->pCursor--;
     pBuf->pGapBegin--;
