@@ -119,15 +119,17 @@ void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
 
 void mj::GapBufferDeleteAtCursor(GapBuffer* pBuf)
 {
-  if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
+  ptrdiff_t i = 1;
+  if (pBuf->pCursor == pBuf->pGapBegin)
   {
-    if (*(pBuf->pCursor + 1) != '\0')
-    {
-      OutputDebugStringA("DeleteAtCursor\n");
-      CursorUpdate(pBuf);
-      pBuf->pGapEnd++;
-      pBuf->pCursor = pBuf->pGapEnd;
-    }
+    i = (pBuf->pGapEnd - pBuf->pCursor);
+  }
+  if (*(pBuf->pCursor + i) != '\0')
+  {
+    OutputDebugStringA("DeleteAtCursor\n");
+    CursorUpdate(pBuf);
+    pBuf->pGapEnd++;
+    pBuf->pCursor = pBuf->pGapEnd;
   }
 }
 
