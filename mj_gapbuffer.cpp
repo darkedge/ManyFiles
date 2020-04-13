@@ -65,6 +65,18 @@ void mj::GapBufferJumpStartOfLine(GapBuffer* pBuf)
   }
 }
 
+static void IncrementCursorUnchecked(mj::GapBuffer* pBuf)
+{
+  if (pBuf->pCursor == pBuf->pGapBegin)
+  {
+    pBuf->pCursor = pBuf->pGapEnd + 1;
+  }
+  else
+  {
+    pBuf->pCursor++;
+  }
+}
+
 void mj::GapBufferJumpEndOfLine(GapBuffer* pBuf)
 {
   OutputDebugStringA("JumpEndOfLine\n");
@@ -73,7 +85,7 @@ void mj::GapBufferJumpEndOfLine(GapBuffer* pBuf)
          && (*(pBuf->pCursor + 1) != '\n')  //
          && (*(pBuf->pCursor + 1) != '\r')) //
   {
-    pBuf->pCursor++;
+    IncrementCursorUnchecked(pBuf);
   }
 }
 
@@ -84,14 +96,7 @@ void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
     if (*(pBuf->pCursor + 1) != '\0')
     {
       OutputDebugStringA("IncrementCursor\n");
-      if (pBuf->pCursor == pBuf->pGapBegin)
-      {
-        pBuf->pCursor = pBuf->pGapEnd + 1;
-      }
-      else
-      {
-        pBuf->pCursor++;
-      }
+      IncrementCursorUnchecked(pBuf);
     }
   }
 }
