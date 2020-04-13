@@ -22,7 +22,7 @@ static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
 static constexpr float MJ_96_DPI = 96.0f;
 // In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
 static constexpr float MJ_POINT = (1.0f / 72.0f);
-static float s_BaseDpiScale;
+static float s_BaseDpiScaleInv;
 
 // __ImageBase is better than GetCurrentModule()
 // Can be cast to a HINSTANCE
@@ -90,8 +90,8 @@ static HRESULT CreateDeviceResources()
   // Create a text layout using the text format.
   if (SUCCEEDED(hr))
   {
-    float width  = rect.right / s_BaseDpiScale;
-    float height = rect.bottom / s_BaseDpiScale;
+    float width  = rect.right * s_BaseDpiScaleInv;
+    float height = rect.bottom * s_BaseDpiScaleInv;
 
     wchar_t buf[1024]; // TODO: Small buffer!
     int numBytes =
@@ -125,9 +125,9 @@ static HRESULT TextDraw()
 
   // Create a D2D rect that is the same size as the window.
   D2D1_RECT_F layoutRect =
-      D2D1::RectF(static_cast<FLOAT>(rect.top) / s_BaseDpiScale, static_cast<FLOAT>(rect.left) / s_BaseDpiScale,
-                  static_cast<FLOAT>(rect.right - rect.left) / s_BaseDpiScale,
-                  static_cast<FLOAT>(rect.bottom - rect.top) / s_BaseDpiScale);
+      D2D1::RectF(static_cast<FLOAT>(rect.top) * s_BaseDpiScaleInv, static_cast<FLOAT>(rect.left) / s_BaseDpiScaleInv,
+                  static_cast<FLOAT>(rect.right - rect.left) / s_BaseDpiScaleInv,
+                  static_cast<FLOAT>(rect.bottom - rect.top) / s_BaseDpiScaleInv);
 
   // Use the DrawText method of the D2D render target interface to draw.
   static wchar_t buf[1024] = {}; // TODO: Small buffer!
@@ -185,7 +185,7 @@ static void CalculateDpiScale()
 
 static FLOAT ConvertPointSizeToDIP(FLOAT points)
 {
-  return (points * MJ_POINT) * MJ_96_DPI * s_DpiScale / s_BaseDpiScale;
+  return (points * MJ_POINT) * MJ_96_DPI * s_DpiScale * s_BaseDpiScaleInv;
 }
 
 static HRESULT CreateDeviceIndependentResources()
@@ -251,8 +251,8 @@ static void OnClick(UINT x, UINT y)
   BOOL isTrailingHit;
   BOOL isInside;
 
-  s_pTextLayout->HitTestPoint(((FLOAT)x) / s_BaseDpiScale, ((FLOAT)y - 40) / s_BaseDpiScale, &isTrailingHit, &isInside,
-                              &hitTestMetrics);
+  s_pTextLayout->HitTestPoint(((FLOAT)x) * s_BaseDpiScaleInv, ((FLOAT)y - 40) / s_BaseDpiScaleInv, &isTrailingHit,
+                              &isInside, &hitTestMetrics);
 
   if (isInside == TRUE)
   {
@@ -416,8 +416,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
   hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
   if (SUCCEEDED(hr))
   {
-    s_DpiScale     = (float)dpiX / MJ_96_DPI;
-    s_BaseDpiScale = s_DpiScale;
+    s_DpiScale        = (float)dpiX / MJ_96_DPI;
+    s_BaseDpiScaleInv = s_DpiScale;
   }
 
   if (SUCCEEDED(hr))
