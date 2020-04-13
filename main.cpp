@@ -12,6 +12,7 @@
 #include "mj_gapbuffer.h"
 #include "mj_win32.h"
 #include <string>
+#include <vector>
 
 static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 static constexpr UINT WINDOW_WIDTH  = 640;
@@ -46,9 +47,8 @@ static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
 
 // DirectWrite
 static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
-static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormatAlignLeft;
-static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormatAlignRight;
-static Microsoft::WRL::ComPtr<IDWriteTextLayout> s_pTextLayout;
+static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormat;
+static std::vector<Microsoft::WRL::ComPtr<IDWriteTextLayout>> s_Lines;
 
 static mj::GapBuffer s_GapBuffer;
 
@@ -100,18 +100,19 @@ static HRESULT CreateDeviceResources()
                                  sizeof(buf) - numBytes);
     s_Line = std::wstring(buf);
 
+    s_Lines.resize(1);
     hr = s_pDWriteFactory->CreateTextLayout(
         s_Line.c_str(),               // The string to be laid out and formatted.
         (UINT32)(s_Line.length()),    // The length of the string.
-        s_pTextFormatAlignLeft.Get(), // The text format to apply to the string (contains font information, etc).
+        s_pTextFormat.Get(), // The text format to apply to the string (contains font information, etc).
         width,                        // The width of the layout box.
         height,                       // The height of the layout box.
-        s_pTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
+        s_Lines[0].ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
     );
 
     size_t position             = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
     DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
-    s_pTextLayout->SetUnderline(true, textRange);
+    s_Lines[0]->SetUnderline(true, textRange);
   }
 
   return hr;
@@ -129,21 +130,12 @@ static HRESULT TextDraw()
                   static_cast<FLOAT>(rect.right - rect.left) / s_BaseDpiScaleInv,
                   static_cast<FLOAT>(rect.bottom - rect.top) / s_BaseDpiScaleInv);
 
-  // Use the DrawText method of the D2D render target interface to draw.
-  static wchar_t buf[1024] = {}; // TODO: Small buffer!
-  int numBytes =
-      mj::win32::Widen(buf, s_GapBuffer.pBufBegin, (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
-  s_pRenderTarget->DrawText(buf, numBytes, s_pTextFormatAlignLeft.Get(), layoutRect, s_pBrush.Get(),
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-  layoutRect.top += 20;
-  numBytes = mj::win32::Widen(buf, s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd), sizeof(buf));
-  s_pRenderTarget->DrawText(buf, numBytes, s_pTextFormatAlignRight.Get(), layoutRect, s_pBrush.Get(),
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-  s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 40.0f }, s_pTextLayout.Get(), s_pBrush.Get(),
+  // Use the DrawTextLayout method of the D2D render target interface to draw.
+  for(auto pTextLayout : s_Lines)
+  {
+  s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextLayout.Get(), s_pBrush.Get(),
                                   D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
+  }
   return S_OK;
 }
 
@@ -215,31 +207,12 @@ static HRESULT CreateDeviceIndependentResources()
         L"Consolas", // Font family name.
         nullptr,     // Font collection (nullptr sets it to use the system font collection).
         DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, ConvertPointSizeToDIP(11.0f),
-        L"en-us", s_pTextFormatAlignLeft.ReleaseAndGetAddressOf());
+        L"en-us", s_pTextFormat.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
-    s_pTextFormatAlignLeft->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    hr = s_pDWriteFactory->CreateTextFormat(
-        L"Consolas", // Font family name.
-        nullptr,     // Font collection (nullptr sets it to use the system font collection).
-        DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, ConvertPointSizeToDIP(11.0f),
-        L"en-us", s_pTextFormatAlignRight.ReleaseAndGetAddressOf());
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    s_pTextFormatAlignRight->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    s_pTextFormatAlignRight->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    s_pTextFormat->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
   }
 
   return hr;
@@ -251,15 +224,15 @@ static void OnClick(UINT x, UINT y)
   BOOL isTrailingHit;
   BOOL isInside;
 
-  s_pTextLayout->HitTestPoint(((FLOAT)x) * s_BaseDpiScaleInv, ((FLOAT)y - 40) / s_BaseDpiScaleInv, &isTrailingHit,
+  s_Lines[0]->HitTestPoint(((FLOAT)x) * s_BaseDpiScaleInv, ((FLOAT)y) / s_BaseDpiScaleInv, &isTrailingHit,
                               &isInside, &hitTestMetrics);
 
   if (isInside == TRUE)
   {
     BOOL underline;
-    s_pTextLayout->GetUnderline(hitTestMetrics.textPosition, &underline);
+    s_Lines[0]->GetUnderline(hitTestMetrics.textPosition, &underline);
     DWRITE_TEXT_RANGE textRange = { hitTestMetrics.textPosition, 1 };
-    s_pTextLayout->SetUnderline(!underline, textRange);
+    s_Lines[0]->SetUnderline(!underline, textRange);
   }
 }
 
