@@ -11,10 +11,9 @@
 #include "loremipsum.h"
 #include "mj_gapbuffer.h"
 #include "mj_win32.h"
+#include "mj_textedit.h"
 #include <string>
-#include <vector>
 
-static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 static constexpr UINT WINDOW_WIDTH  = 640;
 static constexpr UINT WINDOW_HEIGHT = 480;
 static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
@@ -33,7 +32,6 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #endif
 
 static HWND s_Hwnd;
-static std::wstring s_Line;
 
 static HCURSOR s_cursorType;
 
@@ -48,9 +46,8 @@ static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
 // DirectWrite
 static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormat;
-static std::vector<Microsoft::WRL::ComPtr<IDWriteTextLayout>> s_Lines;
 
-static mj::GapBuffer s_GapBuffer;
+static mj::TextEdit s_TextEdit;
 
 static void OnResize(UINT width, UINT height)
 {
@@ -87,56 +84,15 @@ static HRESULT CreateDeviceResources()
     }
   }
 
-  // Create a text layout using the text format.
   if (SUCCEEDED(hr))
   {
+    // Create a text layout using the text format.
     float width  = rect.right * s_BaseDpiScaleInv;
     float height = rect.bottom * s_BaseDpiScaleInv;
-
-    wchar_t buf[1024]; // TODO: Small buffer!
-    int numBytes =
-        mj::win32::Widen(buf, s_GapBuffer.pBufBegin, (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
-    numBytes += mj::win32::Widen(&buf[numBytes], s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd),
-                                 sizeof(buf) - numBytes);
-    s_Line = std::wstring(buf);
-
-    s_Lines.resize(1);
-    hr = s_pDWriteFactory->CreateTextLayout(
-        s_Line.c_str(),               // The string to be laid out and formatted.
-        (UINT32)(s_Line.length()),    // The length of the string.
-        s_pTextFormat.Get(), // The text format to apply to the string (contains font information, etc).
-        width,                        // The width of the layout box.
-        height,                       // The height of the layout box.
-        s_Lines[0].ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
-    );
-
-    size_t position             = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
-    DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
-    s_Lines[0]->SetUnderline(true, textRange);
+    hr = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory.Get(), s_pTextFormat.Get(), width, height);
   }
 
   return hr;
-}
-
-static HRESULT TextDraw()
-{
-  MJ_UNINITIALIZED RECT rect;
-
-  GetClientRect(s_Hwnd, &rect);
-
-  // Create a D2D rect that is the same size as the window.
-  D2D1_RECT_F layoutRect =
-      D2D1::RectF(static_cast<FLOAT>(rect.top) * s_BaseDpiScaleInv, static_cast<FLOAT>(rect.left) / s_BaseDpiScaleInv,
-                  static_cast<FLOAT>(rect.right - rect.left) / s_BaseDpiScaleInv,
-                  static_cast<FLOAT>(rect.bottom - rect.top) / s_BaseDpiScaleInv);
-
-  // Use the DrawTextLayout method of the D2D render target interface to draw.
-  for(auto pTextLayout : s_Lines)
-  {
-  s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextLayout.Get(), s_pBrush.Get(),
-                                  D2D1_DRAW_TEXT_OPTIONS_CLIP);
-  }
-  return S_OK;
 }
 
 static HRESULT DrawD2DContent()
@@ -151,7 +107,7 @@ static HRESULT DrawD2DContent()
 
     if (SUCCEEDED(hr))
     {
-      TextDraw();
+      mj::TextEditDraw(&s_TextEdit, s_pRenderTarget.Get(), s_pBrush.Get());
     }
 
     if (SUCCEEDED(hr))
@@ -218,24 +174,6 @@ static HRESULT CreateDeviceIndependentResources()
   return hr;
 }
 
-static void OnClick(UINT x, UINT y)
-{
-  DWRITE_HIT_TEST_METRICS hitTestMetrics;
-  BOOL isTrailingHit;
-  BOOL isInside;
-
-  s_Lines[0]->HitTestPoint(((FLOAT)x) * s_BaseDpiScaleInv, ((FLOAT)y) / s_BaseDpiScaleInv, &isTrailingHit,
-                              &isInside, &hitTestMetrics);
-
-  if (isInside == TRUE)
-  {
-    BOOL underline;
-    s_Lines[0]->GetUnderline(hitTestMetrics.textPosition, &underline);
-    DWRITE_TEXT_RANGE textRange = { hitTestMetrics.textPosition, 1 };
-    s_Lines[0]->SetUnderline(!underline, textRange);
-  }
-}
-
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
@@ -243,7 +181,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   case WM_LBUTTONDOWN:
   {
     POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-    OnClick(pt.x, pt.y);
+    mj::TextEditOnClick(&s_TextEdit, pt.x, pt.y);
     if (DragDetect(hwnd, pt))
     {
       // Start dragging.
@@ -254,7 +192,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   case WM_CHAR:
     if (iswprint((wint_t)wParam))
     {
-      mj::GapBufferInsertCharacterAtCursor(&s_GapBuffer, (wchar_t)wParam);
+      mj::TextEditWndProc(&s_TextEdit, hwnd, message, wParam, lParam);
       DrawD2DContent();
     }
     break;
@@ -262,27 +200,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     switch (wParam)
     {
     case VK_HOME:
-      mj::GapBufferJumpStartOfLine(&s_GapBuffer);
-      DrawD2DContent();
-      break;
     case VK_END:
-      mj::GapBufferJumpEndOfLine(&s_GapBuffer);
-      DrawD2DContent();
-      break;
     case VK_LEFT:
-      mj::GapBufferDecrementCursor(&s_GapBuffer);
-      DrawD2DContent();
-      break;
     case VK_RIGHT:
-      mj::GapBufferIncrementCursor(&s_GapBuffer);
-      DrawD2DContent();
-      break;
     case VK_DELETE:
-      mj::GapBufferDeleteAtCursor(&s_GapBuffer);
-      DrawD2DContent();
-      break;
     case VK_BACK:
-      mj::GapBufferBackspaceAtCursor(&s_GapBuffer);
+      mj::TextEditWndProc(&s_TextEdit, hwnd, message, wParam, lParam);
       DrawD2DContent();
       break;
     }
@@ -347,20 +270,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
   (void)pCmdLine;
   (void)nCmdShow;
 
-  HRESULT hr = S_OK;
-
-  // Init memory for buffer
-  void* pMemory = VirtualAlloc(0, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-  if (!pMemory)
-  {
-    hr = E_FAIL;
-  }
+  HRESULT hr = mj::TextEditInit(&s_TextEdit);
 
   if (SUCCEEDED(hr))
   {
-    mj::GapBufferInit(&s_GapBuffer, pMemory, ((char*)pMemory) + BUFFER_SIZE);
-    mj::GapBufferSetText(&s_GapBuffer, pLoremIpsum);
-
     // Register window class.
     {
       MJ_UNINITIALIZED WNDCLASSEX wcex;
@@ -442,7 +355,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     }
   }
 
-  MJ_DISCARD(VirtualFree(pMemory, 0, MEM_RELEASE));
+  mj::TextEditDestroy(&s_TextEdit);
 
   return 0;
 }

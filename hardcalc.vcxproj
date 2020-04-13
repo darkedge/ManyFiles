@@ -86,12 +86,14 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mj_gapbuffer.cpp" />
+    <ClCompile Include="mj_textedit.cpp" />
     <ClCompile Include="mj_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lorem_ipsum.h" />
     <ClInclude Include="mj_common.h" />
     <ClInclude Include="mj_gapbuffer.h" />
+    <ClInclude Include="mj_textedit.h" />
     <ClInclude Include="mj_win32.h" />
   </ItemGroup>
   <ItemGroup>
