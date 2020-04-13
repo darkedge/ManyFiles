@@ -95,26 +95,26 @@ static HRESULT CreateDeviceResources()
 
     wchar_t buf[1024]; // TODO: Small buffer!
     int numBytes =
-        mj::win32::Widen(buf, s_GapBuffer.pBufBegin, s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin, sizeof(buf));
-    numBytes += mj::win32::Widen(&buf[numBytes], s_GapBuffer.pGapEnd, s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd,
+        mj::win32::Widen(buf, s_GapBuffer.pBufBegin, (int)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin), sizeof(buf));
+    numBytes += mj::win32::Widen(&buf[numBytes], s_GapBuffer.pGapEnd, (int)(s_GapBuffer.pBufEnd - s_GapBuffer.pGapEnd),
                                  sizeof(buf) - numBytes);
     s_Line = std::wstring(buf);
 
     hr = s_pDWriteFactory->CreateTextLayout(
-        s_Line.c_str(),            // The string to be laid out and formatted.
-        s_Line.length(),           // The length of the string.
+        s_Line.c_str(),               // The string to be laid out and formatted.
+        (UINT32)(s_Line.length()),    // The length of the string.
         s_pTextFormatAlignLeft.Get(), // The text format to apply to the string (contains font information, etc).
-        width,                     // The width of the layout box.
-        height,                    // The height of the layout box.
+        width,                        // The width of the layout box.
+        height,                       // The height of the layout box.
         s_pDWriteTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
     );
 
-    unsigned int position       = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
-    DWRITE_TEXT_RANGE textRange = { position, 1 };
+    size_t position             = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
+    DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
     s_pDWriteTextLayout->SetUnderline(true, textRange);
 
     // gapbegin
-    UINT32 a = s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin;
+    UINT32 a = (UINT32)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin);
     s_pDWriteTextLayout->SetStrikethrough(true, DWRITE_TEXT_RANGE{ a, 1 });
   }
 

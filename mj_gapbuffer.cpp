@@ -24,17 +24,17 @@ static void CursorUpdate(mj::GapBuffer* pBuf)
   pBuf->pCursor = pBuf->pGapBegin;
 }
 
-unsigned int mj::GapBufferGetVirtualCursorPosition(const GapBuffer* pBuf)
+size_t mj::GapBufferGetVirtualCursorPosition(const GapBuffer* pBuf)
 {
-  unsigned int position = 0;
+  size_t position = 0;
   if (pBuf->pCursor >= pBuf->pGapEnd)
   {
-    position += pBuf->pCursor - pBuf->pGapEnd;
-    position += pBuf->pGapBegin - pBuf->pBufBegin;
+    position += (size_t)(pBuf->pCursor - pBuf->pGapEnd);
+    position += (size_t)(pBuf->pGapBegin - pBuf->pBufBegin);
   }
   else
   {
-    position += pBuf->pCursor - pBuf->pBufBegin;
+    position += (size_t)(pBuf->pCursor - pBuf->pBufBegin);
   }
 
   return position;
