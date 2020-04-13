@@ -68,9 +68,9 @@ void mj::TextEditWndProc(TextEdit* pTextEdit, HWND hwnd, UINT message, WPARAM wP
 void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush)
 {
   // Use the DrawTextLayout method of the D2D render target interface to draw.
-  for (auto pTextLayout : pTextEdit->lines)
+  for (auto line : pTextEdit->lines)
   {
-    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextLayout.Get(), pBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, line.pTextLayout.Get(), pBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
   }
 }
 
@@ -105,21 +105,21 @@ HRESULT mj::TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* p
                                   (int)(pTextEdit->buf.pGapBegin - pTextEdit->buf.pBufBegin), sizeof(buf));
   numBytes += mj::win32::Widen(&buf[numBytes], pTextEdit->buf.pGapEnd,
                                (int)(pTextEdit->buf.pBufEnd - pTextEdit->buf.pGapEnd), sizeof(buf) - numBytes);
-  pTextEdit->line = std::wstring(buf);
 
   pTextEdit->lines.resize(1);
+  pTextEdit->lines[0].text = std::wstring(buf);
   HRESULT hr = pFactory->CreateTextLayout(
-      pTextEdit->line.c_str(),            // The string to be laid out and formatted.
-      (UINT32)(pTextEdit->line.length()), // The length of the string.
+      pTextEdit->lines[0].text.c_str(),            // The string to be laid out and formatted.
+      (UINT32)(pTextEdit->lines[0].text.length()), // The length of the string.
       pTextFormat,                        // The text format to apply to the string (contains font information, etc).
       width,                              // The width of the layout box.
       height,                             // The height of the layout box.
-      pTextEdit->lines[0].ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
+      pTextEdit->lines[0].pTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
   );
 
   size_t position             = mj::GapBufferGetVirtualCursorPosition(&pTextEdit->buf);
   DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
-  pTextEdit->lines[0]->SetUnderline(true, textRange);
+  pTextEdit->lines[0].pTextLayout->SetUnderline(true, textRange);
 
   return hr;
 }

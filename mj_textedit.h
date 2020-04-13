@@ -8,15 +8,21 @@
 
 namespace mj
 {
+  struct TextEditLine
+  {
+    std::wstring text;
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> pTextLayout;
+  };
+
   struct TextEdit
   {
     void* pMemory;
-    std::vector<Microsoft::WRL::ComPtr<IDWriteTextLayout>> lines;
-    std::wstring line;
+    std::vector<TextEditLine> lines;
     mj::GapBuffer buf;
   };
 
-  HRESULT TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, float width, float height);
+  HRESULT TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
+                                        float width, float height);
   void TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y);
   HRESULT TextEditInit(TextEdit* pTextEdit);
   void TextEditWndProc(TextEdit* pTextEdit, HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
