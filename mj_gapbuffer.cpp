@@ -42,34 +42,15 @@ unsigned int mj::GapBufferGetVirtualCursorPosition(const GapBuffer* pBuf)
 
 void mj::GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c)
 {
-  OutputDebugStringA("InsertCharacterAtCursor\n");
   CursorUpdate(pBuf);
   char buf[8];
   int numBytes = mj::win32::Narrow(buf, &c, 1, sizeof(buf));
   if (numBytes > 0)
   {
+    OutputDebugStringA("InsertCharacterAtCursor\n");
     CopyMemory(pBuf->pCursor, buf, numBytes);
     pBuf->pCursor += numBytes;
     pBuf->pGapBegin = pBuf->pCursor;
-  }
-}
-
-void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
-{
-  OutputDebugStringA("IncrementCursor\n");
-  if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
-  {
-    if (*(pBuf->pCursor + 1) != '\0')
-    {
-      if (pBuf->pCursor == pBuf->pGapBegin)
-      {
-        pBuf->pCursor = pBuf->pGapEnd + 1;
-      }
-      else
-      {
-        pBuf->pCursor++;
-      }
-    }
   }
 }
 
@@ -96,11 +77,30 @@ void mj::GapBufferJumpEndOfLine(GapBuffer* pBuf)
   }
 }
 
+void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
+{
+  if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
+  {
+    if (*(pBuf->pCursor + 1) != '\0')
+    {
+      OutputDebugStringA("IncrementCursor\n");
+      if (pBuf->pCursor == pBuf->pGapBegin)
+      {
+        pBuf->pCursor = pBuf->pGapEnd + 1;
+      }
+      else
+      {
+        pBuf->pCursor++;
+      }
+    }
+  }
+}
+
 void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
 {
-  OutputDebugStringA("DecrementCursor\n");
   if (pBuf->pCursor > pBuf->pBufBegin)
   {
+    OutputDebugStringA("DecrementCursor\n");
     if (pBuf->pCursor == pBuf->pGapEnd)
     {
       pBuf->pCursor = pBuf->pGapBegin - 1;
@@ -114,13 +114,14 @@ void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
 
 void mj::GapBufferDeleteAtCursor(GapBuffer* pBuf)
 {
-  OutputDebugStringA("DeleteAtCursor\n");
   if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
   {
     if (*(pBuf->pCursor + 1) != '\0')
     {
+      OutputDebugStringA("DeleteAtCursor\n");
       CursorUpdate(pBuf);
       pBuf->pGapEnd++;
+      pBuf->pCursor = pBuf->pGapEnd;
     }
   }
 }
