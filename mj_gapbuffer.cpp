@@ -42,6 +42,7 @@ unsigned int mj::GapBufferGetVirtualCursorPosition(const GapBuffer* pBuf)
 
 void mj::GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c)
 {
+  OutputDebugStringA("InsertCharacterAtCursor\n");
   CursorUpdate(pBuf);
   char buf[8];
   int numBytes = mj::win32::Narrow(buf, &c, 1, sizeof(buf));
@@ -55,21 +56,49 @@ void mj::GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c)
 
 void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
 {
-  if (pBuf->pCursor < (pBuf->pBufEnd - 1)) // Note: Skip last '\0' due to pasted text
+  OutputDebugStringA("IncrementCursor\n");
+  if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
   {
-    if (pBuf->pCursor == pBuf->pGapBegin)
+    if (*(pBuf->pCursor + 1) != '\0')
     {
-      pBuf->pCursor = pBuf->pGapEnd + 1;
+      if (pBuf->pCursor == pBuf->pGapBegin)
+      {
+        pBuf->pCursor = pBuf->pGapEnd + 1;
+      }
+      else
+      {
+        pBuf->pCursor++;
+      }
     }
-    else
-    {
-      pBuf->pCursor++;
-    }
+  }
+}
+
+void mj::GapBufferJumpStartOfLine(GapBuffer* pBuf)
+{
+  OutputDebugStringA("JumpStartOfLine\n");
+  while ((pBuf->pCursor > pBuf->pBufBegin)  //
+         && (*(pBuf->pCursor - 1) != '\n')  //
+         && (*(pBuf->pCursor - 1) != '\r')) //
+  {
+    pBuf->pCursor--;
+  }
+}
+
+void mj::GapBufferJumpEndOfLine(GapBuffer* pBuf)
+{
+  OutputDebugStringA("JumpEndOfLine\n");
+  while ((pBuf->pCursor < pBuf->pBufEnd)    //
+         && (*(pBuf->pCursor + 1) != '\0')  //
+         && (*(pBuf->pCursor + 1) != '\n')  //
+         && (*(pBuf->pCursor + 1) != '\r')) //
+  {
+    pBuf->pCursor++;
   }
 }
 
 void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
 {
+  OutputDebugStringA("DecrementCursor\n");
   if (pBuf->pCursor > pBuf->pBufBegin)
   {
     if (pBuf->pCursor == pBuf->pGapEnd)
@@ -85,15 +114,20 @@ void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
 
 void mj::GapBufferDeleteAtCursor(GapBuffer* pBuf)
 {
-  if (pBuf->pCursor < (pBuf->pBufEnd - 1)) // Note: Skip last '\0' due to pasted text
+  OutputDebugStringA("DeleteAtCursor\n");
+  if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
   {
-    CursorUpdate(pBuf);
-    pBuf->pGapEnd++;
+    if (*(pBuf->pCursor + 1) != '\0')
+    {
+      CursorUpdate(pBuf);
+      pBuf->pGapEnd++;
+    }
   }
 }
 
 void mj::GapBufferBackspaceAtCursor(GapBuffer* pBuf)
 {
+  OutputDebugStringA("BackspaceAtCursor\n");
   if (pBuf->pCursor > pBuf->pBufBegin)
   {
     CursorUpdate(pBuf);

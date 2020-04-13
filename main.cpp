@@ -108,9 +108,13 @@ static HRESULT CreateDeviceResources()
         s_pDWriteTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
     );
 
-    unsigned int position = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
+    unsigned int position       = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
     DWRITE_TEXT_RANGE textRange = { position, 1 };
     s_pDWriteTextLayout->SetUnderline(true, textRange);
+
+    // gapbegin
+    UINT32 a = s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin;
+    s_pDWriteTextLayout->SetStrikethrough(true, DWRITE_TEXT_RANGE{ a, 1 });
   }
 
   return hr;
@@ -142,10 +146,6 @@ static HRESULT TextDraw()
 
   s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 40.0f }, s_pDWriteTextLayout.Get(), s_pBrush.Get(),
                                   D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-  // Random rectangle test
-  s_pRenderTarget->DrawRectangle(D2D1_RECT_F{ 50.0f, 50.0f, 100.0f / s_BaseDpiScale, 100.0f / s_BaseDpiScale },
-                                 s_pBrush.Get());
 
   return S_OK;
 }
@@ -252,6 +252,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   case WM_KEYDOWN:
     switch (wParam)
     {
+    case VK_HOME:
+      mj::GapBufferJumpStartOfLine(&s_GapBuffer);
+      DrawD2DContent();
+      break;
+    case VK_END:
+      mj::GapBufferJumpEndOfLine(&s_GapBuffer);
+      DrawD2DContent();
+      break;
     case VK_LEFT:
       mj::GapBufferDecrementCursor(&s_GapBuffer);
       DrawD2DContent();

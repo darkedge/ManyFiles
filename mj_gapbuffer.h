@@ -13,6 +13,8 @@ namespace mj
   };
 
   unsigned int GapBufferGetVirtualCursorPosition(const GapBuffer* pBuf);
+  void GapBufferJumpEndOfLine(GapBuffer* pBuf);
+  void GapBufferJumpStartOfLine(GapBuffer* pBuf);
   void GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c);
   void GapBufferIncrementCursor(GapBuffer* pBuf);
   void GapBufferDecrementCursor(GapBuffer* pBuf);
