@@ -8,11 +8,7 @@
 #include <shellscalingapi.h> // MDT_EFFECTIVE_DPI
 
 #include "mj_common.h"
-#include "loremipsum.h"
-#include "mj_gapbuffer.h"
-#include "mj_win32.h"
 #include "mj_textedit.h"
-#include <string>
 
 static constexpr UINT WINDOW_WIDTH  = 640;
 static constexpr UINT WINDOW_HEIGHT = 480;
