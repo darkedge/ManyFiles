@@ -48,7 +48,7 @@ static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
 static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormatAlignLeft;
 static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormatAlignRight;
-static Microsoft::WRL::ComPtr<IDWriteTextLayout> s_pDWriteTextLayout;
+static Microsoft::WRL::ComPtr<IDWriteTextLayout> s_pTextLayout;
 
 static mj::GapBuffer s_GapBuffer;
 
@@ -106,16 +106,12 @@ static HRESULT CreateDeviceResources()
         s_pTextFormatAlignLeft.Get(), // The text format to apply to the string (contains font information, etc).
         width,                        // The width of the layout box.
         height,                       // The height of the layout box.
-        s_pDWriteTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
+        s_pTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
     );
 
     size_t position             = mj::GapBufferGetVirtualCursorPosition(&s_GapBuffer);
     DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
-    s_pDWriteTextLayout->SetUnderline(true, textRange);
-
-    // gapbegin
-    UINT32 a = (UINT32)(s_GapBuffer.pGapBegin - s_GapBuffer.pBufBegin);
-    s_pDWriteTextLayout->SetStrikethrough(true, DWRITE_TEXT_RANGE{ a, 1 });
+    s_pTextLayout->SetUnderline(true, textRange);
   }
 
   return hr;
@@ -145,7 +141,7 @@ static HRESULT TextDraw()
   s_pRenderTarget->DrawText(buf, numBytes, s_pTextFormatAlignRight.Get(), layoutRect, s_pBrush.Get(),
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-  s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 40.0f }, s_pDWriteTextLayout.Get(), s_pBrush.Get(),
+  s_pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 40.0f }, s_pTextLayout.Get(), s_pBrush.Get(),
                                   D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
   return S_OK;
@@ -249,6 +245,24 @@ static HRESULT CreateDeviceIndependentResources()
   return hr;
 }
 
+static void OnClick(UINT x, UINT y)
+{
+  DWRITE_HIT_TEST_METRICS hitTestMetrics;
+  BOOL isTrailingHit;
+  BOOL isInside;
+
+  s_pTextLayout->HitTestPoint(((FLOAT)x) / s_BaseDpiScale, ((FLOAT)y - 40) / s_BaseDpiScale, &isTrailingHit, &isInside,
+                              &hitTestMetrics);
+
+  if (isInside == TRUE)
+  {
+    BOOL underline;
+    s_pTextLayout->GetUnderline(hitTestMetrics.textPosition, &underline);
+    DWRITE_TEXT_RANGE textRange = { hitTestMetrics.textPosition, 1 };
+    s_pTextLayout->SetUnderline(!underline, textRange);
+  }
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
@@ -256,12 +270,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   case WM_LBUTTONDOWN:
   {
     POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+    OnClick(pt.x, pt.y);
     if (DragDetect(hwnd, pt))
     {
       // Start dragging.
     }
+    DrawD2DContent();
   }
-    return 0;
+  break;
   case WM_CHAR:
     if (iswprint((wint_t)wParam))
     {
