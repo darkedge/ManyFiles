@@ -2,12 +2,24 @@
 #include "mj_common.h"
 #include "mj_win32.h"
 #include "loremipsum.h"
+#include "stretchy_buffer.h"
 
 static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 
+static size_t StringLengthWide(const wchar_t* pString)
+{
+  size_t length = 0;
+  while (pString[length] != L'\0')
+  {
+    ++length;
+  }
+  return length;
+}
+
 HRESULT mj::TextEditInit(TextEdit* pTextEdit)
 {
-  HRESULT hr = S_OK;
+  pTextEdit->pLines = nullptr;
+  HRESULT hr        = S_OK;
   // Init memory for buffer
   pTextEdit->pMemory = VirtualAlloc(0, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   if (!pTextEdit->pMemory)
@@ -68,9 +80,10 @@ void mj::TextEditWndProc(TextEdit* pTextEdit, HWND hwnd, UINT message, WPARAM wP
 void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush)
 {
   // Use the DrawTextLayout method of the D2D render target interface to draw.
-  for (auto line : pTextEdit->lines)
+  for (size_t i = 0; i < sb_count(pTextEdit->pLines); i++)
   {
-    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, line.pTextLayout.Get(), pBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextEdit->pLines[i].pTextLayout, pBrush,
+                                  D2D1_DRAW_TEXT_OPTIONS_CLIP);
   }
 }
 
@@ -101,25 +114,38 @@ HRESULT mj::TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* p
                                           float width, float height)
 {
   wchar_t buf[1024]; // TODO: Small buffer!
-  int numBytes = mj::win32::Widen(buf, pTextEdit->buf.pBufBegin,
-                                  (int)(pTextEdit->buf.pGapBegin - pTextEdit->buf.pBufBegin), sizeof(buf));
-  numBytes += mj::win32::Widen(&buf[numBytes], pTextEdit->buf.pGapEnd,
-                               (int)(pTextEdit->buf.pBufEnd - pTextEdit->buf.pGapEnd), sizeof(buf) - numBytes);
+  int numCharacters = mj::win32::Widen(buf, pTextEdit->buf.pBufBegin,
+                                       (int)(pTextEdit->buf.pGapBegin - pTextEdit->buf.pBufBegin), _countof(buf));
+  numCharacters +=
+      mj::win32::Widen(&buf[numCharacters], pTextEdit->buf.pGapEnd,
+                       (int)(pTextEdit->buf.pBufEnd - pTextEdit->buf.pGapEnd), _countof(buf) - numCharacters);
 
-  pTextEdit->lines.resize(1);
-  pTextEdit->lines[0].text = std::wstring(buf);
+  for (int i = 0; i < sb_count(pTextEdit->pLines); i++)
+  {
+    if (pTextEdit->pLines[i].pTextLayout)
+      pTextEdit->pLines[i].pTextLayout->Release();
+    delete[] pTextEdit->pLines[i].pText;
+  }
+  sb_free(pTextEdit->pLines);
+  pTextEdit->pLines = 0;
+  TextEditLine line;
+  line.pText = new wchar_t[numCharacters];
+  memcpy(line.pText, buf, numCharacters * sizeof(wchar_t));
+  line.textLength = numCharacters;
+  sb_push(pTextEdit->pLines, line);
+
   HRESULT hr = pFactory->CreateTextLayout(
-      pTextEdit->lines[0].text.c_str(),            // The string to be laid out and formatted.
-      (UINT32)(pTextEdit->lines[0].text.length()), // The length of the string.
-      pTextFormat,                        // The text format to apply to the string (contains font information, etc).
-      width,                              // The width of the layout box.
-      height,                             // The height of the layout box.
-      pTextEdit->lines[0].pTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
+      pTextEdit->pLines[0].pText,                // The string to be laid out and formatted.
+      (UINT32)(pTextEdit->pLines[0].textLength), // The length of the string.
+      pTextFormat, // The text format to apply to the string (contains font information, etc).
+      width,       // The width of the layout box.
+      height,      // The height of the layout box.
+      &pTextEdit->pLines[0].pTextLayout // The IDWriteTextLayout interface pointer.
   );
 
   size_t position             = mj::GapBufferGetVirtualCursorPosition(&pTextEdit->buf);
   DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
-  pTextEdit->lines[0].pTextLayout->SetUnderline(true, textRange);
+  pTextEdit->pLines[0].pTextLayout->SetUnderline(true, textRange);
 
   return hr;
 }

@@ -22,17 +22,17 @@ int mj::win32::Narrow(char* dst, const wchar_t* src, int srcLength, int bufferSi
 
 int mj::win32::Widen(wchar_t* dst, const char* src, int srcLength, int bufferSize)
 {
-  int numBytes = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, srcLength, nullptr, 0);
-  if (numBytes > 0)
+  int numCharacters = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, srcLength, nullptr, 0);
+  if (numCharacters > 0)
   {
     // Buffer overrun protection
-    if (numBytes > bufferSize)
+    if (numCharacters > bufferSize)
     {
-      numBytes            = bufferSize - 1;
+      numCharacters            = bufferSize - 1;
       dst[bufferSize - 1] = '\0';
     }
 
-    numBytes = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, srcLength, dst, numBytes);
+    numCharacters = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, srcLength, dst, numCharacters);
   }
-  return numBytes;
+  return numCharacters;
 }

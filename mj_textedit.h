@@ -1,8 +1,5 @@
 #pragma once
-#include <wrl/client.h>
 #include <dwrite.h>
-#include <vector>
-#include <string>
 #include <d2d1.h>
 #include "mj_gapbuffer.h"
 
@@ -10,14 +7,15 @@ namespace mj
 {
   struct TextEditLine
   {
-    std::wstring text;
-    Microsoft::WRL::ComPtr<IDWriteTextLayout> pTextLayout;
+    wchar_t* pText    = nullptr;
+    size_t textLength = 0;
+    IDWriteTextLayout* pTextLayout = nullptr;
   };
 
   struct TextEdit
   {
     void* pMemory;
-    std::vector<TextEditLine> lines;
+    TextEditLine* pLines;
     mj::GapBuffer buf;
   };
 

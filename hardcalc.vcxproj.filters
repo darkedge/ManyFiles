@@ -5,6 +5,9 @@
     <ClCompile Include="mj_win32.cpp" />
     <ClCompile Include="mj_gapbuffer.cpp" />
     <ClCompile Include="mj_textedit.cpp" />
+    <ClCompile Include="ncrt_math_int64.cpp" />
+    <ClCompile Include="ncrt_memory.cpp" />
+    <ClCompile Include="ncrt_math_float.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mj_common.h" />
@@ -12,6 +15,8 @@
     <ClInclude Include="mj_win32.h" />
     <ClInclude Include="mj_gapbuffer.h" />
     <ClInclude Include="mj_textedit.h" />
+    <ClInclude Include="ncrt_memory.h" />
+    <ClInclude Include="stretchy_buffer.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />
