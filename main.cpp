@@ -33,16 +33,6 @@ static HCURSOR s_cursorType;
 // how much to scale a design that assumes 96-DPI pixels
 static float s_DpiScale;
 
-#if 0
-// Direct2D
-static Microsoft::WRL::ComPtr<ID2D1Factory> s_pD2DFactory;
-static Microsoft::WRL::ComPtr<ID2D1HwndRenderTarget> s_pRenderTarget;
-static Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> s_pBrush;
-
-// DirectWrite
-static Microsoft::WRL::ComPtr<IDWriteFactory> s_pDWriteFactory;
-static Microsoft::WRL::ComPtr<IDWriteTextFormat> s_pTextFormat;
-#else
 // Direct2D
 static ID2D1Factory* s_pD2DFactory;
 static ID2D1HwndRenderTarget* s_pRenderTarget;
@@ -51,11 +41,17 @@ static ID2D1SolidColorBrush* s_pBrush;
 // DirectWrite
 static IDWriteFactory* s_pDWriteFactory;
 static IDWriteTextFormat* s_pTextFormat;
-#endif
 
 static mj::TextEdit s_TextEdit;
 
-#define SAFE_RELEASE(ptr) do { if (ptr) { ptr->Release(); } } while(0)
+#define SAFE_RELEASE(ptr) \
+  do \
+  { \
+    if (ptr) \
+    { \
+      ptr->Release(); \
+    } \
+  } while (0)
 
 static void ReleaseResources()
 {
@@ -91,8 +87,7 @@ static HRESULT CreateDeviceResources()
   {
     // Create a Direct2D render target.
     hr = s_pD2DFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
-                                               D2D1::HwndRenderTargetProperties(s_Hwnd, size),
-                                               &s_pRenderTarget);
+                                               D2D1::HwndRenderTargetProperties(s_Hwnd, size), &s_pRenderTarget);
 
     // Create a black brush.
     if (SUCCEEDED(hr))
@@ -106,7 +101,7 @@ static HRESULT CreateDeviceResources()
     // Create a text layout using the text format.
     float width  = rect.right * s_BaseDpiScaleInv;
     float height = rect.bottom * s_BaseDpiScaleInv;
-    hr = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, width, height);
+    hr           = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, width, height);
   }
 
   return hr;
@@ -158,11 +153,12 @@ static HRESULT CreateDeviceIndependentResources()
   HRESULT hr;
 
   // Create Direct2D factory.
-  if (s_pD2DFactory)s_pD2DFactory->Release();
+  if (s_pD2DFactory)
+    s_pD2DFactory->Release();
 #ifdef _DEBUG
   D2D1_FACTORY_OPTIONS options;
   options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
-  hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, options, &s_pD2DFactory);
+  hr                 = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, options, &s_pD2DFactory);
 #else
   hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &s_pD2DFactory);
 #endif // _DEBUG
@@ -170,7 +166,8 @@ static HRESULT CreateDeviceIndependentResources()
   // Create a shared DirectWrite factory.
   if (SUCCEEDED(hr))
   {
-    if (s_pDWriteFactory) s_pDWriteFactory->Release();
+    if (s_pDWriteFactory)
+      s_pDWriteFactory->Release();
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                              reinterpret_cast<IUnknown**>(&s_pDWriteFactory));
   }
@@ -178,7 +175,8 @@ static HRESULT CreateDeviceIndependentResources()
   // This sets the default font, weight, stretch, style, and locale.
   if (SUCCEEDED(hr))
   {
-    if (s_pTextFormat) s_pTextFormat->Release();
+    if (s_pTextFormat)
+      s_pTextFormat->Release();
     hr = s_pDWriteFactory->CreateTextFormat(
         L"Consolas", // Font family name.
         nullptr,     // Font collection (nullptr sets it to use the system font collection).
@@ -381,38 +379,4 @@ void __stdcall WinMainCRTStartup()
   ReleaseResources();
 
   ExitProcess(0);
-}
-
-
-typedef void(*atexit_func_t)(void);
-typedef struct _func_node
-{
-    atexit_func_t func;
-    void* arg;
-    int is_cxa;
-    struct _func_node* next;
-}func_node;
-
-static func_node* atexit_list = 0;
-int register_atexit(atexit_func_t func, void* arg, int is_cxa)
-{
-    func_node* node;
-    if(!func) return -1;
-
-    node = (func_node*)new char[sizeof(func_node)];
-
-    if(node == 0) return -1;
-
-    node->func = func;
-    node->arg = arg;
-    node->is_cxa = is_cxa;
-
-    node->next = atexit_list;
-    atexit_list = node;
-    return 0;
-
-}
-int atexit(atexit_func_t func)
-{
-    return register_atexit(func, 0, 0);
 }

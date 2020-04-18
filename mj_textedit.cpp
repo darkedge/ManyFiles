@@ -6,16 +6,6 @@
 
 static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 
-static size_t StringLengthWide(const wchar_t* pString)
-{
-  size_t length = 0;
-  while (pString[length] != L'\0')
-  {
-    ++length;
-  }
-  return length;
-}
-
 HRESULT mj::TextEditInit(TextEdit* pTextEdit)
 {
   pTextEdit->pLines = nullptr;
