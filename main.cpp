@@ -254,18 +254,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   {
   case WM_MOUSEMOVE:
     s_Cursor = mj::TextEditMouseMove(&s_TextEdit, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    if (s_TextEdit.drag.draggable != mj::EDraggable::NONE)
+    {
+      DrawD2DContent();
+    }
     break;
   case WM_LBUTTONDOWN:
   {
     POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-    mj::TextEditOnClick(&s_TextEdit, pt.x, pt.y);
-    if (DragDetect(hwnd, pt))
-    {
-      // Start dragging.
-    }
+    mj::TextEditMouseDown(&s_TextEdit, (SHORT)pt.x, (SHORT)pt.y);
     DrawD2DContent();
   }
   break;
+  case WM_LBUTTONUP:
+    mj::TextEditMouseUp(&s_TextEdit, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    break;
   case WM_CHAR:
     if (IsPrintableCharacterWide((wint_t)wParam))
     {

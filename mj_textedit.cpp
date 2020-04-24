@@ -78,27 +78,41 @@ void mj::TextEditWndProc(TextEdit* pTextEdit, HWND hwnd, UINT message, WPARAM wP
   }
 }
 
+static D2D1_POINT_2F operator*(const D2D1_MATRIX_3X2_F& matrix, const D2D1_POINT_2F& point)
+{
+  return D2D1::Matrix3x2F::ReinterpretBaseType(&matrix)->TransformPoint(point);
+}
+
 static void DrawHorizontalScrollBar(mj::TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
                                     RenderTargetResources* pResources)
 {
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
   pRenderTarget->GetTransform(&transform);
-  pRenderTarget->SetTransform(
+  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F newTransform =
       transform *
-      D2D1::Matrix3x2F::Translation(0.0f, pTextEdit->widgetRect.bottom - pTextEdit->widgetRect.top - SCROLLBAR_SIZE));
+      D2D1::Matrix3x2F::Translation(0.0f, pTextEdit->widgetRect.bottom - pTextEdit->widgetRect.top - SCROLLBAR_SIZE);
+  pRenderTarget->SetTransform(MJ_REF newTransform);
+
+  const auto widgetWidth = (pTextEdit->widgetRect.right - pTextEdit->widgetRect.left);
 
   // TODO: fix for high DPI
   MJ_UNINITIALIZED D2D1_RECT_F rect;
   rect.left   = 0.0f;
-  rect.right  = pTextEdit->widgetRect.right - pTextEdit->widgetRect.left;
   rect.top    = 0.0f;
+  rect.right  = widgetWidth;
   rect.bottom = SCROLLBAR_SIZE;
   pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBackgroundBrush);
 
-  rect.left         = pTextEdit->scrollPos.x * pTextEdit->scrollPos.x / pTextEdit->width;
-  const float right = (pTextEdit->scrollPos.x + (pTextEdit->widgetRect.right - pTextEdit->widgetRect.left));
-  rect.right        = right * right / pTextEdit->width;
+  rect.left  = pTextEdit->scrollPos.x / pTextEdit->width * widgetWidth;
+  rect.right = (pTextEdit->scrollPos.x + widgetWidth) / pTextEdit->width * widgetWidth;
+
   pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBrush);
+
+  // Save for reverse lookup
+  auto topLeft     = newTransform * D2D1_POINT_2F{ rect.left, rect.top };
+  auto bottomRight = newTransform * D2D1_POINT_2F{ rect.right, rect.bottom };
+  pTextEdit->reverse.horScrollbarRect =
+      RECT{ (LONG)topLeft.x, (LONG)topLeft.y, (LONG)bottomRight.x, (LONG)bottomRight.y };
 
   pRenderTarget->SetTransform(MJ_REF transform);
 }
@@ -117,8 +131,11 @@ void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
   // Use the DrawTextLayout method of the D2D render target interface to draw.
   for (size_t i = 0; i < sb_count(pTextEdit->pLines); i++)
   {
-    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextEdit->pLines[i].pTextLayout, pResources->pTextBrush,
-                                  D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    MJ_UNINITIALIZED D2D1_POINT_2F inverse;
+    inverse.x = -pTextEdit->scrollPos.x;
+    inverse.y = -pTextEdit->scrollPos.y;
+    pRenderTarget->DrawTextLayout(inverse, pTextEdit->pLines[i].pTextLayout, pResources->pTextBrush,
+                                  D2D1_DRAW_TEXT_OPTIONS_NONE);
   }
   DrawHorizontalScrollBar(pTextEdit, pRenderTarget, pResources);
   // DrawCursor();
@@ -127,11 +144,14 @@ void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
   pRenderTarget->SetTransform(MJ_REF transform);
 }
 
-void mj::TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y)
+static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
 {
-  (void)pTextEdit;
-  (void)x;
-  (void)y;
+  return ((pPoint->x >= pRect->left) && (pPoint->x <= pRect->right) && (pPoint->y >= pRect->top) &&
+          (pPoint->y < (pRect->bottom)));
+}
+
+void mj::TextEditMouseDown(TextEdit* pTextEdit, SHORT x, SHORT y)
+{
 #if 0
   DWRITE_HIT_TEST_METRICS hitTestMetrics;
   BOOL isTrailingHit;
@@ -148,23 +168,64 @@ void mj::TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y)
     pTextEdit->lines[0]->SetUnderline(!underline, textRange);
   }
 #endif
+
+  // Scroll bar
+  POINT p{ (LONG)x, (LONG)y };
+  if (PtInRect(&pTextEdit->reverse.horScrollbarRect, p))
+  {
+    // Use left edge of scroll bar
+    pTextEdit->drag.start       = pTextEdit->scrollPos.x;
+    pTextEdit->drag.mouseStartX = x;
+    // pTextEdit->drag.mouseStartY = y;
+    pTextEdit->drag.draggable = EDraggable::HOR_SCROLLBAR;
+  }
+  else
+  {
+    pTextEdit->drag.draggable = EDraggable::NONE;
+  }
 }
 
-static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
+void mj::TextEditMouseUp(TextEdit* pTextEdit, SHORT x, SHORT y)
 {
-  return ((pPoint->x >= pRect->left) && (pPoint->x <= pRect->right) && (pPoint->y >= pRect->top) &&
-          (pPoint->y < (pRect->bottom - SCROLLBAR_SIZE)));
+  (void)x;
+  (void)y;
+  pTextEdit->drag.draggable = mj::EDraggable::NONE;
 }
 
-mj::ECursor mj::TextEditMouseMove(TextEdit* pTextEdit, int x, int y)
+mj::ECursor mj::TextEditMouseMove(TextEdit* pTextEdit, SHORT x, SHORT y)
 {
+  // Check dragging
+  switch (pTextEdit->drag.draggable)
+  {
+  case EDraggable::HOR_SCROLLBAR:
+  {
+    const auto widgetWidth = (pTextEdit->widgetRect.right - pTextEdit->widgetRect.left);
+    SHORT dx               = x - pTextEdit->drag.mouseStartX;
+    pTextEdit->scrollPos.x = pTextEdit->drag.start + (dx / widgetWidth * pTextEdit->width);
+    if (pTextEdit->scrollPos.x < 0.0f)
+    {
+      pTextEdit->scrollPos.x = 0.0f;
+    }
+    else if ((pTextEdit->scrollPos.x + widgetWidth) > pTextEdit->width)
+    {
+      pTextEdit->scrollPos.x = (pTextEdit->width - widgetWidth);
+    }
+  }
+  break;
+  default:
+    break;
+  }
+
   MJ_UNINITIALIZED D2D1_POINT_2F p;
-  p.x = (FLOAT)x;
-  p.y = (FLOAT)y;
-  if (RectContainsPoint(&pTextEdit->widgetRect, &p))
+  p.x       = (FLOAT)x;
+  p.y       = (FLOAT)y;
+  auto rect = pTextEdit->widgetRect;
+  rect.bottom -= SCROLLBAR_SIZE;
+  if (RectContainsPoint(&rect, &p))
   {
     return mj::ECursor::IBEAM;
   }
+
   return mj::ECursor::ARROW;
 }
 
