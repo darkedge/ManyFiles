@@ -7,4 +7,5 @@ struct RenderTargetResources
   ID2D1SolidColorBrush* pTextEditBackgroundBrush;
   ID2D1SolidColorBrush* pScrollBarBrush;
   ID2D1SolidColorBrush* pScrollBarBackgroundBrush;
+  ID2D1SolidColorBrush* pScrollBarHighlightBrush;
 };

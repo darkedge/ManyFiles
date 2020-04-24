@@ -82,6 +82,12 @@ static HRESULT CreateRenderTargetResources(RenderTargetResources* pRenderTargetR
                                                 &pRenderTargetResources->pScrollBarBackgroundBrush);
   }
 
+  if (SUCCEEDED(hr))
+  {
+    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::OrangeRed),
+                                                &pRenderTargetResources->pScrollBarHighlightBrush);
+  }
+
   return hr;
 }
 
@@ -91,6 +97,7 @@ static void DestroyRenderTargetResources(RenderTargetResources* pRenderTargetRes
   SAFE_RELEASE(pRenderTargetResources->pTextEditBackgroundBrush);
   SAFE_RELEASE(pRenderTargetResources->pScrollBarBrush);
   SAFE_RELEASE(pRenderTargetResources->pScrollBarBackgroundBrush);
+  SAFE_RELEASE(pRenderTargetResources->pScrollBarHighlightBrush);
 }
 
 static void ReleaseResources()
@@ -236,10 +243,15 @@ static bool IsPrintableCharacterWide(wint_t c)
   return (c > 31 && c < 127);
 }
 
+static mj::ECursor s_Cursor;
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
   {
+  case WM_MOUSEMOVE:
+    s_Cursor = mj::TextEditMouseMove(&s_TextEdit, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    break;
   case WM_LBUTTONDOWN:
   {
     POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
@@ -275,8 +287,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   case WM_SETCURSOR:
     if (LOWORD(lParam) == HTCLIENT)
     {
-      SetCursor(s_cursorType);
-      return TRUE;
+      switch (s_Cursor)
+      {
+      case mj::ECursor::IBEAM:
+        SetCursor(s_cursorType);
+        return TRUE;
+      default:
+        break;
+      }
     }
     break;
   case WM_SIZE:

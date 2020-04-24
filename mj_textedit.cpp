@@ -6,7 +6,8 @@
 #include "stretchy_buffer.h"
 #include "render_target_resources.h"
 
-static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
+static constexpr size_t BUFFER_SIZE   = 2 * 1024 * 1024; // 2 MiB
+static constexpr FLOAT SCROLLBAR_SIZE = 20.0f;
 
 HRESULT mj::TextEditInit(TextEdit* pTextEdit, FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
 {
@@ -82,15 +83,16 @@ static void DrawHorizontalScrollBar(mj::TextEdit* pTextEdit, ID2D1HwndRenderTarg
 {
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
   pRenderTarget->GetTransform(&transform);
-  pRenderTarget->SetTransform(transform *
-      D2D1::Matrix3x2F::Translation(0.0f, pTextEdit->widgetRect.bottom - pTextEdit->widgetRect.top - 20.0f));
+  pRenderTarget->SetTransform(
+      transform *
+      D2D1::Matrix3x2F::Translation(0.0f, pTextEdit->widgetRect.bottom - pTextEdit->widgetRect.top - SCROLLBAR_SIZE));
 
   // TODO: fix for high DPI
   MJ_UNINITIALIZED D2D1_RECT_F rect;
   rect.left   = 0.0f;
   rect.right  = pTextEdit->widgetRect.right - pTextEdit->widgetRect.left;
   rect.top    = 0.0f;
-  rect.bottom = 20.0f;
+  rect.bottom = SCROLLBAR_SIZE;
   pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBackgroundBrush);
 
   rect.left         = pTextEdit->scrollPos.x * pTextEdit->scrollPos.x / pTextEdit->width;
@@ -108,7 +110,8 @@ void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
 
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
   pRenderTarget->GetTransform(&transform);
-  pRenderTarget->SetTransform(transform * D2D1::Matrix3x2F::Translation(pTextEdit->widgetRect.left, pTextEdit->widgetRect.top));
+  pRenderTarget->SetTransform(transform *
+                              D2D1::Matrix3x2F::Translation(pTextEdit->widgetRect.left, pTextEdit->widgetRect.top));
 
   // Use the DrawTextLayout method of the D2D render target interface to draw.
   for (size_t i = 0; i < sb_count(pTextEdit->pLines); i++)
@@ -143,6 +146,24 @@ void mj::TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y)
     pTextEdit->lines[0]->SetUnderline(!underline, textRange);
   }
 #endif
+}
+
+static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
+{
+  return ((pPoint->x >= pRect->left) && (pPoint->x <= pRect->right) && (pPoint->y >= pRect->top) &&
+          (pPoint->y < pRect->bottom));
+}
+
+mj::ECursor mj::TextEditMouseMove(TextEdit* pTextEdit, int x, int y)
+{
+  MJ_UNINITIALIZED D2D1_POINT_2F p;
+  p.x = (FLOAT)x;
+  p.y = (FLOAT)y;
+  if (RectContainsPoint(&pTextEdit->widgetRect, &p))
+  {
+    return mj::ECursor::IBEAM;
+  }
+  return mj::ECursor::ARROW;
 }
 
 HRESULT mj::TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
