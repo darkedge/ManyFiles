@@ -133,8 +133,22 @@ static HRESULT CreateDeviceResources()
   if (!s_pRenderTarget)
   {
     // Create a Direct2D render target.
-    hr = s_pD2DFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
-                                               D2D1::HwndRenderTargetProperties(s_Hwnd, size), &s_pRenderTarget);
+    MJ_UNINITIALIZED D2D1_RENDER_TARGET_PROPERTIES rtp;
+    rtp.type                  = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+    rtp.pixelFormat.format    = DXGI_FORMAT_UNKNOWN;
+    rtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
+    rtp.dpiX                  = 0.0;
+    rtp.dpiY                  = 0.0;
+    rtp.usage                 = D2D1_RENDER_TARGET_USAGE_NONE;
+    rtp.minLevel              = D2D1_FEATURE_LEVEL_DEFAULT;
+
+    MJ_UNINITIALIZED D2D1_HWND_RENDER_TARGET_PROPERTIES hrtp;
+    hrtp.hwnd             = s_Hwnd;
+    hrtp.pixelSize.width  = 0;
+    hrtp.pixelSize.height = 0;
+    hrtp.presentOptions   = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
+
+    hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, &s_pRenderTarget);
 
     if (SUCCEEDED(hr))
     {
