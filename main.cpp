@@ -161,6 +161,7 @@ static HRESULT DrawD2DContent()
   {
     s_pRenderTarget->BeginDraw();
     s_pRenderTarget->SetTransform(D2D1::IdentityMatrix());
+    s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::LightPink));
 
     if (SUCCEEDED(hr))
     {
@@ -221,7 +222,9 @@ static HRESULT CreateDeviceIndependentResources()
   if (SUCCEEDED(hr))
   {
     if (s_pTextFormat)
+    {
       s_pTextFormat->Release();
+    }
     hr = s_pDWriteFactory->CreateTextFormat(
         L"Consolas", // Font family name.
         nullptr,     // Font collection (nullptr sets it to use the system font collection).

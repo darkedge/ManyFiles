@@ -107,6 +107,7 @@ void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
 {
   // Background
   pRenderTarget->FillRectangle(MJ_REF pTextEdit->widgetRect, pResources->pTextEditBackgroundBrush);
+  pRenderTarget->PushAxisAlignedClip(MJ_REF pTextEdit->widgetRect, D2D1_ANTIALIAS_MODE_ALIASED);
 
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
   pRenderTarget->GetTransform(&transform);
@@ -122,6 +123,7 @@ void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
   DrawHorizontalScrollBar(pTextEdit, pRenderTarget, pResources);
   // DrawCursor();
 
+  pRenderTarget->PopAxisAlignedClip();
   pRenderTarget->SetTransform(MJ_REF transform);
 }
 
@@ -151,7 +153,7 @@ void mj::TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y)
 static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
 {
   return ((pPoint->x >= pRect->left) && (pPoint->x <= pRect->right) && (pPoint->y >= pRect->top) &&
-          (pPoint->y < pRect->bottom));
+          (pPoint->y < (pRect->bottom - SCROLLBAR_SIZE)));
 }
 
 mj::ECursor mj::TextEditMouseMove(TextEdit* pTextEdit, int x, int y)
