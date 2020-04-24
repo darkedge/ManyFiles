@@ -230,7 +230,7 @@ mj::ECursor mj::TextEditMouseMove(TextEdit* pTextEdit, SHORT x, SHORT y)
 }
 
 HRESULT mj::TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
-                                          float width, float height)
+                                          FLOAT width, FLOAT height)
 {
   // Set longest line width equal to widget width
   pTextEdit->width = (pTextEdit->widgetRect.right - pTextEdit->widgetRect.left);

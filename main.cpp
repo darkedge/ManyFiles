@@ -146,8 +146,8 @@ static HRESULT CreateDeviceResources()
       rtp.type                  = D2D1_RENDER_TARGET_TYPE_DEFAULT;
       rtp.pixelFormat.format    = DXGI_FORMAT_UNKNOWN;
       rtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
-      rtp.dpiX                  = dpi;
-      rtp.dpiY                  = dpi;
+      rtp.dpiX                  = (FLOAT)dpi;
+      rtp.dpiY                  = (FLOAT)dpi;
       rtp.usage                 = D2D1_RENDER_TARGET_USAGE_NONE;
       rtp.minLevel              = D2D1_FEATURE_LEVEL_DEFAULT;
 
@@ -169,7 +169,8 @@ static HRESULT CreateDeviceResources()
   if (SUCCEEDED(hr))
   {
     // Create a text layout using the text format.
-    hr = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, rect.right, rect.bottom);
+    hr = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, (FLOAT)rect.right,
+                                           (FLOAT)rect.bottom);
   }
 
   return hr;
@@ -340,21 +341,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     DestroyRenderTargetResources(&s_RenderTargetResources);
     SAFE_RELEASE(s_pRenderTarget);
     CreateDeviceResources();
-
-    // Ensure the client area is scaled properly
-    RECT* pRect           = (RECT*)lParam;
-    RECT windowRect       = { 0, 0, (LONG)(WINDOW_WIDTH * s_DpiScale), (LONG)(WINDOW_HEIGHT * s_DpiScale) };
-    const bool hasMenu    = false;
-    const DWORD dwExStyle = 0;
-    UINT dpi              = GetDpiForWindow(s_Hwnd);
-    AdjustWindowRectExForDpi(&windowRect, dwStyle, hasMenu, dwExStyle, dpi);
-    windowRect.right  = pRect->left + (windowRect.right - windowRect.left);
-    windowRect.bottom = pRect->top + (windowRect.bottom - windowRect.top);
-    windowRect.left   = pRect->left;
-    windowRect.top    = pRect->top;
-
-    SetWindowPos(hwnd, NULL, windowRect.left, windowRect.top, windowRect.right - windowRect.left,
-                 windowRect.bottom - windowRect.top, SWP_NOZORDER | SWP_NOACTIVATE);
   }
   break;
   case WM_PAINT:

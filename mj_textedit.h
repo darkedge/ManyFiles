@@ -34,22 +34,22 @@ namespace mj
     IDWriteTextLayout* pTextLayout = nullptr;
   };
 
-    enum class EDraggable
-    {
-      NONE,
-      TEXT_SELECT,
-      TEXT_MOVE,
-      HOR_SCROLLBAR,
-      VER_SCROLLBAR
-    };
+  enum class EDraggable
+  {
+    NONE,
+    TEXT_SELECT,
+    TEXT_MOVE,
+    HOR_SCROLLBAR,
+    VER_SCROLLBAR
+  };
 
-    struct Drag
-    {
-      EDraggable draggable;
-      FLOAT start;
-      SHORT mouseStartX;
-      SHORT mouseStartY;
-    };
+  struct Drag
+  {
+    EDraggable draggable;
+    FLOAT start;
+    SHORT mouseStartX;
+    SHORT mouseStartY;
+  };
 
   struct TextEdit
   {
@@ -69,7 +69,7 @@ namespace mj
   };
 
   HRESULT TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
-                                        float width, float height);
+                                        FLOAT width, FLOAT height);
   void TextEditMouseDown(TextEdit* pTextEdit, SHORT x, SHORT y);
   void TextEditMouseUp(TextEdit* pTextEdit, SHORT x, SHORT y);
   ECursor TextEditMouseMove(TextEdit* pTextEdit, SHORT x, SHORT y);
