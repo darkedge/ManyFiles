@@ -21,7 +21,6 @@ static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
 static constexpr float MJ_96_DPI = 96.0f;
 // In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
 static constexpr float MJ_POINT = (1.0f / 72.0f);
-static float s_BaseDpiScaleInv;
 
 // __ImageBase is better than GetCurrentModule()
 // Can be cast to a HINSTANCE
@@ -54,6 +53,7 @@ static mj::TextEdit s_TextEdit;
     if (ptr) \
     { \
       ptr->Release(); \
+      ptr = nullptr; \
     } \
   } while (0)
 
@@ -121,6 +121,11 @@ static void OnResize(UINT width, UINT height)
   }
 }
 
+static HMONITOR GetPrimaryMonitor()
+{
+  return MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
+}
+
 static HRESULT CreateDeviceResources()
 {
   HRESULT hr = S_OK;
@@ -132,23 +137,28 @@ static HRESULT CreateDeviceResources()
 
   if (!s_pRenderTarget)
   {
-    // Create a Direct2D render target.
-    MJ_UNINITIALIZED D2D1_RENDER_TARGET_PROPERTIES rtp;
-    rtp.type                  = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-    rtp.pixelFormat.format    = DXGI_FORMAT_UNKNOWN;
-    rtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
-    rtp.dpiX                  = 0.0;
-    rtp.dpiY                  = 0.0;
-    rtp.usage                 = D2D1_RENDER_TARGET_USAGE_NONE;
-    rtp.minLevel              = D2D1_FEATURE_LEVEL_DEFAULT;
+    UINT dpi = GetDpiForWindow(s_Hwnd);
+    if (dpi > 0)
+    {
 
-    MJ_UNINITIALIZED D2D1_HWND_RENDER_TARGET_PROPERTIES hrtp;
-    hrtp.hwnd             = s_Hwnd;
-    hrtp.pixelSize.width  = 0;
-    hrtp.pixelSize.height = 0;
-    hrtp.presentOptions   = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
+      // Create a Direct2D render target.
+      MJ_UNINITIALIZED D2D1_RENDER_TARGET_PROPERTIES rtp;
+      rtp.type                  = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+      rtp.pixelFormat.format    = DXGI_FORMAT_UNKNOWN;
+      rtp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_UNKNOWN;
+      rtp.dpiX                  = dpi;
+      rtp.dpiY                  = dpi;
+      rtp.usage                 = D2D1_RENDER_TARGET_USAGE_NONE;
+      rtp.minLevel              = D2D1_FEATURE_LEVEL_DEFAULT;
 
-    hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, &s_pRenderTarget);
+      MJ_UNINITIALIZED D2D1_HWND_RENDER_TARGET_PROPERTIES hrtp;
+      hrtp.hwnd             = s_Hwnd;
+      hrtp.pixelSize.width  = 0;
+      hrtp.pixelSize.height = 0;
+      hrtp.presentOptions   = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
+
+      hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, &s_pRenderTarget);
+    }
 
     if (SUCCEEDED(hr))
     {
@@ -159,9 +169,7 @@ static HRESULT CreateDeviceResources()
   if (SUCCEEDED(hr))
   {
     // Create a text layout using the text format.
-    float width  = rect.right * s_BaseDpiScaleInv;
-    float height = rect.bottom * s_BaseDpiScaleInv;
-    hr           = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, width, height);
+    hr = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, rect.right, rect.bottom);
   }
 
   return hr;
@@ -205,7 +213,7 @@ static void CalculateDpiScale()
 
 static FLOAT ConvertPointSizeToDIP(FLOAT points)
 {
-  return (points * MJ_POINT) * MJ_96_DPI * s_DpiScale * s_BaseDpiScaleInv;
+  return (points * MJ_POINT) * MJ_96_DPI;
 }
 
 static HRESULT CreateDeviceIndependentResources()
@@ -329,6 +337,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     CalculateDpiScale();
     CreateDeviceIndependentResources();
 
+    DestroyRenderTargetResources(&s_RenderTargetResources);
+    SAFE_RELEASE(s_pRenderTarget);
+    CreateDeviceResources();
+
     // Ensure the client area is scaled properly
     RECT* pRect           = (RECT*)lParam;
     RECT windowRect       = { 0, 0, (LONG)(WINDOW_WIDTH * s_DpiScale), (LONG)(WINDOW_HEIGHT * s_DpiScale) };
@@ -356,11 +368,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   }
 
   return DefWindowProcW(hwnd, message, wParam, lParam);
-}
-
-HMONITOR GetPrimaryMonitor()
-{
-  return MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 }
 
 void __stdcall WinMainCRTStartup()
@@ -397,8 +404,7 @@ void __stdcall WinMainCRTStartup()
   hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
   if (SUCCEEDED(hr))
   {
-    s_DpiScale        = (float)dpiX / MJ_96_DPI;
-    s_BaseDpiScaleInv = s_DpiScale;
+    s_DpiScale = (float)dpiX / MJ_96_DPI;
   }
 
   if (SUCCEEDED(hr))
