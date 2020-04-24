@@ -101,12 +101,13 @@
     <ClCompile Include="ncrt_memory.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lorem_ipsum.h" />
+    <ClInclude Include="loremipsum.h" />
     <ClInclude Include="mj_common.h" />
     <ClInclude Include="mj_gapbuffer.h" />
     <ClInclude Include="mj_textedit.h" />
     <ClInclude Include="mj_win32.h" />
     <ClInclude Include="ncrt_memory.h" />
+    <ClInclude Include="render_target_resources.h" />
     <ClInclude Include="stretchy_buffer.h" />
   </ItemGroup>
   <ItemGroup>

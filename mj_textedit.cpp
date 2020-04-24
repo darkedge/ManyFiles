@@ -1,13 +1,23 @@
 #include "mj_textedit.h"
+#include <d2d1.h>
 #include "mj_common.h"
 #include "mj_win32.h"
 #include "loremipsum.h"
 #include "stretchy_buffer.h"
+#include "render_target_resources.h"
 
 static constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024; // 2 MiB
 
-HRESULT mj::TextEditInit(TextEdit* pTextEdit)
+HRESULT mj::TextEditInit(TextEdit* pTextEdit, FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
 {
+  pTextEdit->widgetRect.left   = left;
+  pTextEdit->widgetRect.top    = top;
+  pTextEdit->widgetRect.right  = right;
+  pTextEdit->widgetRect.bottom = bottom;
+
+  pTextEdit->scrollPos.x = 0.0f;
+  pTextEdit->scrollPos.y = 0.0f;
+
   pTextEdit->pLines = nullptr;
   HRESULT hr        = S_OK;
   // Init memory for buffer
@@ -67,14 +77,49 @@ void mj::TextEditWndProc(TextEdit* pTextEdit, HWND hwnd, UINT message, WPARAM wP
   }
 }
 
-void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget, ID2D1SolidColorBrush* pBrush)
+static void DrawHorizontalScrollBar(mj::TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget,
+                                    RenderTargetResources* pResources)
 {
+  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
+  pRenderTarget->GetTransform(&transform);
+  pRenderTarget->SetTransform(transform *
+      D2D1::Matrix3x2F::Translation(0.0f, pTextEdit->widgetRect.bottom - pTextEdit->widgetRect.top - 20.0f));
+
+  // TODO: fix for high DPI
+  MJ_UNINITIALIZED D2D1_RECT_F rect;
+  rect.left   = 0.0f;
+  rect.right  = pTextEdit->widgetRect.right - pTextEdit->widgetRect.left;
+  rect.top    = 0.0f;
+  rect.bottom = 20.0f;
+  pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBackgroundBrush);
+
+  rect.left         = pTextEdit->scrollPos.x * pTextEdit->scrollPos.x / pTextEdit->width;
+  const float right = (pTextEdit->scrollPos.x + (pTextEdit->widgetRect.right - pTextEdit->widgetRect.left));
+  rect.right        = right * right / pTextEdit->width;
+  pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBrush);
+
+  pRenderTarget->SetTransform(MJ_REF transform);
+}
+
+void mj::TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
+{
+  // Background
+  pRenderTarget->FillRectangle(MJ_REF pTextEdit->widgetRect, pResources->pTextEditBackgroundBrush);
+
+  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
+  pRenderTarget->GetTransform(&transform);
+  pRenderTarget->SetTransform(transform * D2D1::Matrix3x2F::Translation(pTextEdit->widgetRect.left, pTextEdit->widgetRect.top));
+
   // Use the DrawTextLayout method of the D2D render target interface to draw.
   for (size_t i = 0; i < sb_count(pTextEdit->pLines); i++)
   {
-    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextEdit->pLines[i].pTextLayout, pBrush,
+    pRenderTarget->DrawTextLayout(D2D1_POINT_2F{ 0.0f, 0.0f }, pTextEdit->pLines[i].pTextLayout, pResources->pTextBrush,
                                   D2D1_DRAW_TEXT_OPTIONS_CLIP);
   }
+  DrawHorizontalScrollBar(pTextEdit, pRenderTarget, pResources);
+  // DrawCursor();
+
+  pRenderTarget->SetTransform(MJ_REF transform);
 }
 
 void mj::TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y)
@@ -103,6 +148,9 @@ void mj::TextEditOnClick(TextEdit* pTextEdit, UINT x, UINT y)
 HRESULT mj::TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
                                           float width, float height)
 {
+  // Set longest line width equal to widget width
+  pTextEdit->width = (pTextEdit->widgetRect.right - pTextEdit->widgetRect.left);
+
   wchar_t buf[1024]; // TODO: Small buffer!
   int numCharacters = mj::win32::Widen(buf, pTextEdit->buf.pBufBegin,
                                        (int)(pTextEdit->buf.pGapBegin - pTextEdit->buf.pBufBegin), _countof(buf));
@@ -127,11 +175,20 @@ HRESULT mj::TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* p
   HRESULT hr = pFactory->CreateTextLayout(
       pTextEdit->pLines[0].pText,                // The string to be laid out and formatted.
       (UINT32)(pTextEdit->pLines[0].textLength), // The length of the string.
-      pTextFormat, // The text format to apply to the string (contains font information, etc).
-      width,       // The width of the layout box.
-      height,      // The height of the layout box.
+      pTextFormat,                      // The text format to apply to the string (contains font information, etc).
+      width,                            // The width of the layout box.
+      height,                           // The height of the layout box.
       &pTextEdit->pLines[0].pTextLayout // The IDWriteTextLayout interface pointer.
   );
+
+  // Get maximum line length
+  MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
+  pTextEdit->pLines[0].pTextLayout->GetMetrics(&dtm);
+  const FLOAT lineWidth = dtm.widthIncludingTrailingWhitespace;
+  if (lineWidth >= pTextEdit->width)
+  {
+    pTextEdit->width = lineWidth;
+  }
 
   size_t position             = mj::GapBufferGetVirtualCursorPosition(&pTextEdit->buf);
   DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };

@@ -8,6 +8,10 @@
 
 #include "mj_common.h"
 #include "mj_textedit.h"
+#include "render_target_resources.h"
+
+static constexpr LPCWSTR pWindowClassName = L"DemoApp";
+static constexpr FLOAT s_FontSize         = 10.0f;
 
 static constexpr UINT WINDOW_WIDTH  = 640;
 static constexpr UINT WINDOW_HEIGHT = 480;
@@ -36,11 +40,11 @@ static float s_DpiScale;
 // Direct2D
 static ID2D1Factory* s_pD2DFactory;
 static ID2D1HwndRenderTarget* s_pRenderTarget;
-static ID2D1SolidColorBrush* s_pBrush;
 
 // DirectWrite
 static IDWriteFactory* s_pDWriteFactory;
 static IDWriteTextFormat* s_pTextFormat;
+static RenderTargetResources s_RenderTargetResources;
 
 static mj::TextEdit s_TextEdit;
 
@@ -53,11 +57,47 @@ static mj::TextEdit s_TextEdit;
     } \
   } while (0)
 
+static HRESULT CreateRenderTargetResources(RenderTargetResources* pRenderTargetResources)
+{
+  // Create a black brush.
+  HRESULT hr =
+      s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pRenderTargetResources->pTextBrush);
+
+  // Brush for render target background
+  if (SUCCEEDED(hr))
+  {
+    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::WhiteSmoke),
+                                                &pRenderTargetResources->pTextEditBackgroundBrush);
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::CadetBlue),
+                                                &pRenderTargetResources->pScrollBarBrush);
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DarkBlue),
+                                                &pRenderTargetResources->pScrollBarBackgroundBrush);
+  }
+
+  return hr;
+}
+
+static void DestroyRenderTargetResources(RenderTargetResources* pRenderTargetResources)
+{
+  SAFE_RELEASE(pRenderTargetResources->pTextBrush);
+  SAFE_RELEASE(pRenderTargetResources->pTextEditBackgroundBrush);
+  SAFE_RELEASE(pRenderTargetResources->pScrollBarBrush);
+  SAFE_RELEASE(pRenderTargetResources->pScrollBarBackgroundBrush);
+}
+
 static void ReleaseResources()
 {
   SAFE_RELEASE(s_pD2DFactory);
   SAFE_RELEASE(s_pRenderTarget);
-  SAFE_RELEASE(s_pBrush);
+  DestroyRenderTargetResources(&s_RenderTargetResources);
   SAFE_RELEASE(s_pDWriteFactory);
   SAFE_RELEASE(s_pTextFormat);
 }
@@ -89,10 +129,9 @@ static HRESULT CreateDeviceResources()
     hr = s_pD2DFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
                                                D2D1::HwndRenderTargetProperties(s_Hwnd, size), &s_pRenderTarget);
 
-    // Create a black brush.
     if (SUCCEEDED(hr))
     {
-      hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &s_pBrush);
+      hr = CreateRenderTargetResources(&s_RenderTargetResources);
     }
   }
 
@@ -115,11 +154,10 @@ static HRESULT DrawD2DContent()
   {
     s_pRenderTarget->BeginDraw();
     s_pRenderTarget->SetTransform(D2D1::IdentityMatrix());
-    s_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::WhiteSmoke));
 
     if (SUCCEEDED(hr))
     {
-      mj::TextEditDraw(&s_TextEdit, s_pRenderTarget, s_pBrush);
+      mj::TextEditDraw(&s_TextEdit, s_pRenderTarget, &s_RenderTargetResources);
     }
 
     if (SUCCEEDED(hr))
@@ -131,7 +169,7 @@ static HRESULT DrawD2DContent()
   if (FAILED(hr))
   {
     s_pRenderTarget->Release();
-    s_pBrush->Release();
+    DestroyRenderTargetResources(&s_RenderTargetResources);
   }
 
   return hr;
@@ -180,8 +218,8 @@ static HRESULT CreateDeviceIndependentResources()
     hr = s_pDWriteFactory->CreateTextFormat(
         L"Consolas", // Font family name.
         nullptr,     // Font collection (nullptr sets it to use the system font collection).
-        DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, ConvertPointSizeToDIP(11.0f),
-        L"en-us", &s_pTextFormat);
+        DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+        ConvertPointSizeToDIP(s_FontSize), L"en-us", &s_pTextFormat);
   }
 
   if (SUCCEEDED(hr))
@@ -289,7 +327,7 @@ HMONITOR GetPrimaryMonitor()
 
 void __stdcall WinMainCRTStartup()
 {
-  HRESULT hr = mj::TextEditInit(&s_TextEdit);
+  HRESULT hr = mj::TextEditInit(&s_TextEdit, 20.0f, 10.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
 
   if (SUCCEEDED(hr))
   {
@@ -306,7 +344,7 @@ void __stdcall WinMainCRTStartup()
       wcex.lpszMenuName  = nullptr;
       wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
       wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-      wcex.lpszClassName = TEXT("DemoApp");
+      wcex.lpszClassName = pWindowClassName;
       wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
 
       hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
@@ -341,7 +379,7 @@ void __stdcall WinMainCRTStartup()
     const LONG windowHeight = windowRect.bottom - windowRect.top;
 
     // Create window.
-    s_Hwnd = CreateWindowExW(0, TEXT("DemoApp"), TEXT("hardcalc"), dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
+    s_Hwnd = CreateWindowExW(0, pWindowClassName, L"hardcalc", dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
                              static_cast<int>(windowWidth), static_cast<int>(windowHeight), nullptr, nullptr,
                              HINST_THISCOMPONENT, nullptr);
   }
