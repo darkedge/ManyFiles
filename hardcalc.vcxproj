@@ -108,10 +108,14 @@
     <ClInclude Include="mj_win32.h" />
     <ClInclude Include="ncrt_memory.h" />
     <ClInclude Include="render_target_resources.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="stretchy_buffer.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="hardcalc.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

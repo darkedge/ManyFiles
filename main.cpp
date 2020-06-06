@@ -9,6 +9,7 @@
 #include "mj_common.h"
 #include "mj_textedit.h"
 #include "render_target_resources.h"
+#include "resource.h"
 
 static constexpr LPCWSTR pWindowClassName = L"DemoApp";
 static constexpr FLOAT s_FontSize         = 10.0f;
@@ -372,7 +373,7 @@ void __stdcall WinMainCRTStartup()
       wcex.cbWndExtra    = sizeof(LONG_PTR);
       wcex.hInstance     = HINST_THISCOMPONENT;
       wcex.hbrBackground = nullptr;
-      wcex.lpszMenuName  = nullptr;
+      wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
       wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
       wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
       wcex.lpszClassName = pWindowClassName;
@@ -435,6 +436,7 @@ void __stdcall WinMainCRTStartup()
   {
     MSG msg;
 
+    // Event loop
     while (GetMessageW(&msg, nullptr, 0, 0))
     {
       TranslateMessage(&msg);
