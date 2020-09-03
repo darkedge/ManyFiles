@@ -276,11 +276,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   switch (message)
   {
   case WM_CAPTURECHANGED:
-    s_TextEdit.MouseUp(0, 0);
+    s_TextEdit.MouseUp();
     break;
   case WM_MOUSEMOVE:
     s_Cursor = s_TextEdit.MouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-    if (s_TextEdit.GetDrag().draggable != mj::EDraggable::NONE)
+    if (s_TextEdit.GetDragAction().draggable != mj::EDraggable::NONE)
     {
       DrawD2DContent();
     }
@@ -294,7 +294,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   }
   break;
   case WM_LBUTTONUP:
-    s_TextEdit.MouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    s_TextEdit.MouseUp();
     MJ_DISCARD(ReleaseCapture());
     break;
   case WM_CHAR:

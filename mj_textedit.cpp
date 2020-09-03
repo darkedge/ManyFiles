@@ -181,10 +181,8 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
   }
 }
 
-void mj::TextEdit::MouseUp(SHORT x, SHORT y)
+void mj::TextEdit::MouseUp()
 {
-  (void)x;
-  (void)y;
   this->drag.draggable = mj::EDraggable::NONE;
 }
 

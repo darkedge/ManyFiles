@@ -47,7 +47,7 @@ namespace mj
     VER_SCROLLBAR
   };
 
-  struct Drag
+  struct DragAction
   {
     EDraggable draggable;
     FLOAT start;
@@ -71,18 +71,19 @@ namespace mj
     D2D1_RECT_F widgetRect;  // Rect of widget inside rendertarget
     D2D1_POINT_2F scrollPos; // Position of scroll area
     FLOAT width;             // Equal to width of the longest rendered line
-    Drag drag;
+    DragAction drag;
     Reverse reverse;
 
   public:
     HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
-    void MouseUp(SHORT x, SHORT y);
+    void MouseUp();
     ECursor::Enum MouseMove(SHORT x, SHORT y);
     HRESULT Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
     void Destroy();
-    MJ_CRGETTER(GetDrag, drag);
+
+    MJ_CRGETTER(GetDragAction, drag);
   };
 } // namespace mj
