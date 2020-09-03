@@ -269,7 +269,7 @@ static bool IsPrintableCharacterWide(wint_t c)
   return (c > 31 && c < 127);
 }
 
-static mj::ECursor s_Cursor;
+static mj::ECursor::Enum s_Cursor;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {

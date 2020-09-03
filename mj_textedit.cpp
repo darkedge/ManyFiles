@@ -188,7 +188,7 @@ void mj::TextEdit::MouseUp(SHORT x, SHORT y)
   this->drag.draggable = mj::EDraggable::NONE;
 }
 
-mj::ECursor mj::TextEdit::MouseMove(SHORT x, SHORT y)
+mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
 {
   // Check dragging
   switch (this->drag.draggable)

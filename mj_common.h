@@ -13,6 +13,13 @@
 
 #define MJ_COUNTOF(arr) sizeof(arr) / sizeof(arr[0])
 
+// Generates a const-reference getter.
+#define MJ_CRGETTER(name, member) \
+  const decltype(member)& name() \
+  { \
+    return member; \
+  }
+
 namespace mj
 {
   template <typename T>

@@ -1,30 +1,34 @@
 #pragma once
 #include <dwrite.h>
 #include "mj_gapbuffer.h"
+#include "mj_common.h"
 
 struct ID2D1HwndRenderTarget;
 struct RenderTargetResources;
 
 namespace mj
 {
-  enum class ECursor
+  struct ECursor
   {
-    ARROW,
-    IBEAM,
-    WAIT,
-    CROSS,
-    UPARROW,
-    SIZENWSE,
-    SIZENESW,
-    SIZEWE,
-    SIZENS,
-    SIZEALL,
-    NO,
-    HAND,
-    APPSTARTING,
-    HELP,
-    PIN,
-    PERSON,
+    enum Enum
+    {
+      ARROW,
+      IBEAM,
+      WAIT,
+      CROSS,
+      UPARROW,
+      SIZENWSE,
+      SIZENESW,
+      SIZEWE,
+      SIZENS,
+      SIZEALL,
+      NO,
+      HAND,
+      APPSTARTING,
+      HELP,
+      PIN,
+      PERSON,
+    };
   };
 
   struct TextEditLine
@@ -74,14 +78,11 @@ namespace mj
     HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
     void MouseUp(SHORT x, SHORT y);
-    ECursor MouseMove(SHORT x, SHORT y);
+    ECursor::Enum MouseMove(SHORT x, SHORT y);
     HRESULT Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
     void Destroy();
-    const decltype(drag)& GetDrag()
-    {
-      return drag;
-    }
+    MJ_CRGETTER(GetDrag, drag);
   };
 } // namespace mj
