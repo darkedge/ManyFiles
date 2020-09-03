@@ -229,13 +229,16 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   // Set longest line width equal to widget width
   this->width = (this->widgetRect.right - this->widgetRect.left);
 
-  wchar_t buf[1024]; // TODO: Small buffer!
-  int numCharacters = mj::win32::Widen(buf, this->buf.GetBufferBegin(),
-                                       (int)(this->buf.GetGapBegin() - this->buf.GetBufferBegin()), _countof(buf));
+  // Convert UTF-8 from TextEdit to Win32 wide string
+  // Gap buffer needs to be concatenated first
+  mj::array<wchar_t, 1024> buf; // TODO: Small buffer!
+  int numCharacters = mj::win32::Widen(buf.data(), this->buf.GetBufferBegin(),
+                                       (int)(this->buf.GetGapBegin() - this->buf.GetBufferBegin()), buf.size());
   numCharacters +=
       mj::win32::Widen(&buf[numCharacters], this->buf.GetGapEnd(),
-                       (int)(this->buf.GetBufferEnd() - this->buf.GetGapEnd()), _countof(buf) - numCharacters);
+                       (int)(this->buf.GetBufferEnd() - this->buf.GetGapEnd()), buf.size() - numCharacters);
 
+  // Delete all D3D lines
   for (int i = 0; i < sb_count(this->pLines); i++)
   {
     if (this->pLines[i].pTextLayout)
@@ -243,10 +246,11 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
     delete[] this->pLines[i].pText;
   }
   sb_free(this->pLines);
-  this->pLines = 0;
+  this->pLines = nullptr;
+
   TextEditLine line;
   line.pText = new wchar_t[numCharacters];
-  memcpy(line.pText, buf, numCharacters * sizeof(wchar_t));
+  memcpy(line.pText, buf.data(), numCharacters * sizeof(wchar_t));
   line.textLength = numCharacters;
   sb_push(this->pLines, line);
 
