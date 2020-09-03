@@ -31,7 +31,7 @@ namespace mj
     };
   };
 
-  struct TextEditLine
+  struct RenderedLine
   {
     wchar_t* pText                 = nullptr;
     size_t textLength              = 0;
@@ -66,7 +66,7 @@ namespace mj
     void DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
 
     void* pMemory;
-    TextEditLine* pLines;
+    RenderedLine* pLines;
     mj::GapBuffer buf;
     D2D1_RECT_F widgetRect;  // Rect of widget inside rendertarget
     D2D1_POINT_2F scrollPos; // Position of scroll area

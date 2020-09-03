@@ -223,6 +223,11 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   return mj::ECursor::ARROW;
 }
 
+static int WideByteCount(const char* pBegin, int numChars)
+{
+  return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pBegin, numChars, nullptr, 0);
+}
+
 HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width,
                                             FLOAT height)
 {
@@ -230,15 +235,11 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   this->width = (this->widgetRect.right - this->widgetRect.left);
 
   // Convert UTF-8 from TextEdit to Win32 wide string
-  // Gap buffer needs to be concatenated first
-  mj::array<wchar_t, 1024> buf; // TODO: Small buffer!
-  int numCharacters = mj::win32::Widen(buf.data(), this->buf.GetBufferBegin(),
-                                       (int)(this->buf.GetGapBegin() - this->buf.GetBufferBegin()), buf.size());
-  numCharacters +=
-      mj::win32::Widen(&buf[numCharacters], this->buf.GetGapEnd(),
-                       (int)(this->buf.GetBufferEnd() - this->buf.GetGapEnd()), buf.size() - numCharacters);
+  int numWideCharsLeft  = WideByteCount(this->buf.GetLeftPtr(), this->buf.GetLeftLength());
+  int numWideCharsRight = WideByteCount(this->buf.GetRightPtr(), this->buf.GetRightLength());
+  int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;
 
-  // Delete all D3D lines
+  // Delete all rendered lines
   for (int i = 0; i < sb_count(this->pLines); i++)
   {
     if (this->pLines[i].pTextLayout)
@@ -248,10 +249,18 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   sb_free(this->pLines);
   this->pLines = nullptr;
 
-  TextEditLine line;
-  line.pText = new wchar_t[numCharacters];
-  memcpy(line.pText, buf.data(), numCharacters * sizeof(wchar_t));
-  line.textLength = numCharacters;
+  wchar_t* pText = new wchar_t[numWideCharsTotal];
+  if (pText)
+  {
+    MJ_DISCARD(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, this->buf.GetLeftPtr(), this->buf.GetLeftLength(),
+                                   pText, numWideCharsLeft));
+    MJ_DISCARD(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, this->buf.GetRightPtr(), this->buf.GetRightLength(),
+                                   pText + numWideCharsLeft, numWideCharsRight));
+  }
+
+  RenderedLine line;
+  line.pText      = pText;
+  line.textLength = numWideCharsTotal;
   sb_push(this->pLines, line);
 
   HRESULT hr = pFactory->CreateTextLayout(

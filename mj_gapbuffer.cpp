@@ -40,6 +40,26 @@ size_t mj::GapBuffer::GetVirtualCursorPosition() const
   return position;
 }
 
+char* mj::GapBuffer::GetLeftPtr() const
+{
+  return this->pBufBegin;
+}
+
+size_t mj::GapBuffer::GetLeftLength() const
+{
+  return this->pGapBegin - this->pBufBegin;
+}
+
+char* mj::GapBuffer::GetRightPtr() const
+{
+  return this->pGapEnd;
+}
+
+size_t mj::GapBuffer::GetRightLength() const
+{
+  return this->pBufEnd - this->pGapEnd;
+}
+
 void mj::GapBuffer::InsertCharacterAtCursor(wchar_t c)
 {
   char buf[8];
