@@ -28,8 +28,8 @@ HRESULT mj::TextEdit::Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
     hr = E_FAIL;
   }
 
-  mj::GapBufferInit(&this->buf, this->pMemory, ((char*)this->pMemory) + BUFFER_SIZE);
-  mj::GapBufferSetText(&this->buf, pLoremIpsum);
+  this->buf.Init(this->pMemory, ((char*)this->pMemory) + BUFFER_SIZE);
+  this->buf.SetText(pLoremIpsum);
 
   return hr;
 }
@@ -50,28 +50,28 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
   switch (message)
   {
   case WM_CHAR:
-    mj::GapBufferInsertCharacterAtCursor(&this->buf, (wchar_t)wParam);
+    this->buf.InsertCharacterAtCursor((wchar_t)wParam);
     break;
   case WM_KEYDOWN:
     switch (wParam)
     {
     case VK_HOME:
-      mj::GapBufferJumpStartOfLine(&this->buf);
+      this->buf.JumpStartOfLine();
       break;
     case VK_END:
-      mj::GapBufferJumpEndOfLine(&this->buf);
+      this->buf.JumpEndOfLine();
       break;
     case VK_LEFT:
-      mj::GapBufferDecrementCursor(&this->buf);
+      this->buf.DecrementCursor();
       break;
     case VK_RIGHT:
-      mj::GapBufferIncrementCursor(&this->buf);
+      this->buf.IncrementCursor();
       break;
     case VK_DELETE:
-      mj::GapBufferDeleteAtCursor(&this->buf);
+      this->buf.DeleteAtCursor();
       break;
     case VK_BACK:
-      mj::GapBufferBackspaceAtCursor(&this->buf);
+      this->buf.BackspaceAtCursor();
       break;
     }
     break;
@@ -232,10 +232,11 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   this->width = (this->widgetRect.right - this->widgetRect.left);
 
   wchar_t buf[1024]; // TODO: Small buffer!
-  int numCharacters =
-      mj::win32::Widen(buf, this->buf.pBufBegin, (int)(this->buf.pGapBegin - this->buf.pBufBegin), _countof(buf));
-  numCharacters += mj::win32::Widen(&buf[numCharacters], this->buf.pGapEnd,
-                                    (int)(this->buf.pBufEnd - this->buf.pGapEnd), _countof(buf) - numCharacters);
+  int numCharacters = mj::win32::Widen(buf, this->buf.GetBufferBegin(),
+                                       (int)(this->buf.GetGapBegin() - this->buf.GetBufferBegin()), _countof(buf));
+  numCharacters +=
+      mj::win32::Widen(&buf[numCharacters], this->buf.GetGapEnd(),
+                       (int)(this->buf.GetBufferEnd() - this->buf.GetGapEnd()), _countof(buf) - numCharacters);
 
   for (int i = 0; i < sb_count(this->pLines); i++)
   {
@@ -269,7 +270,7 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
     this->width = lineWidth;
   }
 
-  size_t position             = mj::GapBufferGetVirtualCursorPosition(&this->buf);
+  size_t position             = this->buf.GetVirtualCursorPosition();
   DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
   this->pLines[0].pTextLayout->SetUnderline(true, textRange);
 

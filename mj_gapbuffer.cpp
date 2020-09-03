@@ -4,164 +4,164 @@
 #define NOMINMAX
 #include <Windows.h>
 
-static void CursorUpdate(mj::GapBuffer* pBuf)
+void mj::GapBuffer::CursorUpdate()
 {
-  if (pBuf->pCursor < pBuf->pGapBegin)
+  if (this->pCursor < this->pGapBegin)
   {
     // Copy [pCursor...pGapBegin] to pGapEnd
-    size_t numBytes = pBuf->pGapBegin - pBuf->pCursor;
-    pBuf->pGapEnd -= numBytes;
-    CopyMemory(pBuf->pGapEnd, pBuf->pCursor, numBytes);
-    pBuf->pGapBegin = pBuf->pCursor;
+    size_t numBytes = this->pGapBegin - this->pCursor;
+    this->pGapEnd -= numBytes;
+    CopyMemory(this->pGapEnd, this->pCursor, numBytes);
+    this->pGapBegin = this->pCursor;
   }
-  else if (pBuf->pCursor > pBuf->pGapEnd)
+  else if (this->pCursor > this->pGapEnd)
   {
-    size_t numBytes = pBuf->pCursor - pBuf->pGapEnd;
-    CopyMemory(pBuf->pGapBegin, pBuf->pGapEnd, numBytes);
-    pBuf->pGapEnd = pBuf->pCursor;
-    pBuf->pGapBegin += numBytes;
+    size_t numBytes = this->pCursor - this->pGapEnd;
+    CopyMemory(this->pGapBegin, this->pGapEnd, numBytes);
+    this->pGapEnd = this->pCursor;
+    this->pGapBegin += numBytes;
   }
-  pBuf->pCursor = pBuf->pGapBegin;
+  this->pCursor = this->pGapBegin;
 }
 
-size_t mj::GapBufferGetVirtualCursorPosition(const GapBuffer* pBuf)
+size_t mj::GapBuffer::GetVirtualCursorPosition() const
 {
   size_t position = 0;
-  if (pBuf->pCursor >= pBuf->pGapEnd)
+  if (this->pCursor >= this->pGapEnd)
   {
-    position += (size_t)(pBuf->pCursor - pBuf->pGapEnd);
-    position += (size_t)(pBuf->pGapBegin - pBuf->pBufBegin);
+    position += (size_t)(this->pCursor - this->pGapEnd);
+    position += (size_t)(this->pGapBegin - this->pBufBegin);
   }
   else
   {
-    position += (size_t)(pBuf->pCursor - pBuf->pBufBegin);
+    position += (size_t)(this->pCursor - this->pBufBegin);
   }
 
   return position;
 }
 
-void mj::GapBufferInsertCharacterAtCursor(GapBuffer* pBuf, wchar_t c)
+void mj::GapBuffer::InsertCharacterAtCursor(wchar_t c)
 {
   char buf[8];
   int numBytes = mj::win32::Narrow(buf, &c, 1, sizeof(buf));
   if (numBytes > 0)
   {
-    CursorUpdate(pBuf);
+    this->CursorUpdate();
     OutputDebugStringA("InsertCharacterAtCursor\n");
-    CopyMemory(pBuf->pCursor, buf, numBytes);
-    pBuf->pCursor += numBytes;
-    pBuf->pGapBegin = pBuf->pCursor;
+    CopyMemory(this->pCursor, buf, numBytes);
+    this->pCursor += numBytes;
+    this->pGapBegin = this->pCursor;
   }
 }
 
-void mj::GapBufferJumpStartOfLine(GapBuffer* pBuf)
+void mj::GapBuffer::JumpStartOfLine()
 {
   OutputDebugStringA("JumpStartOfLine\n");
-  while ((pBuf->pCursor > pBuf->pBufBegin)  //
-         && (*(pBuf->pCursor - 1) != '\n')  //
-         && (*(pBuf->pCursor - 1) != '\r')) //
+  while ((this->pCursor > this->pBufBegin)  //
+         && (*(this->pCursor - 1) != '\n')  //
+         && (*(this->pCursor - 1) != '\r')) //
   {
-    pBuf->pCursor--;
+    this->pCursor--;
   }
 }
 
-static void IncrementCursorUnchecked(mj::GapBuffer* pBuf)
+void mj::GapBuffer::IncrementCursorUnchecked()
 {
-  if (pBuf->pCursor == pBuf->pGapBegin)
+  if (this->pCursor == this->pGapBegin)
   {
-    pBuf->pCursor = pBuf->pGapEnd + 1;
+    this->pCursor = this->pGapEnd + 1;
   }
   else
   {
-    pBuf->pCursor++;
+    this->pCursor++;
   }
 }
 
-void mj::GapBufferJumpEndOfLine(GapBuffer* pBuf)
+void mj::GapBuffer::JumpEndOfLine()
 {
   OutputDebugStringA("JumpEndOfLine\n");
-  while ((pBuf->pCursor < pBuf->pBufEnd)    //
-         && (*(pBuf->pCursor + 1) != '\0')  //
-         && (*(pBuf->pCursor + 1) != '\n')  //
-         && (*(pBuf->pCursor + 1) != '\r')) //
+  while ((this->pCursor < this->pBufEnd)    //
+         && (*(this->pCursor + 1) != '\0')  //
+         && (*(this->pCursor + 1) != '\n')  //
+         && (*(this->pCursor + 1) != '\r')) //
   {
-    IncrementCursorUnchecked(pBuf);
+    this->IncrementCursorUnchecked();
   }
 }
 
-void mj::GapBufferIncrementCursor(GapBuffer* pBuf)
+void mj::GapBuffer::IncrementCursor()
 {
-  if (pBuf->pCursor < pBuf->pBufEnd) // Note: Skip last '\0' due to pasted text
+  if (this->pCursor < this->pBufEnd) // Note: Skip last '\0' due to pasted text
   {
-    if (*(pBuf->pCursor + 1) != '\0')
+    if (*(this->pCursor + 1) != '\0')
     {
       OutputDebugStringA("IncrementCursor\n");
-      IncrementCursorUnchecked(pBuf);
+      this->IncrementCursorUnchecked();
     }
   }
 }
 
-void mj::GapBufferDecrementCursor(GapBuffer* pBuf)
+void mj::GapBuffer::DecrementCursor()
 {
-  if (pBuf->pCursor > pBuf->pBufBegin)
+  if (this->pCursor > this->pBufBegin)
   {
     OutputDebugStringA("DecrementCursor\n");
-    if (pBuf->pCursor == pBuf->pGapEnd)
+    if (this->pCursor == this->pGapEnd)
     {
-      pBuf->pCursor = pBuf->pGapBegin - 1;
+      this->pCursor = this->pGapBegin - 1;
     }
     else
     {
-      pBuf->pCursor--;
+      this->pCursor--;
     }
   }
 }
 
-void mj::GapBufferDeleteAtCursor(GapBuffer* pBuf)
+void mj::GapBuffer::DeleteAtCursor()
 {
   ptrdiff_t i = 1;
-  if (pBuf->pCursor == pBuf->pGapBegin)
+  if (this->pCursor == this->pGapBegin)
   {
-    i = (pBuf->pGapEnd - pBuf->pCursor);
+    i = (this->pGapEnd - this->pCursor);
   }
-  if (*(pBuf->pCursor + i) != '\0')
+  if (*(this->pCursor + i) != '\0')
   {
     OutputDebugStringA("DeleteAtCursor\n");
-    CursorUpdate(pBuf);
-    pBuf->pGapEnd++;
-    pBuf->pCursor = pBuf->pGapEnd;
+    this->CursorUpdate();
+    this->pGapEnd++;
+    this->pCursor = this->pGapEnd;
   }
 }
 
-void mj::GapBufferBackspaceAtCursor(GapBuffer* pBuf)
+void mj::GapBuffer::BackspaceAtCursor()
 {
   // If cursor is left of gap, cursor must be > buffer begin
   // If cursor is right of gap, gap begin must be > buffer begin
-  if (((pBuf->pGapBegin >= pBuf->pCursor) && (pBuf->pCursor > pBuf->pBufBegin))     //
-      || ((pBuf->pGapBegin > pBuf->pBufBegin) && (pBuf->pCursor >= pBuf->pGapEnd))) //
+  if (((this->pGapBegin >= this->pCursor) && (this->pCursor > this->pBufBegin))     //
+      || ((this->pGapBegin > this->pBufBegin) && (this->pCursor >= this->pGapEnd))) //
   {
     OutputDebugStringA("BackspaceAtCursor\n");
-    CursorUpdate(pBuf);
-    pBuf->pCursor--;
-    pBuf->pGapBegin--;
+    this->CursorUpdate();
+    this->pCursor--;
+    this->pGapBegin--;
   }
 }
 
-void mj::GapBufferInit(GapBuffer* pBuf, void* pBegin, void* pEnd)
+void mj::GapBuffer::Init(void* pBegin, void* pEnd)
 {
-  pBuf->pBufBegin = (char*)pBegin;
-  pBuf->pBufEnd   = (char*)pEnd;
-  pBuf->pGapBegin = (char*)pBegin;
-  pBuf->pGapEnd   = (char*)pEnd;
-  pBuf->pCursor   = (char*)pBegin;
+  this->pBufBegin = (char*)pBegin;
+  this->pBufEnd   = (char*)pEnd;
+  this->pGapBegin = (char*)pBegin;
+  this->pGapEnd   = (char*)pEnd;
+  this->pCursor   = (char*)pBegin;
 }
 
-void mj::GapBufferSetText(GapBuffer* pBuf, const wchar_t* pText)
+void mj::GapBuffer::SetText(const wchar_t* pText)
 {
-  int numBytes = mj::win32::Narrow(pBuf->pBufBegin, pText, -1, (int)(pBuf->pBufEnd - pBuf->pBufBegin));
+  int numBytes = mj::win32::Narrow(this->pBufBegin, pText, -1, (int)(this->pBufEnd - this->pBufBegin));
   if (numBytes > 0)
   {
-    pBuf->pGapBegin = pBuf->pBufBegin + numBytes;
-    pBuf->pGapEnd   = pBuf->pBufEnd;
+    this->pGapBegin = this->pBufBegin + numBytes;
+    this->pGapEnd   = this->pBufEnd;
   }
 }

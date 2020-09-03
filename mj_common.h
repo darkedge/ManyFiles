@@ -15,7 +15,13 @@
 
 // Generates a const-reference getter.
 #define MJ_CRGETTER(name, member) \
-  const decltype(member)& name() \
+  const decltype(member)& name() const \
+  { \
+    return member; \
+  }
+// Generates a by-value getter.
+#define MJ_GETTER(name, member) \
+  decltype(member) name() const \
   { \
     return member; \
   }
