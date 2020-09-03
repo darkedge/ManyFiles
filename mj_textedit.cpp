@@ -176,23 +176,6 @@ static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
 
 void mj::TextEdit::MouseDown(SHORT x, SHORT y)
 {
-#if 0
-  DWRITE_HIT_TEST_METRICS hitTestMetrics;
-  BOOL isTrailingHit;
-  BOOL isInside;
-
-  this->lines[0]->HitTestPoint(((FLOAT)x) * s_BaseDpiScaleInv, ((FLOAT)y) / s_BaseDpiScaleInv, &isTrailingHit,
-                                    &isInside, &hitTestMetrics);
-
-  if (isInside == TRUE)
-  {
-    BOOL underline;
-    this->lines[0]->GetUnderline(hitTestMetrics.textPosition, &underline);
-    DWRITE_TEXT_RANGE textRange = { hitTestMetrics.textPosition, 1 };
-    this->lines[0]->SetUnderline(!underline, textRange);
-  }
-#endif
-
   // Scroll bar
   POINT p{ (LONG)x, (LONG)y };
   if (PtInRect(&this->reverse.horScrollbarRect, p))
@@ -206,6 +189,22 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
   else
   {
     this->drag.draggable = EDraggable::NONE;
+  }
+
+  // Caret
+  if (this->pLines && this->pLines[0].pTextLayout)
+  {
+    MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+    MJ_UNINITIALIZED BOOL isTrailingHit;
+    MJ_UNINITIALIZED BOOL isInside;
+
+    MJ_DISCARD(this->pLines[0].pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
+
+    if (isInside)
+    {
+      // TODO: Convert wide character index to UTF-8 character index
+      this->buf.SetCaretPosition(hitTestMetrics.textPosition);
+    }
   }
 }
 

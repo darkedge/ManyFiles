@@ -32,5 +32,6 @@ namespace mj
     void BackspaceAtCursor();
     void Init(void* pBegin, void* pEnd);
     void SetText(const wchar_t* pText);
+    void SetCaretPosition(uint32_t caretPosition);
   };
 } // namespace mj

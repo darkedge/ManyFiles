@@ -185,3 +185,8 @@ void mj::GapBuffer::SetText(const wchar_t* pText)
     this->pGapEnd   = this->pBufEnd;
   }
 }
+
+void mj::GapBuffer::SetCaretPosition(uint32_t caretPosition)
+{
+  // TODO
+}
