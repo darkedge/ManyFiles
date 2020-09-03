@@ -51,12 +51,15 @@ namespace mj
     SHORT mouseStartY;
   };
 
-  struct TextEdit
+  class TextEdit
   {
+  private:
     struct Reverse
     {
       RECT horScrollbarRect;
     };
+
+    void DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
 
     void* pMemory;
     TextEditLine* pLines;
@@ -66,15 +69,17 @@ namespace mj
     FLOAT width;             // Equal to width of the longest rendered line
     Drag drag;
     Reverse reverse;
-  };
 
-  HRESULT TextEditCreateDeviceResources(TextEdit* pTextEdit, IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
-                                        FLOAT width, FLOAT height);
-  void TextEditMouseDown(TextEdit* pTextEdit, SHORT x, SHORT y);
-  void TextEditMouseUp(TextEdit* pTextEdit, SHORT x, SHORT y);
-  ECursor TextEditMouseMove(TextEdit* pTextEdit, SHORT x, SHORT y);
-  HRESULT TextEditInit(TextEdit* pTextEdit, FLOAT left, FLOAT top, FLOAT right, FLOAT bottom);
-  void TextEditWndProc(TextEdit* pTextEdit, HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-  void TextEditDraw(TextEdit* pTextEdit, ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
-  void TextEditDestroy(TextEdit* pTextEdit);
+  public:
+    HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
+                                  FLOAT width, FLOAT height);
+    void MouseDown(SHORT x, SHORT y);
+    void MouseUp(SHORT x, SHORT y);
+    ECursor MouseMove(SHORT x, SHORT y);
+    HRESULT Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom);
+    void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+    void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
+    void Destroy();
+    const decltype(drag)& GetDrag() { return drag; }
+  };
 } // namespace mj

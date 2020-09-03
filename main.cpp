@@ -170,7 +170,7 @@ static HRESULT CreateDeviceResources()
   if (SUCCEEDED(hr))
   {
     // Create a text layout using the text format.
-    hr = mj::TextEditCreateDeviceResources(&s_TextEdit, s_pDWriteFactory, s_pTextFormat, (FLOAT)rect.right,
+    hr = s_TextEdit.CreateDeviceResources(s_pDWriteFactory, s_pTextFormat, (FLOAT)rect.right,
                                            (FLOAT)rect.bottom);
   }
 
@@ -189,7 +189,7 @@ static HRESULT DrawD2DContent()
 
     if (SUCCEEDED(hr))
     {
-      mj::TextEditDraw(&s_TextEdit, s_pRenderTarget, &s_RenderTargetResources);
+      s_TextEdit.Draw(s_pRenderTarget, &s_RenderTargetResources);
     }
 
     if (SUCCEEDED(hr))
@@ -277,11 +277,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   switch (message)
   {
   case WM_CAPTURECHANGED:
-    mj::TextEditMouseUp(&s_TextEdit, 0, 0);
+    s_TextEdit.MouseUp(0, 0);
     break;
   case WM_MOUSEMOVE:
-    s_Cursor = mj::TextEditMouseMove(&s_TextEdit, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-    if (s_TextEdit.drag.draggable != mj::EDraggable::NONE)
+    s_Cursor = s_TextEdit.MouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    if (s_TextEdit.GetDrag().draggable != mj::EDraggable::NONE)
     {
       DrawD2DContent();
     }
@@ -289,19 +289,19 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   case WM_LBUTTONDOWN:
   {
     POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-    mj::TextEditMouseDown(&s_TextEdit, (SHORT)pt.x, (SHORT)pt.y);
+    s_TextEdit.MouseDown((SHORT)pt.x, (SHORT)pt.y);
     DrawD2DContent();
     MJ_DISCARD(SetCapture(hwnd));
   }
   break;
   case WM_LBUTTONUP:
-    mj::TextEditMouseUp(&s_TextEdit, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    s_TextEdit.MouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
     MJ_DISCARD(ReleaseCapture());
     break;
   case WM_CHAR:
     if (IsPrintableCharacterWide((wint_t)wParam))
     {
-      mj::TextEditWndProc(&s_TextEdit, hwnd, message, wParam, lParam);
+      s_TextEdit.WndProc(hwnd, message, wParam, lParam);
       DrawD2DContent();
     }
     break;
@@ -314,7 +314,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     case VK_RIGHT:
     case VK_DELETE:
     case VK_BACK:
-      mj::TextEditWndProc(&s_TextEdit, hwnd, message, wParam, lParam);
+      s_TextEdit.WndProc(hwnd, message, wParam, lParam);
       DrawD2DContent();
       break;
     }
@@ -364,7 +364,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
 void __stdcall WinMainCRTStartup()
 {
-  HRESULT hr = mj::TextEditInit(&s_TextEdit, 20.0f, 10.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+  HRESULT hr = s_TextEdit.Init(20.0f, 10.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
 
   if (SUCCEEDED(hr))
   {
@@ -449,7 +449,7 @@ void __stdcall WinMainCRTStartup()
     }
   }
 
-  mj::TextEditDestroy(&s_TextEdit);
+  s_TextEdit.Destroy();
 
   ReleaseResources();
 
