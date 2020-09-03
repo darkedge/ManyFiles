@@ -20,7 +20,7 @@ HRESULT mj::TextEdit::Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
   this->scrollPos.y = 0.0f;
 
   this->pLines = nullptr;
-  HRESULT hr        = S_OK;
+  HRESULT hr   = S_OK;
   // Init memory for buffer
   this->pMemory = VirtualAlloc(0, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   if (!this->pMemory)
@@ -88,8 +88,7 @@ void mj::TextEdit::DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget,
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
   pRenderTarget->GetTransform(&transform);
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F newTransform =
-      transform *
-      D2D1::Matrix3x2F::Translation(0.0f, this->widgetRect.bottom - this->widgetRect.top - SCROLLBAR_SIZE);
+      transform * D2D1::Matrix3x2F::Translation(0.0f, this->widgetRect.bottom - this->widgetRect.top - SCROLLBAR_SIZE);
   pRenderTarget->SetTransform(MJ_REF newTransform);
 
   const auto widgetWidth = (this->widgetRect.right - this->widgetRect.left);
@@ -108,10 +107,9 @@ void mj::TextEdit::DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget,
   pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBrush);
 
   // Save for reverse lookup
-  auto topLeft     = newTransform * D2D1_POINT_2F{ rect.left, rect.top };
-  auto bottomRight = newTransform * D2D1_POINT_2F{ rect.right, rect.bottom };
-  this->reverse.horScrollbarRect =
-      RECT{ (LONG)topLeft.x, (LONG)topLeft.y, (LONG)bottomRight.x, (LONG)bottomRight.y };
+  auto topLeft                   = newTransform * D2D1_POINT_2F{ rect.left, rect.top };
+  auto bottomRight               = newTransform * D2D1_POINT_2F{ rect.right, rect.bottom };
+  this->reverse.horScrollbarRect = RECT{ (LONG)topLeft.x, (LONG)topLeft.y, (LONG)bottomRight.x, (LONG)bottomRight.y };
 
   pRenderTarget->SetTransform(MJ_REF transform);
 }
@@ -124,8 +122,7 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
 
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
   pRenderTarget->GetTransform(&transform);
-  pRenderTarget->SetTransform(transform *
-                              D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
+  pRenderTarget->SetTransform(transform * D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
 
   // Use the DrawTextLayout method of the D2D render target interface to draw.
   for (size_t i = 0; i < sb_count(this->pLines); i++)
@@ -200,7 +197,7 @@ mj::ECursor mj::TextEdit::MouseMove(SHORT x, SHORT y)
   {
     const auto widgetWidth = (this->widgetRect.right - this->widgetRect.left);
     SHORT dx               = x - this->drag.mouseStartX;
-    this->scrollPos.x = this->drag.start + (dx / widgetWidth * this->width);
+    this->scrollPos.x      = this->drag.start + (dx / widgetWidth * this->width);
     if (this->scrollPos.x < 0.0f)
     {
       this->scrollPos.x = 0.0f;
@@ -228,18 +225,17 @@ mj::ECursor mj::TextEdit::MouseMove(SHORT x, SHORT y)
   return mj::ECursor::ARROW;
 }
 
-HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
-                                          FLOAT width, FLOAT height)
+HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width,
+                                            FLOAT height)
 {
   // Set longest line width equal to widget width
   this->width = (this->widgetRect.right - this->widgetRect.left);
 
   wchar_t buf[1024]; // TODO: Small buffer!
-  int numCharacters = mj::win32::Widen(buf, this->buf.pBufBegin,
-                                       (int)(this->buf.pGapBegin - this->buf.pBufBegin), _countof(buf));
-  numCharacters +=
-      mj::win32::Widen(&buf[numCharacters], this->buf.pGapEnd,
-                       (int)(this->buf.pBufEnd - this->buf.pGapEnd), _countof(buf) - numCharacters);
+  int numCharacters =
+      mj::win32::Widen(buf, this->buf.pBufBegin, (int)(this->buf.pGapBegin - this->buf.pBufBegin), _countof(buf));
+  numCharacters += mj::win32::Widen(&buf[numCharacters], this->buf.pGapEnd,
+                                    (int)(this->buf.pBufEnd - this->buf.pGapEnd), _countof(buf) - numCharacters);
 
   for (int i = 0; i < sb_count(this->pLines); i++)
   {
@@ -258,10 +254,10 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   HRESULT hr = pFactory->CreateTextLayout(
       this->pLines[0].pText,                // The string to be laid out and formatted.
       (UINT32)(this->pLines[0].textLength), // The length of the string.
-      pTextFormat,                      // The text format to apply to the string (contains font information, etc).
-      width,                            // The width of the layout box.
-      height,                           // The height of the layout box.
-      &this->pLines[0].pTextLayout // The IDWriteTextLayout interface pointer.
+      pTextFormat,                          // The text format to apply to the string (contains font information, etc).
+      width,                                // The width of the layout box.
+      height,                               // The height of the layout box.
+      &this->pLines[0].pTextLayout          // The IDWriteTextLayout interface pointer.
   );
 
   // Get maximum line length

@@ -71,8 +71,7 @@ namespace mj
     Reverse reverse;
 
   public:
-    HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
-                                  FLOAT width, FLOAT height);
+    HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
     void MouseUp(SHORT x, SHORT y);
     ECursor MouseMove(SHORT x, SHORT y);
@@ -80,6 +79,9 @@ namespace mj
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
     void Destroy();
-    const decltype(drag)& GetDrag() { return drag; }
+    const decltype(drag)& GetDrag()
+    {
+      return drag;
+    }
   };
 } // namespace mj

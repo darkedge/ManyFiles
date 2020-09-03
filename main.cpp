@@ -170,8 +170,7 @@ static HRESULT CreateDeviceResources()
   if (SUCCEEDED(hr))
   {
     // Create a text layout using the text format.
-    hr = s_TextEdit.CreateDeviceResources(s_pDWriteFactory, s_pTextFormat, (FLOAT)rect.right,
-                                           (FLOAT)rect.bottom);
+    hr = s_TextEdit.CreateDeviceResources(s_pDWriteFactory, s_pTextFormat, (FLOAT)rect.right, (FLOAT)rect.bottom);
   }
 
   return hr;
