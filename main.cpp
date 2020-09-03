@@ -79,6 +79,12 @@ static HRESULT CreateRenderTargetResources(RenderTargetResources* pRenderTargetR
 
   if (SUCCEEDED(hr))
   {
+    hr =
+        s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pRenderTargetResources->pCaretBrush);
+  }
+
+  if (SUCCEEDED(hr))
+  {
     hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DarkBlue),
                                                 &pRenderTargetResources->pScrollBarBackgroundBrush);
   }
@@ -97,6 +103,7 @@ static void DestroyRenderTargetResources(RenderTargetResources* pRenderTargetRes
   SAFE_RELEASE(pRenderTargetResources->pTextBrush);
   SAFE_RELEASE(pRenderTargetResources->pTextEditBackgroundBrush);
   SAFE_RELEASE(pRenderTargetResources->pScrollBarBrush);
+  SAFE_RELEASE(pRenderTargetResources->pCaretBrush);
   SAFE_RELEASE(pRenderTargetResources->pScrollBarBackgroundBrush);
   SAFE_RELEASE(pRenderTargetResources->pScrollBarHighlightBrush);
 }

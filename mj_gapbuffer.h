@@ -17,11 +17,11 @@ namespace mj
     void IncrementCursorUnchecked();
 
   public:
-    size_t GetVirtualCursorPosition() const;
+    uint32_t GetVirtualCursorPosition() const;
     char* GetLeftPtr() const;
-    size_t GetLeftLength() const;
+    int GetLeftLength() const;
     char* GetRightPtr() const;
-    size_t GetRightLength() const;
+    int GetRightLength() const;
 
     void JumpEndOfLine();
     void JumpStartOfLine();

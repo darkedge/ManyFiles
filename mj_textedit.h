@@ -58,12 +58,13 @@ namespace mj
   class TextEdit
   {
   private:
-    struct Reverse
+    struct ReverseLookup
     {
       RECT horScrollbarRect;
     };
 
     void DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
+    void DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
 
     void* pMemory;
     RenderedLine* pLines;
@@ -72,7 +73,7 @@ namespace mj
     D2D1_POINT_2F scrollPos; // Position of scroll area
     FLOAT width;             // Equal to width of the longest rendered line
     DragAction drag;
-    Reverse reverse;
+    ReverseLookup reverse;
 
   public:
     HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);

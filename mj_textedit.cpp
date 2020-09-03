@@ -114,6 +114,34 @@ void mj::TextEdit::DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget,
   pRenderTarget->SetTransform(MJ_REF transform);
 }
 
+void mj::TextEdit::DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
+{
+  // Caret
+  if (this->pLines && this->pLines[0].pTextLayout)
+  {
+    DWRITE_HIT_TEST_METRICS hitTestMetrics;
+    float caretX, caretY;
+    bool isTrailingHit = false; // Use the leading character edge for simplicity here.
+
+    // Map text position index to caret coordinate and hit-test rectangle.
+    MJ_DISCARD(this->pLines[0].pTextLayout->HitTestTextPosition(this->buf.GetVirtualCursorPosition(), isTrailingHit,
+                                                                &caretX, &caretY, &hitTestMetrics));
+    // Respect user settings.
+    DWORD caretWidth = 1;
+    SystemParametersInfo(SPI_GETCARETWIDTH, 0, &caretWidth, 0);
+    DWORD halfCaretWidth = caretWidth / 2u;
+
+    // Draw a thin rectangle.
+    MJ_UNINITIALIZED D2D1_RECT_F rect;
+    rect.left   = caretX - halfCaretWidth;
+    rect.top    = hitTestMetrics.top;
+    rect.right  = caretX + (caretWidth - halfCaretWidth);
+    rect.bottom = hitTestMetrics.top + hitTestMetrics.height;
+
+    pRenderTarget->FillRectangle(&rect, pResources->pCaretBrush);
+  }
+}
+
 void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
 {
   // Background
@@ -134,7 +162,7 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
                                   D2D1_DRAW_TEXT_OPTIONS_NONE);
   }
   this->DrawHorizontalScrollBar(pRenderTarget, pResources);
-  // DrawCursor();
+  this->DrawCaret(pRenderTarget, pResources);
 
   pRenderTarget->PopAxisAlignedClip();
   pRenderTarget->SetTransform(MJ_REF transform);
@@ -272,18 +300,17 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
       &this->pLines[0].pTextLayout          // The IDWriteTextLayout interface pointer.
   );
 
-  // Get maximum line length
-  MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
-  this->pLines[0].pTextLayout->GetMetrics(&dtm);
-  const FLOAT lineWidth = dtm.widthIncludingTrailingWhitespace;
-  if (lineWidth >= this->width)
+  if (hr == S_OK)
   {
-    this->width = lineWidth;
+    // Get maximum line length
+    MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
+    this->pLines[0].pTextLayout->GetMetrics(&dtm);
+    const FLOAT lineWidth = dtm.widthIncludingTrailingWhitespace;
+    if (lineWidth >= this->width)
+    {
+      this->width = lineWidth;
+    }
   }
-
-  size_t position             = this->buf.GetVirtualCursorPosition();
-  DWRITE_TEXT_RANGE textRange = { (UINT32)position, 1 };
-  this->pLines[0].pTextLayout->SetUnderline(true, textRange);
 
   return hr;
 }

@@ -24,17 +24,17 @@ void mj::GapBuffer::CursorUpdate()
   this->pCursor = this->pGapBegin;
 }
 
-size_t mj::GapBuffer::GetVirtualCursorPosition() const
+uint32_t mj::GapBuffer::GetVirtualCursorPosition() const
 {
-  size_t position = 0;
+  uint32_t position = 0;
   if (this->pCursor >= this->pGapEnd)
   {
-    position += (size_t)(this->pCursor - this->pGapEnd);
-    position += (size_t)(this->pGapBegin - this->pBufBegin);
+    position += (uint32_t)(this->pCursor - this->pGapEnd);
+    position += (uint32_t)(this->pGapBegin - this->pBufBegin);
   }
   else
   {
-    position += (size_t)(this->pCursor - this->pBufBegin);
+    position += (uint32_t)(this->pCursor - this->pBufBegin);
   }
 
   return position;
@@ -45,9 +45,9 @@ char* mj::GapBuffer::GetLeftPtr() const
   return this->pBufBegin;
 }
 
-size_t mj::GapBuffer::GetLeftLength() const
+int mj::GapBuffer::GetLeftLength() const
 {
-  return this->pGapBegin - this->pBufBegin;
+  return (int)(this->pGapBegin - this->pBufBegin);
 }
 
 char* mj::GapBuffer::GetRightPtr() const
@@ -55,9 +55,9 @@ char* mj::GapBuffer::GetRightPtr() const
   return this->pGapEnd;
 }
 
-size_t mj::GapBuffer::GetRightLength() const
+int mj::GapBuffer::GetRightLength() const
 {
-  return this->pBufEnd - this->pGapEnd;
+  return (int)(this->pBufEnd - this->pGapEnd);
 }
 
 void mj::GapBuffer::InsertCharacterAtCursor(wchar_t c)
