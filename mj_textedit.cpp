@@ -5,6 +5,7 @@
 #include "loremipsum.h"
 #include "stretchy_buffer.h"
 #include "render_target_resources.h"
+#include <Strsafe.h>
 
 static constexpr size_t BUFFER_SIZE   = 2 * 1024 * 1024; // 2 MiB
 static constexpr FLOAT SCROLLBAR_SIZE = 20.0f;
@@ -50,7 +51,7 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
   switch (message)
   {
   case WM_CHAR:
-    this->buf.InsertCharacterAtCursor((wchar_t)wParam);
+    this->buf.InsertCharacterAtCaret((wchar_t)wParam);
     break;
   case WM_KEYDOWN:
     switch (wParam)
@@ -62,16 +63,16 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
       this->buf.JumpEndOfLine();
       break;
     case VK_LEFT:
-      this->buf.DecrementCursor();
+      this->buf.DecrementCaret();
       break;
     case VK_RIGHT:
-      this->buf.IncrementCursor();
+      this->buf.IncrementCaret();
       break;
     case VK_DELETE:
-      this->buf.DeleteAtCursor();
+      this->buf.DeleteAtCaret();
       break;
     case VK_BACK:
-      this->buf.BackspaceAtCursor();
+      this->buf.BackspaceAtCaret();
       break;
     }
     break;
@@ -124,7 +125,7 @@ void mj::TextEdit::DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetR
     bool isTrailingHit = false; // Use the leading character edge for simplicity here.
 
     // Map text position index to caret coordinate and hit-test rectangle.
-    MJ_DISCARD(this->pLines[0].pTextLayout->HitTestTextPosition(this->buf.GetVirtualCursorPosition(), isTrailingHit,
+    MJ_DISCARD(this->pLines[0].pTextLayout->HitTestTextPosition(this->buf.GetVirtualCaretPosition(), isTrailingHit,
                                                                 &caretX, &caretY, &hitTestMetrics));
     // Respect user settings.
     DWORD caretWidth = 1;
@@ -250,11 +251,6 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   return mj::ECursor::ARROW;
 }
 
-static int WideByteCount(const char* pBegin, int numChars)
-{
-  return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, pBegin, numChars, nullptr, 0);
-}
-
 HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width,
                                             FLOAT height)
 {
@@ -262,15 +258,17 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   this->width = (this->widgetRect.right - this->widgetRect.left);
 
   // Convert UTF-8 from TextEdit to Win32 wide string
-  int numWideCharsLeft  = WideByteCount(this->buf.GetLeftPtr(), this->buf.GetLeftLength());
-  int numWideCharsRight = WideByteCount(this->buf.GetRightPtr(), this->buf.GetRightLength());
+  int numWideCharsLeft  = this->buf.GetLeftLength();
+  int numWideCharsRight = this->buf.GetRightLength();
   int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;
 
   // Delete all rendered lines
   for (int i = 0; i < sb_count(this->pLines); i++)
   {
     if (this->pLines[i].pTextLayout)
+    {
       this->pLines[i].pTextLayout->Release();
+    }
     delete[] this->pLines[i].pText;
   }
   sb_free(this->pLines);
@@ -279,10 +277,9 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   wchar_t* pText = new wchar_t[numWideCharsTotal];
   if (pText)
   {
-    MJ_DISCARD(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, this->buf.GetLeftPtr(), this->buf.GetLeftLength(),
-                                   pText, numWideCharsLeft));
-    MJ_DISCARD(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, this->buf.GetRightPtr(), this->buf.GetRightLength(),
-                                   pText + numWideCharsLeft, numWideCharsRight));
+    CopyMemory(pText, this->buf.GetLeftPtr(), numWideCharsLeft * sizeof(wchar_t));
+    CopyMemory(pText + numWideCharsLeft, this->buf.GetRightPtr(), numWideCharsRight * sizeof(wchar_t));
+    //StringCchCopyW(pText + numWideCharsLeft, numWideCharsRight, this->buf.GetRightPtr());
   }
 
   RenderedLine line;

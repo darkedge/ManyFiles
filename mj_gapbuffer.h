@@ -7,30 +7,47 @@ namespace mj
   class GapBuffer
   {
   private:
-    char* pBufBegin;
-    char* pBufEnd;
-    char* pGapBegin;
-    char* pGapEnd;
-    char* pCursor;
+    /// <summary>
+    /// Points to the first character in the buffer. Immutable.
+    /// </summary>
+    wchar_t* pBufBegin;
+    /// <summary>
+    /// Points to one past the last character in the buffer. Immutable.
+    /// </summary>
+    wchar_t* pBufEnd;
+    /// <summary>
+    /// Points to the first free character in the gap.
+    /// </summary>
+    wchar_t* pGapBegin;
+    /// <summary>
+    /// Points to one past the last free character in the gap.
+    /// </summary>
+    wchar_t* pGapEnd;
+    wchar_t* pCaret;
 
-    void CursorUpdate();
-    void IncrementCursorUnchecked();
+    void MoveGapToCaret();
+    void MoveGapBeginToCaret();
+    void MoveGapEndToCaret();
 
   public:
-    uint32_t GetVirtualCursorPosition() const;
-    char* GetLeftPtr() const;
+    uint32_t GetVirtualCaretPosition() const;
+    wchar_t* GetLeftPtr() const;
     int GetLeftLength() const;
-    char* GetRightPtr() const;
+    wchar_t* GetRightPtr() const;
     int GetRightLength() const;
 
     void JumpEndOfLine();
     void JumpStartOfLine();
-    void InsertCharacterAtCursor(wchar_t c);
-    void IncrementCursor();
-    void DecrementCursor();
-    void DeleteAtCursor();
-    void BackspaceAtCursor();
+    void InsertCharacterAtCaret(wchar_t c);
+    bool IncrementCaret();
+    bool DecrementCaret();
+    void DeleteAtCaret();
+    void BackspaceAtCaret();
     void Init(void* pBegin, void* pEnd);
+    /// <summary>
+    /// Copies the text to the buffer.
+    /// </summary>
+    /// <param name="pText"></param>
     void SetText(const wchar_t* pText);
     void SetCaretPosition(uint32_t caretPosition);
   };
