@@ -25,6 +25,8 @@ namespace mj
     wchar_t* pCaret;
 
     void MoveGapBeginToCaret();
+    wchar_t* PeekCaretPrev() const;
+    wchar_t* PeekCaretNext() const;
 
   public:
     uint32_t GetVirtualCaretPosition() const;
