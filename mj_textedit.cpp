@@ -162,21 +162,22 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   // Background
   pRenderTarget->FillRectangle(MJ_REF this->widgetRect, pResources->pTextEditBackgroundBrush);
   pRenderTarget->PushAxisAlignedClip(MJ_REF this->widgetRect, D2D1_ANTIALIAS_MODE_ALIASED);
+  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F xBackGround;
+  pRenderTarget->GetTransform(&xBackGround);
 
-  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
-  pRenderTarget->GetTransform(&transform);
-  pRenderTarget->SetTransform(transform * D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
+  pRenderTarget->SetTransform(xBackGround * D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
+  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F xWidget;
+  pRenderTarget->GetTransform(&xWidget);
 
-  // Use the DrawTextLayout method of the D2D render target interface to draw.
-  MJ_UNINITIALIZED D2D1_POINT_2F inverse;
-  inverse.x = -this->scrollPos.x;
-  inverse.y = -this->scrollPos.y;
-  pRenderTarget->DrawTextLayout(inverse, this->line.pTextLayout, pResources->pTextBrush, D2D1_DRAW_TEXT_OPTIONS_NONE);
-  this->DrawHorizontalScrollBar(pRenderTarget, pResources);
+  pRenderTarget->SetTransform(xWidget * D2D1::Matrix3x2F::Translation(-this->scrollPos.x, -this->scrollPos.y));
+  pRenderTarget->DrawTextLayout({}, this->line.pTextLayout, pResources->pTextBrush, D2D1_DRAW_TEXT_OPTIONS_NONE);
   this->DrawCaret(pRenderTarget, pResources);
 
+  pRenderTarget->SetTransform(MJ_REF xWidget);
+  this->DrawHorizontalScrollBar(pRenderTarget, pResources);
+
   pRenderTarget->PopAxisAlignedClip();
-  pRenderTarget->SetTransform(MJ_REF transform);
+  pRenderTarget->SetTransform(MJ_REF xBackGround);
 }
 
 static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
