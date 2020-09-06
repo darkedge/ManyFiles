@@ -245,5 +245,11 @@ void mj::GapBuffer::SetText(const wchar_t* pText)
 
 void mj::GapBuffer::SetCaretPosition(uint32_t caretPosition)
 {
-  // TODO
+  // [...[   ]|...]
+  // [[   ]..|....]
+  // [....|..[   ]]
+  if (caretPosition <= this->GetLeftLength())
+  {
+    this->pCaret = this->pBufBegin + caretPosition;
+  }
 }

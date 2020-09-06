@@ -33,9 +33,9 @@ namespace mj
 
   struct RenderedLine
   {
-    wchar_t* pText                 = nullptr;
-    size_t textLength              = 0;
-    IDWriteTextLayout* pTextLayout = nullptr;
+    wchar_t* pText;                 //                 = nullptr;
+    size_t textLength;              //              = 0;
+    IDWriteTextLayout* pTextLayout; // = nullptr;
   };
 
   enum class EDraggable
@@ -55,25 +55,32 @@ namespace mj
     SHORT mouseStartY;
   };
 
+  class TextEdit;
+  class HorizontalScrollBar
+  {
+  private:
+    RECT horScrollbarRect;
+    TextEdit* pParent;
+
+  public:
+    void Init(TextEdit* pParent);
+    void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
+    bool MouseDown(SHORT x, SHORT y);
+  };
+
   class TextEdit
   {
   private:
-    struct ReverseLookup
-    {
-      RECT horScrollbarRect;
-    };
-
-    void DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
     void DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
 
     void* pMemory;
     RenderedLine line;
     mj::GapBuffer buf;
-    D2D1_RECT_F widgetRect;  // Rect of widget inside rendertarget
-    D2D1_POINT_2F scrollPos; // Position of scroll area
-    FLOAT width;             // Equal to width of the longest rendered line
+    D2D1_RECT_F widgetRect; // Rect of widget inside rendertarget
+    FLOAT width;            // Equal to width of the longest rendered line
     DragAction drag;
-    ReverseLookup reverse;
+    D2D1_POINT_2F scrollPos; // Position of scroll area
+    HorizontalScrollBar horizontalScrollBar;
 
   public:
     HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
@@ -86,5 +93,8 @@ namespace mj
     void Destroy();
 
     MJ_CRGETTER(GetDragAction, drag);
+    MJ_CRGETTER(GetWidgetRect, widgetRect);
+    MJ_GETTER(GetWidth, width);
+    MJ_CRGETTER(GetScrollPosition, scrollPos);
   };
 } // namespace mj
