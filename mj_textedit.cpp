@@ -361,7 +361,7 @@ bool mj::TextView::MouseDown(SHORT x, SHORT y, UINT32& textPosition)
 
   if (isInside)
   {
-    textPosition = hitTestMetrics.textPosition;
+    textPosition = isTrailingHit ? hitTestMetrics.textPosition + 1 : hitTestMetrics.textPosition;
     return true;
   }
 
