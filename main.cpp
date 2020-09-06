@@ -2,6 +2,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <windowsx.h>
+#include <shobjidl.h>
 #include <dwrite.h>
 #include <d2d1.h>
 #include <shellscalingapi.h> // MDT_EFFECTIVE_DPI
@@ -272,10 +273,63 @@ static HRESULT CreateDeviceIndependentResources()
 
 static mj::ECursor::Enum s_Cursor;
 
+static HRESULT BasicFileOpen()
+{
+  HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  if (SUCCEEDED(hr))
+  {
+    IFileOpenDialog* pFileOpen;
+
+    // Create the FileOpenDialog object.
+    hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
+                          reinterpret_cast<void**>(&pFileOpen));
+
+    if (SUCCEEDED(hr))
+    {
+      // Show the Open dialog box.
+      hr = pFileOpen->Show(NULL);
+
+      // Get the file name from the dialog box.
+      if (SUCCEEDED(hr))
+      {
+        IShellItem* pItem;
+        hr = pFileOpen->GetResult(&pItem);
+        if (SUCCEEDED(hr))
+        {
+          PWSTR pszFilePath;
+          hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+          // Display the file name to the user.
+          if (SUCCEEDED(hr))
+          {
+            MessageBoxW(NULL, pszFilePath, L"File Path", MB_OK);
+            CoTaskMemFree(pszFilePath);
+          }
+          pItem->Release();
+        }
+      }
+      pFileOpen->Release();
+    }
+    CoUninitialize();
+  }
+
+  return hr;
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
   {
+  case WM_COMMAND:
+    switch (LOWORD(wParam))
+    {
+    case ID_FILE_OPEN:
+      BasicFileOpen();
+      break;
+    default:
+      break;
+    }
+    break;
   case WM_CAPTURECHANGED:
     s_TextEdit.MouseUp();
     break;
