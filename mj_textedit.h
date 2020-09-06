@@ -67,7 +67,7 @@ namespace mj
     void DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
 
     void* pMemory;
-    RenderedLine* pLines;
+    RenderedLine line;
     mj::GapBuffer buf;
     D2D1_RECT_F widgetRect;  // Rect of widget inside rendertarget
     D2D1_POINT_2F scrollPos; // Position of scroll area

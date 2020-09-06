@@ -9,7 +9,7 @@
 // Argument is passed by reference
 #define MJ_REF
 // Return value is discarded
-#define MJ_DISCARD(x) x
+#define MJ_DISCARD(x) (void)x
 
 #define MJ_COUNTOF(arr) sizeof(arr) / sizeof(arr[0])
 

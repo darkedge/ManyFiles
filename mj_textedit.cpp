@@ -20,8 +20,7 @@ HRESULT mj::TextEdit::Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
   this->scrollPos.x = 0.0f;
   this->scrollPos.y = 0.0f;
 
-  this->pLines = nullptr;
-  HRESULT hr   = S_OK;
+  HRESULT hr = S_OK;
   // Init memory for buffer
   this->pMemory = VirtualAlloc(0, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   if (!this->pMemory)
@@ -75,16 +74,16 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
       MJ_DISCARD(this->buf.JumpEndOfLine());
       break;
     case VK_LEFT:
-      this->buf.DecrementCaret();
+      MJ_DISCARD(this->buf.DecrementCaret());
       break;
     case VK_RIGHT:
-      this->buf.IncrementCaret();
+      MJ_DISCARD(this->buf.IncrementCaret());
       break;
     case VK_UP:
-      this->buf.CaretLinePrev();
+      MJ_DISCARD(this->buf.CaretLinePrev());
       break;
     case VK_DOWN:
-      this->buf.CaretLineNext();
+      MJ_DISCARD(this->buf.CaretLineNext());
       break;
     case VK_DELETE:
       this->buf.DeleteAtCaret();
@@ -133,15 +132,15 @@ void mj::TextEdit::DrawHorizontalScrollBar(ID2D1HwndRenderTarget* pRenderTarget,
 void mj::TextEdit::DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
 {
   // Caret
-  if (this->pLines && this->pLines[0].pTextLayout)
+  if (this->line.pTextLayout)
   {
     DWRITE_HIT_TEST_METRICS hitTestMetrics;
     float caretX, caretY;
     bool isTrailingHit = false; // Use the leading character edge for simplicity here.
 
     // Map text position index to caret coordinate and hit-test rectangle.
-    MJ_DISCARD(this->pLines[0].pTextLayout->HitTestTextPosition(this->buf.GetVirtualCaretPosition(), isTrailingHit,
-                                                                &caretX, &caretY, &hitTestMetrics));
+    MJ_DISCARD(this->line.pTextLayout->HitTestTextPosition(this->buf.GetVirtualCaretPosition(), isTrailingHit, &caretX,
+                                                           &caretY, &hitTestMetrics));
     // Respect user settings.
     DWORD caretWidth = 1;
     SystemParametersInfo(SPI_GETCARETWIDTH, 0, &caretWidth, 0);
@@ -169,14 +168,10 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   pRenderTarget->SetTransform(transform * D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
 
   // Use the DrawTextLayout method of the D2D render target interface to draw.
-  for (size_t i = 0; i < sb_count(this->pLines); i++)
-  {
-    MJ_UNINITIALIZED D2D1_POINT_2F inverse;
-    inverse.x = -this->scrollPos.x;
-    inverse.y = -this->scrollPos.y;
-    pRenderTarget->DrawTextLayout(inverse, this->pLines[i].pTextLayout, pResources->pTextBrush,
-                                  D2D1_DRAW_TEXT_OPTIONS_NONE);
-  }
+  MJ_UNINITIALIZED D2D1_POINT_2F inverse;
+  inverse.x = -this->scrollPos.x;
+  inverse.y = -this->scrollPos.y;
+  pRenderTarget->DrawTextLayout(inverse, this->line.pTextLayout, pResources->pTextBrush, D2D1_DRAW_TEXT_OPTIONS_NONE);
   this->DrawHorizontalScrollBar(pRenderTarget, pResources);
   this->DrawCaret(pRenderTarget, pResources);
 
@@ -208,14 +203,14 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
   }
 
   // Caret
-  if (this->pLines && this->pLines[0].pTextLayout)
+  if (this->line.pTextLayout)
   {
     MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
     MJ_UNINITIALIZED BOOL isTrailingHit;
     MJ_UNINITIALIZED BOOL isInside;
 
     MJ_DISCARD(
-        this->pLines[0].pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
+        this->line.pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
 
     if (isInside)
     {
@@ -279,16 +274,11 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;
 
   // Delete all rendered lines
-  for (int i = 0; i < sb_count(this->pLines); i++)
+  if (this->line.pTextLayout)
   {
-    if (this->pLines[i].pTextLayout)
-    {
-      this->pLines[i].pTextLayout->Release();
-    }
-    delete[] this->pLines[i].pText;
+    this->line.pTextLayout->Release();
   }
-  sb_free(this->pLines);
-  this->pLines = nullptr;
+  delete[] this->line.pText;
 
   wchar_t* pText = new wchar_t[numWideCharsTotal];
   if (pText)
@@ -297,25 +287,23 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
     CopyMemory(pText + numWideCharsLeft, this->buf.GetRightPtr(), numWideCharsRight * sizeof(wchar_t));
   }
 
-  RenderedLine line;
-  line.pText      = pText;
-  line.textLength = numWideCharsTotal;
-  sb_push(this->pLines, line);
+  this->line.pText      = pText;
+  this->line.textLength = numWideCharsTotal;
 
   HRESULT hr = pFactory->CreateTextLayout(
-      this->pLines[0].pText,                // The string to be laid out and formatted.
-      (UINT32)(this->pLines[0].textLength), // The length of the string.
-      pTextFormat,                          // The text format to apply to the string (contains font information, etc).
-      width,                                // The width of the layout box.
-      height,                               // The height of the layout box.
-      &this->pLines[0].pTextLayout          // The IDWriteTextLayout interface pointer.
+      this->line.pText,                // The string to be laid out and formatted.
+      (UINT32)(this->line.textLength), // The length of the string.
+      pTextFormat,                     // The text format to apply to the string (contains font information, etc).
+      width,                           // The width of the layout box.
+      height,                          // The height of the layout box.
+      &this->line.pTextLayout          // The IDWriteTextLayout interface pointer.
   );
 
   if (hr == S_OK)
   {
     // Get maximum line length
     MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
-    this->pLines[0].pTextLayout->GetMetrics(&dtm);
+    this->line.pTextLayout->GetMetrics(&dtm);
     const FLOAT lineWidth = dtm.widthIncludingTrailingWhitespace;
     if (lineWidth >= this->width)
     {
