@@ -3,7 +3,6 @@
 
 namespace mj
 {
-  // Operates on UTF-8.
   class GapBuffer
   {
   private:
@@ -25,15 +24,13 @@ namespace mj
     wchar_t* pGapEnd;
     wchar_t* pCaret;
 
-    void MoveGapToCaret();
     void MoveGapBeginToCaret();
-    void MoveGapEndToCaret();
 
   public:
     uint32_t GetVirtualCaretPosition() const;
-    wchar_t* GetLeftPtr() const;
+    const wchar_t* GetLeftPtr() const;
     int GetLeftLength() const;
-    wchar_t* GetRightPtr() const;
+    const wchar_t* GetRightPtr() const;
     int GetRightLength() const;
 
     void JumpEndOfLine();

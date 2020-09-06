@@ -51,9 +51,23 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
   switch (message)
   {
   case WM_CHAR:
-    this->buf.InsertCharacterAtCaret((wchar_t)wParam);
+    switch (wParam)
+    {
+    case 0x08: // Backspace
+      this->buf.BackspaceAtCaret();
+      break;
+    case 0x0A: // Line feed
+      break;
+    case 0x1B: // Escape
+      break;
+    case 0x0D: // Carriage return
+      break;
+    default:
+      this->buf.InsertCharacterAtCaret((wchar_t)wParam);
+      break;
+    }
     break;
-  case WM_KEYDOWN:
+  case WM_KEYDOWN: // Navigation
     switch (wParam)
     {
     case VK_HOME:
@@ -70,9 +84,6 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
       break;
     case VK_DELETE:
       this->buf.DeleteAtCaret();
-      break;
-    case VK_BACK:
-      this->buf.BackspaceAtCaret();
       break;
     }
     break;
@@ -199,7 +210,8 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
     MJ_UNINITIALIZED BOOL isTrailingHit;
     MJ_UNINITIALIZED BOOL isInside;
 
-    MJ_DISCARD(this->pLines[0].pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
+    MJ_DISCARD(
+        this->pLines[0].pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
 
     if (isInside)
     {
@@ -279,7 +291,6 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   {
     CopyMemory(pText, this->buf.GetLeftPtr(), numWideCharsLeft * sizeof(wchar_t));
     CopyMemory(pText + numWideCharsLeft, this->buf.GetRightPtr(), numWideCharsRight * sizeof(wchar_t));
-    //StringCchCopyW(pText + numWideCharsLeft, numWideCharsRight, this->buf.GetRightPtr());
   }
 
   RenderedLine line;

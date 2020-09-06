@@ -270,12 +270,6 @@ static HRESULT CreateDeviceIndependentResources()
   return hr;
 }
 
-// iswprint implementation
-static bool IsPrintableCharacterWide(wint_t c)
-{
-  return (c > 31 && c < 127);
-}
-
 static mj::ECursor::Enum s_Cursor;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -305,11 +299,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     MJ_DISCARD(ReleaseCapture());
     break;
   case WM_CHAR:
-    if (IsPrintableCharacterWide((wint_t)wParam))
-    {
       s_TextEdit.WndProc(hwnd, message, wParam, lParam);
       DrawD2DContent();
-    }
     break;
   case WM_KEYDOWN:
     switch (wParam)

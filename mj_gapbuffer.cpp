@@ -6,44 +6,27 @@
 #include <strsafe.h>
 
 /// <summary>
-/// Assumes the caret is currently on a grapheme boundary.
-/// When done, the caret is placed at the start of the gap.
+/// Caret will point at first empty character in gap
 /// </summary>
-void mj::GapBuffer::MoveGapToCaret()
+void mj::GapBuffer::MoveGapBeginToCaret()
 {
   if (this->pCaret < this->pGapBegin)
   {
     // [...|...[ --> ___]...]
     size_t numChars = this->pGapBegin - this->pCaret;
     this->pGapEnd -= numChars;
-    StringCchCopyNW(this->pGapEnd, numChars, this->pCaret, numChars);
+    CopyMemory(this->pGapEnd, this->pCaret, numChars * sizeof(wchar_t));
     this->pGapBegin = this->pCaret;
   }
   else if (this->pCaret > this->pGapEnd)
   {
     // [...[___ <-- ]...|...]
     size_t numChars = this->pCaret - this->pGapEnd;
-    StringCchCopyNW(this->pGapBegin, numChars, this->pGapEnd, numChars);
+    CopyMemory(this->pGapBegin, this->pGapEnd, numChars * sizeof(wchar_t));
     this->pGapEnd = this->pCaret;
     this->pGapBegin += numChars;
+    this->pCaret = this->pGapBegin;
   }
-}
-
-/// <summary>
-/// Caret will point at first empty character in gap
-/// </summary>
-void mj::GapBuffer::MoveGapBeginToCaret()
-{
-  MoveGapToCaret();
-}
-
-/// <summary>
-/// Caret will point at first character on right side
-/// </summary>
-void mj::GapBuffer::MoveGapEndToCaret()
-{
-  MoveGapToCaret();
-  this->pCaret = this->pGapEnd;
 }
 
 uint32_t mj::GapBuffer::GetVirtualCaretPosition() const
@@ -62,7 +45,7 @@ uint32_t mj::GapBuffer::GetVirtualCaretPosition() const
   return position;
 }
 
-wchar_t* mj::GapBuffer::GetLeftPtr() const
+const wchar_t* mj::GapBuffer::GetLeftPtr() const
 {
   return this->pBufBegin;
 }
@@ -72,7 +55,7 @@ int mj::GapBuffer::GetLeftLength() const
   return (int)(this->pGapBegin - this->pBufBegin);
 }
 
-wchar_t* mj::GapBuffer::GetRightPtr() const
+const wchar_t* mj::GapBuffer::GetRightPtr() const
 {
   return this->pGapEnd;
 }
@@ -89,9 +72,8 @@ int mj::GapBuffer::GetRightLength() const
 void mj::GapBuffer::InsertCharacterAtCaret(wchar_t c)
 {
   this->MoveGapBeginToCaret();
-  OutputDebugStringA("InsertCharacterAtCaret\n");
-  *this->pCaret = c; // Points to free space
-  this->pGapBegin = this->pCaret + 1;
+  *this->pCaret   = c; // Points to free space
+  this->pGapBegin = CharNextW(this->pCaret);
   this->IncrementCaret();
 }
 
@@ -124,7 +106,6 @@ void mj::GapBuffer::JumpEndOfLine()
 
 bool mj::GapBuffer::IncrementCaret()
 {
-  OutputDebugStringA("IncrementCaret\n");
   if (this->pCaret == this->pGapBegin)
   {
     this->pCaret = this->pGapEnd;
@@ -136,19 +117,13 @@ bool mj::GapBuffer::IncrementCaret()
 
 bool mj::GapBuffer::DecrementCaret()
 {
-  if (this->pCaret > this->pBufBegin)
+  if (this->pCaret == this->pGapEnd)
   {
-    OutputDebugStringA("DecrementCaret\n");
-    if (this->pCaret == this->pGapEnd)
-    {
-      this->pCaret = this->pGapBegin;
-    }
-    auto prev    = this->pCaret;
-    this->pCaret = CharPrevW(this->pBufBegin, this->pCaret);
-    return prev != this->pCaret;
+    this->pCaret = this->pGapBegin;
   }
-
-  return false;
+  auto prev    = this->pCaret;
+  this->pCaret = CharPrevW(this->pBufBegin, this->pCaret);
+  return prev != this->pCaret;
 }
 
 void mj::GapBuffer::DeleteAtCaret()
@@ -160,7 +135,6 @@ void mj::GapBuffer::DeleteAtCaret()
   }
   if (*(this->pCaret + i) != '\0')
   {
-    OutputDebugStringA("DeleteAtCaret\n");
     this->MoveGapBeginToCaret();
     this->pGapEnd++;
     this->pCaret = this->pGapEnd;
@@ -169,18 +143,6 @@ void mj::GapBuffer::DeleteAtCaret()
 
 void mj::GapBuffer::BackspaceAtCaret()
 {
-#if 0
-  // If caret is left of gap, caret must be > buffer begin
-  // If caret is right of gap, gap begin must be > buffer begin
-  if (((this->pGapBegin >= this->pCaret) && (this->pCaret > this->pBufBegin))      //
-      || ((this->pGapBegin > this->pBufBegin) && (this->pCaret >= this->pGapEnd))) //
-  {
-    OutputDebugStringA("BackspaceAtCaret\n");
-    this->MoveGapBeginToCaret();
-    this->pCaret--;
-    this->pGapBegin--;
-  }
-#endif
   this->MoveGapBeginToCaret();
   if (this->DecrementCaret())
   {
@@ -203,7 +165,7 @@ void mj::GapBuffer::SetText(const wchar_t* pText)
   {
     MJ_UNINITIALIZED size_t length;
     MJ_DISCARD(StringCchLengthW(pText, STRSAFE_MAX_CCH, &length));
-    this->pGapBegin = this->pBufBegin + length; // + 1?
+    this->pGapBegin = this->pBufBegin + length;
     this->pGapEnd   = this->pBufEnd;
   }
 }
