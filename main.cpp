@@ -309,6 +309,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     case VK_END:
     case VK_LEFT:
     case VK_RIGHT:
+    case VK_UP:
+    case VK_DOWN:
     case VK_DELETE:
     case VK_BACK:
       s_TextEdit.WndProc(hwnd, message, wParam, lParam);

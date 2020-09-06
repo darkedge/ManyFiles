@@ -28,7 +28,7 @@ int mj::win32::Widen(wchar_t* dst, const char* src, int srcLength, int bufferSiz
     // Buffer overrun protection
     if (numCharacters > bufferSize)
     {
-      numCharacters            = bufferSize - 1;
+      numCharacters       = bufferSize - 1;
       dst[bufferSize - 1] = '\0';
     }
 

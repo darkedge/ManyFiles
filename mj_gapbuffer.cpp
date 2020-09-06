@@ -29,26 +29,51 @@ void mj::GapBuffer::MoveGapBeginToCaret()
   }
 }
 
-wchar_t* mj::GapBuffer::PeekCaretPrev() const
+wchar_t* mj::GapBuffer::PeekCaretPrev(wchar_t* pCaret) const
 {
-  wchar_t* pCrt = this->pCaret;
+  const wchar_t* pCrt = pCaret;
   if (pCrt == this->pGapEnd)
   {
     pCrt = this->pGapBegin;
   }
   wchar_t* pPrev = CharPrevW(this->pBufBegin, pCrt);
-  return pPrev == pCrt ? this->pCaret : pPrev;
+  return pPrev == pCrt ? pCaret : pPrev;
 }
 
-wchar_t* mj::GapBuffer::PeekCaretNext() const
+wchar_t* mj::GapBuffer::PeekCaretNext(wchar_t* pCaret) const
 {
-  wchar_t* pCrt = this->pCaret;
+  const wchar_t* pCrt = pCaret;
   if (pCrt == this->pGapBegin)
   {
     pCrt = this->pGapEnd;
   }
   wchar_t* pNext = CharNextW(pCrt);
-  return pNext == pCrt ? this->pCaret : pNext;
+  return pNext == pCrt ? pCaret : pNext;
+}
+
+wchar_t* mj::GapBuffer::GetPrevLineFeed(wchar_t* pCaret) const
+{
+  bool found = false;
+
+  wchar_t* pPeek = pCaret;
+  while (pPeek != this->pBufBegin)
+  {
+    wchar_t* pPrev = this->PeekCaretPrev(pPeek);
+    if (pPrev == pPeek)
+      return nullptr;
+
+    if ((*pPrev == '\n') || (*pPrev == '\r'))
+    {
+      found = true;
+    }
+    else if (found)
+    {
+      return pPeek;
+    }
+    pPeek = pPrev;
+  }
+
+  return nullptr;
 }
 
 uint32_t mj::GapBuffer::GetVirtualCaretPosition() const
@@ -99,41 +124,79 @@ void mj::GapBuffer::InsertCharacterAtCaret(wchar_t c)
   MJ_DISCARD(this->IncrementCaret());
 }
 
-void mj::GapBuffer::JumpStartOfLine()
+int mj::GapBuffer::JumpStartOfLine()
 {
+  int numShifts = 0;
+
   while (this->pCaret != this->pBufBegin)
   {
-    wchar_t* pPrev = this->PeekCaretPrev();
+    wchar_t* pPrev = this->PeekCaretPrev(this->pCaret);
     if ((*pPrev == '\n') || (*pPrev == '\r'))
       break;
     this->pCaret = pPrev;
+    numShifts++;
   }
+
+  return numShifts;
 }
 
-void mj::GapBuffer::JumpEndOfLine()
+int mj::GapBuffer::JumpEndOfLine()
 {
+  int numShifts = 0;
   wchar_t* pEnd = this->pGapEnd == this->pBufEnd ? this->pGapBegin : this->pBufEnd;
+
   while (this->pCaret != pEnd)
   {
-    wchar_t* pNext = this->PeekCaretNext();
+    wchar_t* pNext = this->PeekCaretNext(this->pCaret);
     if ((*pNext == '\n') || (*pNext == '\r'))
       break;
     this->pCaret = pNext;
+    numShifts++;
   }
+
+  return numShifts;
 }
 
 bool mj::GapBuffer::IncrementCaret()
 {
   wchar_t* pNext = this->pCaret;
-  this->pCaret   = this->PeekCaretNext();
+  this->pCaret   = this->PeekCaretNext(this->pCaret);
   return pNext != this->pCaret;
 }
 
 bool mj::GapBuffer::DecrementCaret()
 {
   wchar_t* pPrev = this->pCaret;
-  this->pCaret   = this->PeekCaretPrev();
+  this->pCaret   = this->PeekCaretPrev(this->pCaret);
   return pPrev != this->pCaret;
+}
+
+bool mj::GapBuffer::CaretLinePrev()
+{
+  wchar_t* pPrevLineFeed = this->GetPrevLineFeed(this->pCaret);
+  if (pPrevLineFeed)
+  {
+    int numShifts = this->JumpStartOfLine();
+    this->pCaret = pPrevLineFeed;
+    MJ_DISCARD(this->JumpStartOfLine());
+    for (int i = 0; i < numShifts; i++)
+    {
+      MJ_DISCARD(this->IncrementCaret());
+      wchar_t* pNext = this->PeekCaretNext(this->pCaret);
+      if ((*pNext == '\n') || (*pNext == '\r'))
+      {
+        break;
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
+bool mj::GapBuffer::CaretLineNext()
+{
+  return false;
 }
 
 void mj::GapBuffer::DeleteAtCaret()

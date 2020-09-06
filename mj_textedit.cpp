@@ -60,8 +60,6 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
       break;
     case 0x1B: // Escape
       break;
-    case 0x0D: // Carriage return
-      break;
     default:
       this->buf.InsertCharacterAtCaret((wchar_t)wParam);
       break;
@@ -71,16 +69,22 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
     switch (wParam)
     {
     case VK_HOME:
-      this->buf.JumpStartOfLine();
+      MJ_DISCARD(this->buf.JumpStartOfLine());
       break;
     case VK_END:
-      this->buf.JumpEndOfLine();
+      MJ_DISCARD(this->buf.JumpEndOfLine());
       break;
     case VK_LEFT:
       this->buf.DecrementCaret();
       break;
     case VK_RIGHT:
       this->buf.IncrementCaret();
+      break;
+    case VK_UP:
+      this->buf.CaretLinePrev();
+      break;
+    case VK_DOWN:
+      this->buf.CaretLineNext();
       break;
     case VK_DELETE:
       this->buf.DeleteAtCaret();

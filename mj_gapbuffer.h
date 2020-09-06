@@ -25,21 +25,24 @@ namespace mj
     wchar_t* pCaret;
 
     void MoveGapBeginToCaret();
-    wchar_t* PeekCaretPrev() const;
-    wchar_t* PeekCaretNext() const;
+    [[nodiscard]] wchar_t* PeekCaretPrev(wchar_t* pCaret) const;
+    [[nodiscard]] wchar_t* PeekCaretNext(wchar_t* pCaret) const;
+    [[nodiscard]] wchar_t* GetPrevLineFeed(wchar_t* pCaret) const;
 
   public:
-    uint32_t GetVirtualCaretPosition() const;
-    const wchar_t* GetLeftPtr() const;
-    int GetLeftLength() const;
-    const wchar_t* GetRightPtr() const;
-    int GetRightLength() const;
+    [[nodiscard]] uint32_t GetVirtualCaretPosition() const;
+    [[nodiscard]] const wchar_t* GetLeftPtr() const;
+    [[nodiscard]] int GetLeftLength() const;
+    [[nodiscard]] const wchar_t* GetRightPtr() const;
+    [[nodiscard]] int GetRightLength() const;
 
-    void JumpEndOfLine();
-    void JumpStartOfLine();
+    [[nodiscard]] int JumpEndOfLine();
+    [[nodiscard]] int JumpStartOfLine();
     void InsertCharacterAtCaret(wchar_t c);
-    bool IncrementCaret();
-    bool DecrementCaret();
+    [[nodiscard]] bool IncrementCaret();
+    [[nodiscard]] bool DecrementCaret();
+    [[nodiscard]] bool CaretLinePrev();
+    [[nodiscard]] bool CaretLineNext();
     void DeleteAtCaret();
     void BackspaceAtCaret();
     void Init(void* pBegin, void* pEnd);
