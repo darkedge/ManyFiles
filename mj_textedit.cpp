@@ -101,8 +101,9 @@ static D2D1_POINT_2F operator*(const D2D1_MATRIX_3X2_F& matrix, const D2D1_POINT
 
 void mj::HorizontalScrollBar::Init(TextEdit* pParent)
 {
-  this->pParent          = pParent;
-  this->horScrollbarRect = {};
+  this->pParent = pParent;
+  this->back    = {};
+  this->front   = {};
 }
 
 void mj::HorizontalScrollBar::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
@@ -110,39 +111,40 @@ void mj::HorizontalScrollBar::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderT
   D2D1_RECT_F widgetRect = this->pParent->GetWidgetRect();
   FLOAT scrollPos        = this->pParent->GetScrollPosition().x;
 
-  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
-  pRenderTarget->GetTransform(&transform);
-  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F newTransform =
-      transform * D2D1::Matrix3x2F::Translation(0.0f, widgetRect.bottom - widgetRect.top - SCROLLBAR_SIZE);
-  pRenderTarget->SetTransform(MJ_REF newTransform);
-
   const auto widgetWidth = (widgetRect.right - widgetRect.left);
 
+  FLOAT y = widgetRect.bottom - widgetRect.top - SCROLLBAR_SIZE;
+
   // TODO: fix for high DPI
-  MJ_UNINITIALIZED D2D1_RECT_F rect;
-  rect.left   = 0.0f;
-  rect.top    = 0.0f;
-  rect.right  = widgetWidth;
-  rect.bottom = SCROLLBAR_SIZE;
-  pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBackgroundBrush);
+  back.left   = 0.0f;
+  back.top    = y;
+  back.right  = widgetWidth;
+  back.bottom = y + SCROLLBAR_SIZE;
+  pRenderTarget->FillRectangle(MJ_REF back, pResources->pScrollBarBackgroundBrush);
 
-  rect.left  = scrollPos / this->pParent->GetWidth() * widgetWidth;
-  rect.right = (scrollPos + widgetWidth) / this->pParent->GetWidth() * widgetWidth;
+  front = back;
 
-  pRenderTarget->FillRectangle(MJ_REF rect, pResources->pScrollBarBrush);
+  front.left  = scrollPos / this->pParent->GetWidth() * widgetWidth;
+  front.right = (scrollPos + widgetWidth) / this->pParent->GetWidth() * widgetWidth;
 
-  // Save for reverse lookup
-  auto topLeft           = newTransform * D2D1_POINT_2F{ rect.left, rect.top };
-  auto bottomRight       = newTransform * D2D1_POINT_2F{ rect.right, rect.bottom };
-  this->horScrollbarRect = RECT{ (LONG)topLeft.x, (LONG)topLeft.y, (LONG)bottomRight.x, (LONG)bottomRight.y };
+  pRenderTarget->FillRectangle(MJ_REF front, pResources->pScrollBarBrush);
+}
 
-  pRenderTarget->SetTransform(MJ_REF transform);
+static RECT ToRect(const D2D_RECT_F& rectf)
+{
+  return RECT{
+    (LONG)rectf.left,
+    (LONG)rectf.top,
+    (LONG)rectf.right,
+    (LONG)rectf.bottom,
+  };
 }
 
 bool mj::HorizontalScrollBar::MouseDown(SHORT x, SHORT y)
 {
   POINT pt{ (LONG)x, (LONG)y };
-  return PtInRect(&this->horScrollbarRect, pt);
+  RECT rect = ToRect(this->front);
+  return PtInRect(&rect, pt);
 }
 
 void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
@@ -157,7 +159,7 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F xWidget;
   pRenderTarget->GetTransform(&xWidget);
 
-  pRenderTarget->SetTransform(xWidget * D2D1::Matrix3x2F::Translation(-this->scrollPos.x, -this->scrollPos.y));
+  pRenderTarget->SetTransform(xWidget * D2D1::Matrix3x2F::Translation(-this->scrollAmount.x, -this->scrollAmount.y));
   this->text.Draw(pRenderTarget, pResources, this->buf.GetVirtualCaretPosition());
 
   pRenderTarget->SetTransform(MJ_REF xWidget);
@@ -175,11 +177,15 @@ static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
 
 void mj::TextEdit::MouseDown(SHORT x, SHORT y)
 {
+  // Translate
+  x -= (SHORT)this->widgetRect.left;
+  y -= (SHORT)this->widgetRect.top;
+
   // Scroll bar
   if (this->horizontalScrollBar.MouseDown(x, y))
   {
     // Use left edge of scroll bar
-    this->drag.start       = this->scrollPos.x;
+    this->drag.start       = this->scrollAmount.x;
     this->drag.mouseStartX = x;
     // this->drag.mouseStartY = y;
     this->drag.draggable = EDraggable::HOR_SCROLLBAR;
@@ -204,6 +210,10 @@ void mj::TextEdit::MouseUp()
 
 mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
 {
+  // Translate
+  x -= (SHORT)this->widgetRect.left;
+  y -= (SHORT)this->widgetRect.top;
+
   // Check dragging
   switch (this->drag.draggable)
   {
@@ -211,14 +221,14 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   {
     const auto widgetWidth = (this->widgetRect.right - this->widgetRect.left);
     SHORT dx               = x - this->drag.mouseStartX;
-    this->scrollPos.x      = this->drag.start + (dx / widgetWidth * this->width);
-    if (this->scrollPos.x < 0.0f)
+    this->scrollAmount.x   = this->drag.start + (dx / widgetWidth * this->width);
+    if (this->scrollAmount.x < 0.0f)
     {
-      this->scrollPos.x = 0.0f;
+      this->scrollAmount.x = 0.0f;
     }
-    else if ((this->scrollPos.x + widgetWidth) > this->width)
+    else if ((this->scrollAmount.x + widgetWidth) > this->width)
     {
-      this->scrollPos.x = (this->width - widgetWidth);
+      this->scrollAmount.x = (this->width - widgetWidth);
     }
   }
   break;
@@ -299,7 +309,6 @@ void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
 HRESULT mj::TextView::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
                                             const mj::GapBuffer& buffer, FLOAT width, FLOAT height)
 {
-  // Convert UTF-8 from TextEdit to Win32 wide string
   int numWideCharsLeft  = buffer.GetLeftLength();
   int numWideCharsRight = buffer.GetRightLength();
   int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;

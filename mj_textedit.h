@@ -70,7 +70,8 @@ namespace mj
   class HorizontalScrollBar
   {
   private:
-    RECT horScrollbarRect;
+    D2D1_RECT_F back;
+    D2D1_RECT_F front;
     TextEdit* pParent;
 
   public:
@@ -88,7 +89,7 @@ namespace mj
     D2D1_RECT_F widgetRect; // Rect of widget inside rendertarget
     FLOAT width;            // Equal to width of the longest rendered line
     DragAction drag;
-    D2D1_POINT_2F scrollPos; // Position of scroll area
+    D2D1_POINT_2F scrollAmount; // Position of scroll area
     HorizontalScrollBar horizontalScrollBar;
 
   public:
@@ -104,6 +105,6 @@ namespace mj
     MJ_CRGETTER(GetDragAction, drag);
     MJ_CRGETTER(GetWidgetRect, widgetRect);
     MJ_GETTER(GetWidth, width);
-    MJ_CRGETTER(GetScrollPosition, scrollPos);
+    MJ_CRGETTER(GetScrollPosition, scrollAmount);
   };
 } // namespace mj
