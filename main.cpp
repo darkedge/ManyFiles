@@ -49,6 +49,9 @@ static RenderTargetResources s_RenderTargetResources;
 
 static mj::TextEdit s_TextEdit;
 
+static mj::ECursor::Enum s_Cursor;
+static bool s_WordWrap = false;
+
 #define SAFE_RELEASE(ptr) \
   do \
   { \
@@ -135,6 +138,14 @@ static HMONITOR GetPrimaryMonitor()
   return MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 }
 
+static void SetWordWrap(bool wordWrap)
+{
+  if (s_pTextFormat)
+  {
+    s_pTextFormat->SetWordWrapping(wordWrap ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP);
+  }
+}
+
 static HRESULT CreateDeviceResources()
 {
   HRESULT hr = S_OK;
@@ -179,6 +190,11 @@ static HRESULT CreateDeviceResources()
   {
     // Create a text layout using the text format.
     hr = s_TextEdit.CreateDeviceResources(s_pDWriteFactory, s_pTextFormat, (FLOAT)rect.right, (FLOAT)rect.bottom);
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    SetWordWrap(s_WordWrap);
   }
 
   return hr;
@@ -263,15 +279,8 @@ static HRESULT CreateDeviceIndependentResources()
         ConvertPointSizeToDIP(s_FontSize), L"en-us", &s_pTextFormat);
   }
 
-  if (SUCCEEDED(hr))
-  {
-    s_pTextFormat->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-  }
-
   return hr;
 }
-
-static mj::ECursor::Enum s_Cursor;
 
 static HRESULT BasicFileOpen()
 {
@@ -325,6 +334,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     {
     case ID_FILE_OPEN:
       BasicFileOpen();
+      break;
+    case ID_VIEW_WORDWRAP:
+      s_WordWrap = !s_WordWrap;
+      CheckMenuItem(GetMenu(hwnd), ID_VIEW_WORDWRAP, s_WordWrap ? MF_CHECKED : MF_UNCHECKED);
+      SetWordWrap(s_WordWrap);
+      DrawD2DContent();
       break;
     default:
       break;

@@ -60,6 +60,10 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_FILE_EXIT
     END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Word Wrap",                  ID_VIEW_WORDWRAP
+    END
     MENUITEM "&Tools",                      0
 END
 
