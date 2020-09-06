@@ -5,6 +5,7 @@
 
 struct ID2D1HwndRenderTarget;
 struct RenderTargetResources;
+struct ID2D1SolidColorBrush;
 
 namespace mj
 {
@@ -31,11 +32,21 @@ namespace mj
     };
   };
 
-  struct RenderedLine
+  class TextView
   {
-    wchar_t* pText;                 //                 = nullptr;
-    size_t textLength;              //              = 0;
-    IDWriteTextLayout* pTextLayout; // = nullptr;
+  private:
+    wchar_t* pText;
+    size_t textLength;
+    IDWriteTextLayout* pTextLayout;
+    ID2D1SolidColorBrush* pTextBrush;
+
+  public:
+    void Init();
+    void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources, UINT32 textPosition);
+    HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, const mj::GapBuffer& buffer,
+                                  FLOAT width, FLOAT height);
+    FLOAT GetWidth() const;
+    bool MouseDown(SHORT x, SHORT y, UINT32& textPosition);
   };
 
   enum class EDraggable
@@ -71,10 +82,8 @@ namespace mj
   class TextEdit
   {
   private:
-    void DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
-
     void* pMemory;
-    RenderedLine line;
+    TextView text;
     mj::GapBuffer buf;
     D2D1_RECT_F widgetRect; // Rect of widget inside rendertarget
     FLOAT width;            // Equal to width of the longest rendered line

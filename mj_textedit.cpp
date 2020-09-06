@@ -30,9 +30,7 @@ HRESULT mj::TextEdit::Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
 
   this->horizontalScrollBar.Init(this);
 
-  this->line.pText       = nullptr;
-  this->line.textLength  = 0;
-  this->line.pTextLayout = nullptr;
+  this->text.Init();
 
   return hr;
 }
@@ -147,34 +145,6 @@ bool mj::HorizontalScrollBar::MouseDown(SHORT x, SHORT y)
   return PtInRect(&this->horScrollbarRect, pt);
 }
 
-void mj::TextEdit::DrawCaret(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
-{
-  // Caret
-  if (this->line.pTextLayout)
-  {
-    DWRITE_HIT_TEST_METRICS hitTestMetrics;
-    float caretX, caretY;
-    bool isTrailingHit = false; // Use the leading character edge for simplicity here.
-
-    // Map text position index to caret coordinate and hit-test rectangle.
-    MJ_DISCARD(this->line.pTextLayout->HitTestTextPosition(this->buf.GetVirtualCaretPosition(), isTrailingHit, &caretX,
-                                                           &caretY, &hitTestMetrics));
-    // Respect user settings.
-    DWORD caretWidth = 1;
-    SystemParametersInfo(SPI_GETCARETWIDTH, 0, &caretWidth, 0);
-    DWORD halfCaretWidth = caretWidth / 2u;
-
-    // Draw a thin rectangle.
-    MJ_UNINITIALIZED D2D1_RECT_F rect;
-    rect.left   = caretX - halfCaretWidth;
-    rect.top    = hitTestMetrics.top;
-    rect.right  = caretX + (caretWidth - halfCaretWidth);
-    rect.bottom = hitTestMetrics.top + hitTestMetrics.height;
-
-    pRenderTarget->FillRectangle(&rect, pResources->pCaretBrush);
-  }
-}
-
 void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
 {
   // Background
@@ -188,8 +158,7 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   pRenderTarget->GetTransform(&xWidget);
 
   pRenderTarget->SetTransform(xWidget * D2D1::Matrix3x2F::Translation(-this->scrollPos.x, -this->scrollPos.y));
-  pRenderTarget->DrawTextLayout({}, this->line.pTextLayout, pResources->pTextBrush, D2D1_DRAW_TEXT_OPTIONS_NONE);
-  this->DrawCaret(pRenderTarget, pResources);
+  this->text.Draw(pRenderTarget, pResources, this->buf.GetVirtualCaretPosition());
 
   pRenderTarget->SetTransform(MJ_REF xWidget);
   this->horizontalScrollBar.Draw(pRenderTarget, pResources);
@@ -221,19 +190,10 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
   }
 
   // Caret
-  if (this->line.pTextLayout)
+  MJ_UNINITIALIZED UINT32 textPosition;
+  if (this->text.MouseDown(x, y, MJ_REF textPosition))
   {
-    MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
-    MJ_UNINITIALIZED BOOL isTrailingHit;
-    MJ_UNINITIALIZED BOOL isInside;
-
-    MJ_DISCARD(
-        this->line.pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
-
-    if (isInside)
-    {
-      this->buf.SetCaretPosition(hitTestMetrics.textPosition);
-    }
+    this->buf.SetCaretPosition(textPosition);
   }
 }
 
@@ -285,43 +245,11 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   // Set longest line width equal to widget width
   this->width = (this->widgetRect.right - this->widgetRect.left);
 
-  // Convert UTF-8 from TextEdit to Win32 wide string
-  int numWideCharsLeft  = this->buf.GetLeftLength();
-  int numWideCharsRight = this->buf.GetRightLength();
-  int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;
-
-  // Delete all rendered lines
-  if (this->line.pTextLayout)
-  {
-    this->line.pTextLayout->Release();
-  }
-  delete[] this->line.pText;
-
-  wchar_t* pText = new wchar_t[numWideCharsTotal];
-  if (pText)
-  {
-    CopyMemory(pText, this->buf.GetLeftPtr(), numWideCharsLeft * sizeof(wchar_t));
-    CopyMemory(pText + numWideCharsLeft, this->buf.GetRightPtr(), numWideCharsRight * sizeof(wchar_t));
-  }
-
-  this->line.pText      = pText;
-  this->line.textLength = numWideCharsTotal;
-
-  HRESULT hr = pFactory->CreateTextLayout(
-      this->line.pText,                // The string to be laid out and formatted.
-      (UINT32)(this->line.textLength), // The length of the string.
-      pTextFormat,                     // The text format to apply to the string (contains font information, etc).
-      width,                           // The width of the layout box.
-      height,                          // The height of the layout box.
-      &this->line.pTextLayout          // The IDWriteTextLayout interface pointer.
-  );
+  HRESULT hr = this->text.CreateDeviceResources(pFactory, pTextFormat, this->buf, width, height);
 
   if (hr == S_OK)
   {
-    // Get maximum line length
-    MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
-    this->line.pTextLayout->GetMetrics(&dtm);
-    const FLOAT lineWidth = dtm.widthIncludingTrailingWhitespace;
+    FLOAT lineWidth = this->text.GetWidth();
     if (lineWidth >= this->width)
     {
       this->width = lineWidth;
@@ -329,4 +257,104 @@ HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   }
 
   return hr;
+}
+
+void mj::TextView::Init()
+{
+  this->pText       = nullptr;
+  this->textLength  = 0;
+  this->pTextLayout = nullptr;
+  this->pTextBrush  = nullptr;
+}
+
+void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources, UINT32 textPosition)
+{
+  if (!this->pTextLayout)
+    return;
+
+  pRenderTarget->DrawTextLayout({}, this->pTextLayout, pResources->pTextBrush, D2D1_DRAW_TEXT_OPTIONS_NONE);
+
+  // Caret
+  DWRITE_HIT_TEST_METRICS hitTestMetrics;
+  float caretX, caretY;
+  bool isTrailingHit = false; // Use the leading character edge for simplicity here.
+
+  // Map text position index to caret coordinate and hit-test rectangle.
+  MJ_DISCARD(this->pTextLayout->HitTestTextPosition(textPosition, isTrailingHit, &caretX, &caretY, &hitTestMetrics));
+  // Respect user settings.
+  DWORD caretWidth = 1;
+  SystemParametersInfo(SPI_GETCARETWIDTH, 0, &caretWidth, 0);
+  DWORD halfCaretWidth = caretWidth / 2u;
+
+  // Draw a thin rectangle.
+  MJ_UNINITIALIZED D2D1_RECT_F rect;
+  rect.left   = caretX - halfCaretWidth;
+  rect.top    = hitTestMetrics.top;
+  rect.right  = caretX + (caretWidth - halfCaretWidth);
+  rect.bottom = hitTestMetrics.top + hitTestMetrics.height;
+
+  pRenderTarget->FillRectangle(&rect, pResources->pCaretBrush);
+}
+
+HRESULT mj::TextView::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
+                                            const mj::GapBuffer& buffer, FLOAT width, FLOAT height)
+{
+  // Convert UTF-8 from TextEdit to Win32 wide string
+  int numWideCharsLeft  = buffer.GetLeftLength();
+  int numWideCharsRight = buffer.GetRightLength();
+  int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;
+
+  // Delete all rendered lines
+  if (this->pTextLayout)
+  {
+    this->pTextLayout->Release();
+  }
+  delete[] this->pText;
+
+  wchar_t* pText = new wchar_t[numWideCharsTotal];
+  if (pText)
+  {
+    CopyMemory(pText, buffer.GetLeftPtr(), numWideCharsLeft * sizeof(wchar_t));
+    CopyMemory(pText + numWideCharsLeft, buffer.GetRightPtr(), numWideCharsRight * sizeof(wchar_t));
+  }
+
+  this->pText      = pText;
+  this->textLength = numWideCharsTotal;
+
+  return pFactory->CreateTextLayout(
+      this->pText,                // The string to be laid out and formatted.
+      (UINT32)(this->textLength), // The length of the string.
+      pTextFormat,                // The text format to apply to the string (contains font information, etc).
+      width,                      // The width of the layout box.
+      height,                     // The height of the layout box.
+      &this->pTextLayout          // The IDWriteTextLayout interface pointer.
+  );
+}
+
+FLOAT mj::TextView::GetWidth() const
+{
+  // Get maximum line length
+  MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
+  this->pTextLayout->GetMetrics(&dtm);
+  return dtm.widthIncludingTrailingWhitespace;
+}
+
+bool mj::TextView::MouseDown(SHORT x, SHORT y, UINT32& textPosition)
+{
+  if (!this->pTextLayout)
+    return false;
+
+  MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+  MJ_UNINITIALIZED BOOL isTrailingHit;
+  MJ_UNINITIALIZED BOOL isInside;
+
+  MJ_DISCARD(this->pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
+
+  if (isInside)
+  {
+    textPosition = hitTestMetrics.textPosition;
+    return true;
+  }
+
+  return false;
 }

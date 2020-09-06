@@ -299,8 +299,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     MJ_DISCARD(ReleaseCapture());
     break;
   case WM_CHAR:
-      s_TextEdit.WndProc(hwnd, message, wParam, lParam);
-      DrawD2DContent();
+    s_TextEdit.WndProc(hwnd, message, wParam, lParam);
+    DrawD2DContent();
     break;
   case WM_KEYDOWN:
     switch (wParam)
