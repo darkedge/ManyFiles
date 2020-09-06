@@ -211,8 +211,8 @@ void mj::TextEdit::MouseUp()
 mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
 {
   // Translate
-  x -= (SHORT)this->widgetRect.left;
-  y -= (SHORT)this->widgetRect.top;
+  SHORT xRel = x - (SHORT)this->widgetRect.left;
+  SHORT yRel = y - (SHORT)this->widgetRect.top;
 
   // Check dragging
   switch (this->drag.draggable)
@@ -220,7 +220,7 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   case EDraggable::HOR_SCROLLBAR:
   {
     const auto widgetWidth = (this->widgetRect.right - this->widgetRect.left);
-    SHORT dx               = x - this->drag.mouseStartX;
+    SHORT dx               = xRel - this->drag.mouseStartX;
     this->scrollAmount.x   = this->drag.start + (dx / widgetWidth * this->width);
     if (this->scrollAmount.x < 0.0f)
     {
