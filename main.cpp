@@ -490,6 +490,9 @@ void __stdcall WinMainCRTStartup()
     UpdateWindow(s_Hwnd);
   }
 
+  // Load the accelerator table.
+  auto hAccel = LoadAcceleratorsW(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDR_ACCELERATOR1));
+
   if (SUCCEEDED(hr))
   {
     MSG msg;
@@ -497,8 +500,11 @@ void __stdcall WinMainCRTStartup()
     // Event loop
     while (GetMessageW(&msg, nullptr, 0, 0))
     {
-      TranslateMessage(&msg);
-      DispatchMessageW(&msg);
+      if (!TranslateAcceleratorW(s_Hwnd, hAccel, &msg))
+      {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+      }
     }
   }
 
