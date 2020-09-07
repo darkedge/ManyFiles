@@ -485,7 +485,7 @@ void __stdcall WinMainCRTStartup()
     const LONG windowHeight = windowRect.bottom - windowRect.top;
 
     // Create window.
-    s_Hwnd = CreateWindowExW(0, pWindowClassName, L"hardcalc", dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
+    s_Hwnd = CreateWindowExW(0, pWindowClassName, L"Rekenaar", dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
                              static_cast<int>(windowWidth), static_cast<int>(windowHeight), nullptr, nullptr,
                              HINST_THISCOMPONENT, nullptr);
   }

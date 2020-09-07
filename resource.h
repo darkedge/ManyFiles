@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by hardcalc.rc
+// Used by rekenaar.rc
 //
 #define IDR_MENU1                       101
 #define IDR_ACCELERATOR1                102

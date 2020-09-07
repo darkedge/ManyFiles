@@ -24,6 +24,6 @@
     <Manifest Include="DeclareDPIAware.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="hardcalc.rc" />
+    <ResourceCompile Include="rekenaar.rc" />
   </ItemGroup>
 </Project>
