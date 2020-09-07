@@ -99,7 +99,7 @@ namespace mj
     void MouseUp();
     ECursor::Enum MouseMove(SHORT x, SHORT y);
     HRESULT Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
-    void Resize(UINT width, UINT height);
+    void Resize(FLOAT width, FLOAT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
     void Destroy();

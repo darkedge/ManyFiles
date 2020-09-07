@@ -12,9 +12,9 @@ static constexpr FLOAT SCROLLBAR_SIZE = 20.0f;
 
 HRESULT mj::TextEdit::Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
 {
-  this->widgetRect.left   = margin;
-  this->widgetRect.top    = margin;
-  this->margin = margin;
+  this->widgetRect.left = margin;
+  this->widgetRect.top  = margin;
+  this->margin          = margin;
   this->Resize(parentWidth, parentHeight);
 
   HRESULT hr = S_OK;
@@ -35,10 +35,10 @@ HRESULT mj::TextEdit::Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
   return hr;
 }
 
-void mj::TextEdit::Resize(UINT width, UINT height)
+void mj::TextEdit::Resize(FLOAT width, FLOAT height)
 {
-  this->widgetRect.right = this->widgetRect.left + width - 2.0f * this->margin;
-  this->widgetRect.bottom = this->widgetRect.top + height- 2.0f* this->margin;
+  this->widgetRect.right  = this->widgetRect.left + width - 2.0f * this->margin;
+  this->widgetRect.bottom = this->widgetRect.top + height - 2.0f * this->margin;
 }
 
 void mj::TextEdit::Destroy()
@@ -364,11 +364,6 @@ bool mj::TextView::MouseDown(SHORT x, SHORT y, UINT32& textPosition)
 
   MJ_DISCARD(this->pTextLayout->HitTestPoint(((FLOAT)x), ((FLOAT)y), &isTrailingHit, &isInside, &hitTestMetrics));
 
-  if (isInside)
-  {
-    textPosition = isTrailingHit ? hitTestMetrics.textPosition + 1 : hitTestMetrics.textPosition;
-    return true;
-  }
-
-  return false;
+  textPosition = isTrailingHit ? hitTestMetrics.textPosition + 1 : hitTestMetrics.textPosition;
+  return true;
 }
