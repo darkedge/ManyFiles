@@ -91,13 +91,15 @@ namespace mj
     DragAction drag;
     D2D1_POINT_2F scrollAmount; // Position of scroll area
     HorizontalScrollBar horizontalScrollBar;
+    FLOAT margin;
 
   public:
     HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
     void MouseUp();
     ECursor::Enum MouseMove(SHORT x, SHORT y);
-    HRESULT Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom);
+    HRESULT Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
+    void Resize(UINT width, UINT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
     void Destroy();

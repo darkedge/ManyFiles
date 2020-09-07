@@ -15,8 +15,8 @@
 static constexpr LPCWSTR pWindowClassName = L"DemoApp";
 static constexpr FLOAT s_FontSize         = 10.0f;
 
-static constexpr UINT WINDOW_WIDTH  = 640;
-static constexpr UINT WINDOW_HEIGHT = 480;
+static constexpr UINT WINDOW_WIDTH  = 1024;
+static constexpr UINT WINDOW_HEIGHT = 768;
 static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
 
 // One logical inch equals 96 pixels. // TODO: This can change!
@@ -131,6 +131,8 @@ static void OnResize(UINT width, UINT height)
 
     s_pRenderTarget->Resize(size);
   }
+
+  s_TextEdit.Resize(width, height);
 }
 
 static HMONITOR GetPrimaryMonitor()
@@ -432,7 +434,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
 void __stdcall WinMainCRTStartup()
 {
-  HRESULT hr = s_TextEdit.Init(20.0f, 10.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+  HRESULT hr = s_TextEdit.Init(20.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
 
   if (SUCCEEDED(hr))
   {

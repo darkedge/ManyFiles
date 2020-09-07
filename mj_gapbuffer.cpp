@@ -171,6 +171,9 @@ bool mj::GapBuffer::DecrementCaret()
   return pPrev != this->pCaret;
 }
 
+/// <summary>
+/// TODO: This does not work with word wrapping!
+/// </summary>
 bool mj::GapBuffer::CaretLinePrev()
 {
   wchar_t* pPrevLineFeed = this->GetPrevLineFeed(this->pCaret);

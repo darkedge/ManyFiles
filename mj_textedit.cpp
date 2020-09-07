@@ -10,12 +10,12 @@
 static constexpr size_t BUFFER_SIZE   = 2 * 1024 * 1024; // 2 MiB
 static constexpr FLOAT SCROLLBAR_SIZE = 20.0f;
 
-HRESULT mj::TextEdit::Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
+HRESULT mj::TextEdit::Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
 {
-  this->widgetRect.left   = left;
-  this->widgetRect.top    = top;
-  this->widgetRect.right  = right;
-  this->widgetRect.bottom = bottom;
+  this->widgetRect.left   = margin;
+  this->widgetRect.top    = margin;
+  this->margin = margin;
+  this->Resize(parentWidth, parentHeight);
 
   HRESULT hr = S_OK;
   // Init memory for buffer
@@ -33,6 +33,12 @@ HRESULT mj::TextEdit::Init(FLOAT left, FLOAT top, FLOAT right, FLOAT bottom)
   this->text.Init();
 
   return hr;
+}
+
+void mj::TextEdit::Resize(UINT width, UINT height)
+{
+  this->widgetRect.right = this->widgetRect.left + width - 2.0f * this->margin;
+  this->widgetRect.bottom = this->widgetRect.top + height- 2.0f* this->margin;
 }
 
 void mj::TextEdit::Destroy()
@@ -287,13 +293,12 @@ void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   // Caret
   DWRITE_HIT_TEST_METRICS hitTestMetrics;
   float caretX, caretY;
-  bool isTrailingHit = false; // Use the leading character edge for simplicity here.
 
   // Map text position index to caret coordinate and hit-test rectangle.
-  MJ_DISCARD(this->pTextLayout->HitTestTextPosition(textPosition, isTrailingHit, &caretX, &caretY, &hitTestMetrics));
+  MJ_DISCARD(this->pTextLayout->HitTestTextPosition(textPosition, false, &caretX, &caretY, &hitTestMetrics));
   // Respect user settings.
   DWORD caretWidth = 1;
-  SystemParametersInfo(SPI_GETCARETWIDTH, 0, &caretWidth, 0);
+  MJ_DISCARD(SystemParametersInfoW(SPI_GETCARETWIDTH, 0, &caretWidth, 0));
   DWORD halfCaretWidth = caretWidth / 2u;
 
   // Draw a thin rectangle.
