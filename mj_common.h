@@ -166,12 +166,12 @@ namespace mj
       return *this;
     }
 
-    char* Position()
+    [[nodiscard]] char* Position()
     {
       return this->position;
     }
 
-    size_t SizeLeft()
+    [[nodiscard]] size_t SizeLeft()
     {
       return (this->end - this->position);
     }
@@ -258,7 +258,7 @@ namespace mj
     }
 
     template <typename T>
-    T* ReserveArrayUnaligned(size_t numElements)
+    [[nodiscard]] T* ReserveArrayUnaligned(size_t numElements)
     {
       if (SizeLeft() >= (numElements * sizeof(T)))
       {
@@ -275,7 +275,7 @@ namespace mj
     }
 
     template <typename T, typename... Args>
-    T* NewUnaligned(Args... args)
+    [[nodiscard]] T* NewUnaligned(Args... args)
     {
       if (SizeLeft() >= sizeof(T))
       {
@@ -292,7 +292,7 @@ namespace mj
     }
 
     template <typename T>
-    T* NewArrayUnaligned(size_t numElements)
+    [[nodiscard]] T* NewArrayUnaligned(size_t numElements)
     {
       if (SizeLeft() >= (numElements * sizeof(T)))
       {
@@ -312,7 +312,7 @@ namespace mj
       }
     }
 
-    bool Good()
+    [[nodiscard]] bool Good()
     {
       return (this->end && this->position);
     }

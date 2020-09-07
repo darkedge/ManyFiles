@@ -100,7 +100,7 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
   }
 }
 
-static D2D1_POINT_2F operator*(const D2D1_MATRIX_3X2_F& matrix, const D2D1_POINT_2F& point)
+[[nodiscard]] static D2D1_POINT_2F operator*(const D2D1_MATRIX_3X2_F& matrix, const D2D1_POINT_2F& point)
 {
   return D2D1::Matrix3x2F::ReinterpretBaseType(&matrix)->TransformPoint(point);
 }
@@ -136,7 +136,7 @@ void mj::HorizontalScrollBar::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderT
   pRenderTarget->FillRectangle(MJ_REF front, pResources->pScrollBarBrush);
 }
 
-static RECT ToRect(const D2D_RECT_F& rectf)
+[[nodiscard]] static RECT ToRect(const D2D_RECT_F& rectf)
 {
   return RECT{
     (LONG)rectf.left,
@@ -175,7 +175,7 @@ void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   pRenderTarget->SetTransform(MJ_REF xBackGround);
 }
 
-static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
+[[nodiscard]] static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
 {
   return ((pPoint->x >= pRect->left) && (pPoint->x <= pRect->right) && (pPoint->y >= pRect->top) &&
           (pPoint->y < (pRect->bottom)));

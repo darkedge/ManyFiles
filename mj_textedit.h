@@ -43,10 +43,10 @@ namespace mj
   public:
     void Init();
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources, UINT32 textPosition);
-    HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, const mj::GapBuffer& buffer,
+    [[nodiscard]] HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, const mj::GapBuffer& buffer,
                                   FLOAT width, FLOAT height);
-    FLOAT GetWidth() const;
-    bool MouseDown(SHORT x, SHORT y, UINT32& textPosition);
+    [[nodiscard]] FLOAT GetWidth() const;
+    [[nodiscard]] bool MouseDown(SHORT x, SHORT y, UINT32& textPosition);
   };
 
   enum class EDraggable
@@ -77,7 +77,7 @@ namespace mj
   public:
     void Init(TextEdit* pParent);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
-    bool MouseDown(SHORT x, SHORT y);
+    [[nodiscard]] bool MouseDown(SHORT x, SHORT y);
   };
 
   class TextEdit
@@ -94,11 +94,11 @@ namespace mj
     FLOAT margin;
 
   public:
-    HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
+    [[nodiscard]] HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
     void MouseUp();
-    ECursor::Enum MouseMove(SHORT x, SHORT y);
-    HRESULT Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
+    [[nodiscard]] ECursor::Enum MouseMove(SHORT x, SHORT y);
+    [[nodiscard]] HRESULT Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
     void Resize(FLOAT width, FLOAT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
