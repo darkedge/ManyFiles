@@ -8,6 +8,7 @@
     <ClCompile Include="ncrt_math_int64.cpp" />
     <ClCompile Include="ncrt_memory.cpp" />
     <ClCompile Include="ncrt_math_float.cpp" />
+    <ClCompile Include="textview.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mj_common.h" />
@@ -19,6 +20,7 @@
     <ClInclude Include="loremipsum.h" />
     <ClInclude Include="render_target_resources.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="textview.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="DeclareDPIAware.manifest" />
