@@ -6,10 +6,11 @@
 
 void mj::TextView::Init()
 {
-  this->pText       = nullptr;
-  this->textLength  = 0;
-  this->pTextLayout = nullptr;
-  this->pTextBrush  = nullptr;
+  this->pText         = nullptr;
+  this->textLength    = 0;
+  this->pTextLayout   = nullptr;
+  this->hoverPosition = 0;
+  this->pRenderer     = new (this->renderer_storage) TextViewRenderer();
 }
 
 void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources, UINT32 textPosition)
@@ -17,11 +18,15 @@ void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   if (!this->pTextLayout)
     return;
 
-  pRenderTarget->DrawTextLayout({}, this->pTextLayout, pResources->pTextBrush, D2D1_DRAW_TEXT_OPTIONS_NONE);
+  MJ_UNINITIALIZED TextViewRenderer::DrawingContext drawingContext;
+  drawingContext.pRenderTarget = pRenderTarget;
+  drawingContext.pResources    = pResources;
+  MJ_DISCARD(this->pTextLayout->Draw(&drawingContext, this->pRenderer, 0.0f, 0.0f));
+  MJ_DISCARD(&TextViewRenderer::DrawGlyphRun); // Visual Studio shortcut
 
   // Caret
-  DWRITE_HIT_TEST_METRICS hitTestMetrics;
-  float caretX, caretY;
+  MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+  MJ_UNINITIALIZED float caretX, caretY;
 
   // Map text position index to caret coordinate and hit-test rectangle.
   MJ_DISCARD(this->pTextLayout->HitTestTextPosition(textPosition, false, &caretX, &caretY, &hitTestMetrics));
@@ -38,6 +43,11 @@ void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   rect.bottom = hitTestMetrics.top + hitTestMetrics.height;
 
   pRenderTarget->FillRectangle(&rect, pResources->pCaretBrush);
+}
+
+void mj::TextView::MouseMove(SHORT x, SHORT y)
+{
+  MJ_DISCARD(this->GetTextPosition(x, y, MJ_REF this->hoverPosition));
 }
 
 HRESULT mj::TextView::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
@@ -82,7 +92,7 @@ FLOAT mj::TextView::GetWidth() const
   return dtm.widthIncludingTrailingWhitespace;
 }
 
-bool mj::TextView::MouseDown(SHORT x, SHORT y, UINT32& textPosition)
+bool mj::TextView::GetTextPosition(SHORT x, SHORT y, UINT32& textPosition)
 {
   if (!this->pTextLayout)
     return false;

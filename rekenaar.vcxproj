@@ -105,6 +105,7 @@
     <ClCompile Include="ncrt_math_int64.cpp" />
     <ClCompile Include="ncrt_memory.cpp" />
     <ClCompile Include="textview.cpp" />
+    <ClCompile Include="textview_renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="loremipsum.h" />

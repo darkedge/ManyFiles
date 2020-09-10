@@ -203,7 +203,7 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
 
   // Caret
   MJ_UNINITIALIZED UINT32 textPosition;
-  if (this->text.MouseDown(x, y, MJ_REF textPosition))
+  if (this->text.GetTextPosition(x, y, MJ_REF textPosition))
   {
     this->buf.SetCaretPosition(textPosition);
   }
@@ -251,6 +251,8 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   {
     return mj::ECursor::IBEAM;
   }
+
+  this->text.MouseMove(x, y);
 
   return mj::ECursor::ARROW;
 }
