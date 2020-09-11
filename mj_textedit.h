@@ -59,7 +59,7 @@ namespace mj
 
   public:
     void Init(TextEdit* pParent);
-    void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
+    void Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources);
     [[nodiscard]] bool MouseDown(SHORT x, SHORT y);
   };
 
@@ -77,14 +77,15 @@ namespace mj
     FLOAT margin;
 
   public:
-    [[nodiscard]] HRESULT CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width, FLOAT height);
+    [[nodiscard]] HRESULT CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
+                                                mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
     void MouseUp();
     [[nodiscard]] ECursor::Enum MouseMove(SHORT x, SHORT y);
     [[nodiscard]] HRESULT Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
     void Resize(FLOAT width, FLOAT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-    void Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources);
+    void Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources);
     void Destroy();
 
     MJ_CRGETTER(GetDragAction, drag);

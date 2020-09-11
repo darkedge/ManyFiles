@@ -7,22 +7,11 @@
 #include <d2d1.h>
 #include <shellscalingapi.h> // MDT_EFFECTIVE_DPI
 
+#include "mj_win32.h"
 #include "mj_common.h"
 #include "mj_textedit.h"
 #include "render_target_resources.h"
 #include "resource.h"
-
-static constexpr LPCWSTR pWindowClassName = L"DemoApp";
-static constexpr FLOAT s_FontSize         = 10.0f;
-
-static constexpr UINT WINDOW_WIDTH  = 1024;
-static constexpr UINT WINDOW_HEIGHT = 768;
-static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
-
-// One logical inch equals 96 pixels. // TODO: This can change!
-static constexpr float MJ_96_DPI = 96.0f;
-// In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
-static constexpr float MJ_POINT = (1.0f / 72.0f);
 
 // __ImageBase is better than GetCurrentModule()
 // Can be cast to a HINSTANCE
@@ -31,97 +20,102 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 #endif
 
-static HWND s_Hwnd;
+class Main
+{
+public:
+  static constexpr LPCWSTR pWindowClassName = L"DemoApp";
+  static constexpr FLOAT s_FontSize         = 10.0f;
 
-static HCURSOR s_cursorType;
+  static constexpr UINT WINDOW_WIDTH  = 1024;
+  static constexpr UINT WINDOW_HEIGHT = 768;
+  static constexpr DWORD dwStyle      = WS_OVERLAPPEDWINDOW;
 
-// how much to scale a design that assumes 96-DPI pixels
-static float s_DpiScale;
+  // One logical inch equals 96 pixels. // TODO: This can change!
+  static constexpr float MJ_96_DPI = 96.0f;
+  // In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
+  static constexpr float MJ_POINT = (1.0f / 72.0f);
 
-// Direct2D
-static ID2D1Factory* s_pD2DFactory;
-static ID2D1HwndRenderTarget* s_pRenderTarget;
+  void Start();
+  void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-// DirectWrite
-static IDWriteFactory* s_pDWriteFactory;
-static IDWriteTextFormat* s_pTextFormat;
-static RenderTargetResources s_RenderTargetResources;
+private:
+  HRESULT CreateRenderTargetResources();
+  void OnResize(UINT width, UINT height);
+  HMONITOR GetPrimaryMonitor();
+  void SetWordWrap(bool wordWrap);
+  HRESULT CreateDeviceResources();
+  HRESULT DrawD2DContent();
+  void CalculateDpiScale();
+  FLOAT ConvertPointSizeToDIP(FLOAT points);
+  HRESULT CreateDeviceIndependentResources();
+  HRESULT BasicFileOpen();
 
-static mj::TextEdit s_TextEdit;
+  HWND s_Hwnd;
 
-static mj::ECursor::Enum s_Cursor;
-static bool s_WordWrap = false;
+  HCURSOR s_cursorType;
 
-#define SAFE_RELEASE(ptr) \
-  do \
-  { \
-    if (ptr) \
-    { \
-      ptr->Release(); \
-      ptr = nullptr; \
-    } \
-  } while (0)
+  // how much to scale a design that assumes 96-DPI pixels
+  float s_DpiScale;
 
-static HRESULT CreateRenderTargetResources(RenderTargetResources* pRenderTargetResources)
+  // Direct2D
+  mj::ComPtr<ID2D1Factory> s_pD2DFactory;
+  mj::ComPtr<ID2D1HwndRenderTarget> s_pRenderTarget;
+
+  // DirectWrite
+  mj::ComPtr<IDWriteFactory> s_pDWriteFactory;
+  mj::ComPtr<IDWriteTextFormat> s_pTextFormat;
+  RenderTargetResources s_RenderTargetResources;
+
+  mj::TextEdit s_TextEdit;
+
+  mj::ECursor::Enum s_Cursor;
+  bool s_WordWrap = false;
+};
+
+HRESULT Main::CreateRenderTargetResources()
 {
   // Create a black brush.
-  HRESULT hr =
-      s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pRenderTargetResources->pTextBrush);
+  HRESULT hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black),
+                                                      s_RenderTargetResources.pTextBrush.ReleaseAndGetAddressOf());
 
   // Brush for render target background
   if (SUCCEEDED(hr))
   {
-    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::WhiteSmoke),
-                                                &pRenderTargetResources->pTextEditBackgroundBrush);
+    hr = s_pRenderTarget->CreateSolidColorBrush(
+        D2D1::ColorF(D2D1::ColorF::WhiteSmoke),
+        s_RenderTargetResources.pTextEditBackgroundBrush.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
     hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::CadetBlue),
-                                                &pRenderTargetResources->pScrollBarBrush);
+                                                s_RenderTargetResources.pScrollBarBrush.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
-    hr =
-        s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pRenderTargetResources->pCaretBrush);
+    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black),
+                                                s_RenderTargetResources.pCaretBrush.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
-    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DarkBlue),
-                                                &pRenderTargetResources->pScrollBarBackgroundBrush);
+    hr = s_pRenderTarget->CreateSolidColorBrush(
+        D2D1::ColorF(D2D1::ColorF::DarkBlue),
+        s_RenderTargetResources.pScrollBarBackgroundBrush.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
-    hr = s_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::OrangeRed),
-                                                &pRenderTargetResources->pScrollBarHighlightBrush);
+    hr = s_pRenderTarget->CreateSolidColorBrush(
+        D2D1::ColorF(D2D1::ColorF::OrangeRed),
+        s_RenderTargetResources.pScrollBarHighlightBrush.ReleaseAndGetAddressOf());
   }
 
   return hr;
 }
 
-static void DestroyRenderTargetResources(RenderTargetResources* pRenderTargetResources)
-{
-  SAFE_RELEASE(pRenderTargetResources->pTextBrush);
-  SAFE_RELEASE(pRenderTargetResources->pTextEditBackgroundBrush);
-  SAFE_RELEASE(pRenderTargetResources->pScrollBarBrush);
-  SAFE_RELEASE(pRenderTargetResources->pCaretBrush);
-  SAFE_RELEASE(pRenderTargetResources->pScrollBarBackgroundBrush);
-  SAFE_RELEASE(pRenderTargetResources->pScrollBarHighlightBrush);
-}
-
-static void ReleaseResources()
-{
-  SAFE_RELEASE(s_pD2DFactory);
-  SAFE_RELEASE(s_pRenderTarget);
-  DestroyRenderTargetResources(&s_RenderTargetResources);
-  SAFE_RELEASE(s_pDWriteFactory);
-  SAFE_RELEASE(s_pTextFormat);
-}
-
-static void OnResize(UINT width, UINT height)
+void Main::OnResize(UINT width, UINT height)
 {
   if (s_pRenderTarget)
   {
@@ -135,12 +129,12 @@ static void OnResize(UINT width, UINT height)
   s_TextEdit.Resize(width, height);
 }
 
-static HMONITOR GetPrimaryMonitor()
+HMONITOR Main::GetPrimaryMonitor()
 {
   return MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 }
 
-static void SetWordWrap(bool wordWrap)
+void Main::SetWordWrap(bool wordWrap)
 {
   if (s_pTextFormat)
   {
@@ -148,7 +142,7 @@ static void SetWordWrap(bool wordWrap)
   }
 }
 
-static HRESULT CreateDeviceResources()
+HRESULT Main::CreateDeviceResources()
 {
   HRESULT hr = S_OK;
 
@@ -179,12 +173,12 @@ static HRESULT CreateDeviceResources()
       hrtp.pixelSize.height = 0;
       hrtp.presentOptions   = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
 
-      hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, &s_pRenderTarget);
+      hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, s_pRenderTarget.ReleaseAndGetAddressOf());
     }
 
     if (SUCCEEDED(hr))
     {
-      hr = CreateRenderTargetResources(&s_RenderTargetResources);
+      hr = CreateRenderTargetResources();
     }
   }
 
@@ -202,7 +196,17 @@ static HRESULT CreateDeviceResources()
   return hr;
 }
 
-static HRESULT DrawD2DContent()
+static void DestroyRenderTargetResources(RenderTargetResources* pRenderTargetResources)
+{
+  pRenderTargetResources->pTextBrush.Reset();
+  pRenderTargetResources->pTextEditBackgroundBrush.Reset();
+  pRenderTargetResources->pScrollBarBrush.Reset();
+  pRenderTargetResources->pCaretBrush.Reset();
+  pRenderTargetResources->pScrollBarBackgroundBrush.Reset();
+  pRenderTargetResources->pScrollBarHighlightBrush.Reset();
+}
+
+HRESULT Main::DrawD2DContent()
 {
   HRESULT hr = CreateDeviceResources();
 
@@ -225,86 +229,78 @@ static HRESULT DrawD2DContent()
 
   if (FAILED(hr))
   {
-    s_pRenderTarget->Release();
+    s_pRenderTarget.Reset();
     DestroyRenderTargetResources(&s_RenderTargetResources);
   }
 
   return hr;
 }
 
-static void CalculateDpiScale()
+void Main::CalculateDpiScale()
 {
   UINT dpi   = GetDpiForWindow(s_Hwnd);
   s_DpiScale = (float)dpi / MJ_96_DPI;
 }
 
-static FLOAT ConvertPointSizeToDIP(FLOAT points)
+FLOAT Main::ConvertPointSizeToDIP(FLOAT points)
 {
   return (points * MJ_POINT) * MJ_96_DPI;
 }
 
-static HRESULT CreateDeviceIndependentResources()
+HRESULT Main::CreateDeviceIndependentResources()
 {
   HRESULT hr;
 
   // Create Direct2D factory.
-  if (s_pD2DFactory)
-    s_pD2DFactory->Release();
 #ifdef _DEBUG
   D2D1_FACTORY_OPTIONS options;
   options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
-  hr                 = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, options, &s_pD2DFactory);
+  hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, options, s_pD2DFactory.ReleaseAndGetAddressOf());
 #else
-  hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &s_pD2DFactory);
+  hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, s_pD2DFactory.ReleaseAndGetAddressOf());
 #endif // _DEBUG
 
   // Create a shared DirectWrite factory.
   if (SUCCEEDED(hr))
   {
-    if (s_pDWriteFactory)
-      s_pDWriteFactory->Release();
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-                             reinterpret_cast<IUnknown**>(&s_pDWriteFactory));
+                             reinterpret_cast<IUnknown**>(s_pDWriteFactory.ReleaseAndGetAddressOf()));
   }
 
   // This sets the default font, weight, stretch, style, and locale.
   if (SUCCEEDED(hr))
   {
-    if (s_pTextFormat)
-    {
-      s_pTextFormat->Release();
-    }
     hr = s_pDWriteFactory->CreateTextFormat(
         L"Consolas", // Font family name.
         nullptr,     // Font collection (nullptr sets it to use the system font collection).
         DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        ConvertPointSizeToDIP(s_FontSize), L"en-us", &s_pTextFormat);
+        ConvertPointSizeToDIP(s_FontSize), L"en-us", s_pTextFormat.ReleaseAndGetAddressOf());
   }
 
   return hr;
 }
 
-static HRESULT BasicFileOpen()
+HRESULT Main::BasicFileOpen()
 {
-  HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
   if (SUCCEEDED(hr))
   {
-    IFileOpenDialog* pFileOpen;
+    mj::ComPtr<IFileOpenDialog> pFileOpen;
 
     // Create the FileOpenDialog object.
-    hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
-                          reinterpret_cast<void**>(&pFileOpen));
+    hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                          reinterpret_cast<void**>(pFileOpen.GetAddressOf()));
 
     if (SUCCEEDED(hr))
     {
       // Show the Open dialog box.
-      hr = pFileOpen->Show(NULL);
+      hr = pFileOpen->Show(nullptr);
 
       // Get the file name from the dialog box.
       if (SUCCEEDED(hr))
       {
-        IShellItem* pItem;
-        hr = pFileOpen->GetResult(&pItem);
+        mj::ComPtr<IShellItem> pItem;
+        hr = pFileOpen->GetResult(pItem.GetAddressOf());
         if (SUCCEEDED(hr))
         {
           PWSTR pszFilePath;
@@ -313,13 +309,11 @@ static HRESULT BasicFileOpen()
           // Display the file name to the user.
           if (SUCCEEDED(hr))
           {
-            MessageBoxW(NULL, pszFilePath, L"File Path", MB_OK);
+            MessageBoxW(nullptr, pszFilePath, L"File Path", MB_OK);
             CoTaskMemFree(pszFilePath);
           }
-          pItem->Release();
         }
       }
-      pFileOpen->Release();
     }
     CoUninitialize();
   }
@@ -328,6 +322,122 @@ static HRESULT BasicFileOpen()
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+
+  switch (message)
+  {
+  case WM_NCCREATE:
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT*)lParam)->lpCreateParams);
+    SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+    break;
+  default:
+    Main* pMain = (Main*)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+    if (pMain)
+    {
+      pMain->WndProc(hwnd, message, wParam, lParam);
+    }
+  }
+
+  return DefWindowProcW(hwnd, message, wParam, lParam);
+}
+
+void Main::Start()
+{
+  HRESULT hr = s_TextEdit.Init(20.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+
+  if (SUCCEEDED(hr))
+  {
+    // Register window class.
+    {
+      MJ_UNINITIALIZED WNDCLASSEX wcex;
+      wcex.cbSize        = sizeof(WNDCLASSEX);
+      wcex.style         = CS_HREDRAW | CS_VREDRAW;
+      wcex.lpfnWndProc   = ::WndProc;
+      wcex.cbClsExtra    = 0;
+      wcex.cbWndExtra    = sizeof(LONG_PTR);
+      wcex.hInstance     = HINST_THISCOMPONENT;
+      wcex.hbrBackground = nullptr;
+      wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
+      wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
+      wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+      wcex.lpszClassName = pWindowClassName;
+      wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
+
+      hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
+    }
+
+    s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
+  }
+
+  // We currently assume that the application will always be created on the primary monitor.
+  MJ_UNINITIALIZED UINT dpiX;
+  MJ_UNINITIALIZED UINT dpiY;
+  hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+  if (SUCCEEDED(hr))
+  {
+    s_DpiScale = (float)dpiX / MJ_96_DPI;
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    hr = CreateDeviceIndependentResources();
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    // Get window rectangle
+    RECT windowRect       = { 0, 0, (LONG)(WINDOW_WIDTH * s_DpiScale), (LONG)(WINDOW_HEIGHT * s_DpiScale) };
+    const bool hasMenu    = false;
+    const DWORD dwExStyle = 0;
+    AdjustWindowRectExForDpi(&windowRect, dwStyle, hasMenu, dwExStyle, dpiX);
+    const LONG windowWidth  = windowRect.right - windowRect.left;
+    const LONG windowHeight = windowRect.bottom - windowRect.top;
+
+    // Create window.
+    s_Hwnd = CreateWindowExW(0, pWindowClassName, L"Rekenaar", dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
+                             static_cast<int>(windowWidth), static_cast<int>(windowHeight), nullptr, nullptr,
+                             HINST_THISCOMPONENT, this);
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    hr = s_Hwnd ? S_OK : E_FAIL;
+  }
+
+  // Draw initial contents to prevent a blank screen flash
+  if (SUCCEEDED(hr))
+  {
+    hr = DrawD2DContent();
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    ShowWindow(s_Hwnd, SW_SHOWNORMAL);
+    UpdateWindow(s_Hwnd);
+  }
+
+  // Load the accelerator table.
+  auto hAccel = LoadAcceleratorsW(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDR_ACCELERATOR1));
+
+  if (SUCCEEDED(hr))
+  {
+    MSG msg;
+
+    // Event loop
+    while (GetMessageW(&msg, nullptr, 0, 0))
+    {
+      if (!TranslateAcceleratorW(s_Hwnd, hAccel, &msg))
+      {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+      }
+    }
+  }
+
+  s_TextEdit.Destroy();
+}
+
+void Main::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message)
   {
@@ -396,7 +506,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
       {
       case mj::ECursor::IBEAM:
         SetCursor(s_cursorType);
-        return TRUE;
+        break;
       default:
         break;
       }
@@ -415,7 +525,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     CreateDeviceIndependentResources();
 
     DestroyRenderTargetResources(&s_RenderTargetResources);
-    SAFE_RELEASE(s_pRenderTarget);
+    s_pRenderTarget.Reset();
     CreateDeviceResources();
   }
   break;
@@ -428,106 +538,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     PostQuitMessage(0);
     break;
   }
-
-  return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
+// CRT-less entry point
 void __stdcall WinMainCRTStartup()
 {
-  HRESULT hr = s_TextEdit.Init(20.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
-
-  if (SUCCEEDED(hr))
+  // Explicit scope to make sure Main destructor is called before ExitProcess
   {
-    // Register window class.
-    {
-      MJ_UNINITIALIZED WNDCLASSEX wcex;
-      wcex.cbSize        = sizeof(WNDCLASSEX);
-      wcex.style         = CS_HREDRAW | CS_VREDRAW;
-      wcex.lpfnWndProc   = WndProc;
-      wcex.cbClsExtra    = 0;
-      wcex.cbWndExtra    = sizeof(LONG_PTR);
-      wcex.hInstance     = HINST_THISCOMPONENT;
-      wcex.hbrBackground = nullptr;
-      wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
-      wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
-      wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-      wcex.lpszClassName = pWindowClassName;
-      wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
-
-      hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
-    }
-
-    s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
+    Main main;
+    main.Start();
   }
 
-  // We currently assume that the application will always be created on the primary monitor.
-  MJ_UNINITIALIZED UINT dpiX;
-  MJ_UNINITIALIZED UINT dpiY;
-  hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-  if (SUCCEEDED(hr))
-  {
-    s_DpiScale = (float)dpiX / MJ_96_DPI;
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    hr = CreateDeviceIndependentResources();
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    // Get window rectangle
-    RECT windowRect       = { 0, 0, (LONG)(WINDOW_WIDTH * s_DpiScale), (LONG)(WINDOW_HEIGHT * s_DpiScale) };
-    const bool hasMenu    = false;
-    const DWORD dwExStyle = 0;
-    AdjustWindowRectExForDpi(&windowRect, dwStyle, hasMenu, dwExStyle, dpiX);
-    const LONG windowWidth  = windowRect.right - windowRect.left;
-    const LONG windowHeight = windowRect.bottom - windowRect.top;
-
-    // Create window.
-    s_Hwnd = CreateWindowExW(0, pWindowClassName, L"Rekenaar", dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
-                             static_cast<int>(windowWidth), static_cast<int>(windowHeight), nullptr, nullptr,
-                             HINST_THISCOMPONENT, nullptr);
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    hr = s_Hwnd ? S_OK : E_FAIL;
-  }
-
-  // Draw initial contents to prevent a blank screen flash
-  if (SUCCEEDED(hr))
-  {
-    hr = DrawD2DContent();
-  }
-
-  if (SUCCEEDED(hr))
-  {
-    ShowWindow(s_Hwnd, SW_SHOWNORMAL);
-    UpdateWindow(s_Hwnd);
-  }
-
-  // Load the accelerator table.
-  auto hAccel = LoadAcceleratorsW(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDR_ACCELERATOR1));
-
-  if (SUCCEEDED(hr))
-  {
-    MSG msg;
-
-    // Event loop
-    while (GetMessageW(&msg, nullptr, 0, 0))
-    {
-      if (!TranslateAcceleratorW(s_Hwnd, hAccel, &msg))
-      {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-      }
-    }
-  }
-
-  s_TextEdit.Destroy();
-
-  ReleaseResources();
-
+  // CRT-less exit
   ExitProcess(0);
 }

@@ -100,10 +100,12 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
   }
 }
 
+#if 0
 [[nodiscard]] static D2D1_POINT_2F operator*(const D2D1_MATRIX_3X2_F& matrix, const D2D1_POINT_2F& point)
 {
   return D2D1::Matrix3x2F::ReinterpretBaseType(&matrix)->TransformPoint(point);
 }
+#endif
 
 void mj::HorizontalScrollBar::Init(TextEdit* pParent)
 {
@@ -112,7 +114,7 @@ void mj::HorizontalScrollBar::Init(TextEdit* pParent)
   this->front   = {};
 }
 
-void mj::HorizontalScrollBar::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
+void mj::HorizontalScrollBar::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources)
 {
   D2D1_RECT_F widgetRect = this->pParent->GetWidgetRect();
   FLOAT scrollPos        = this->pParent->GetScrollPosition().x;
@@ -126,14 +128,14 @@ void mj::HorizontalScrollBar::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderT
   back.top    = y;
   back.right  = widgetWidth;
   back.bottom = y + SCROLLBAR_SIZE;
-  pRenderTarget->FillRectangle(MJ_REF back, pResources->pScrollBarBackgroundBrush);
+  pRenderTarget->FillRectangle(MJ_REF back, pResources->pScrollBarBackgroundBrush.Get());
 
   front = back;
 
   front.left  = scrollPos / this->pParent->GetWidth() * widgetWidth;
   front.right = (scrollPos + widgetWidth) / this->pParent->GetWidth() * widgetWidth;
 
-  pRenderTarget->FillRectangle(MJ_REF front, pResources->pScrollBarBrush);
+  pRenderTarget->FillRectangle(MJ_REF front, pResources->pScrollBarBrush.Get());
 }
 
 [[nodiscard]] static RECT ToRect(const D2D_RECT_F& rectf)
@@ -153,10 +155,10 @@ bool mj::HorizontalScrollBar::MouseDown(SHORT x, SHORT y)
   return PtInRect(&rect, pt);
 }
 
-void mj::TextEdit::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources)
+void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources)
 {
   // Background
-  pRenderTarget->FillRectangle(MJ_REF this->widgetRect, pResources->pTextEditBackgroundBrush);
+  pRenderTarget->FillRectangle(MJ_REF this->widgetRect, pResources->pTextEditBackgroundBrush.Get());
   pRenderTarget->PushAxisAlignedClip(MJ_REF this->widgetRect, D2D1_ANTIALIAS_MODE_ALIASED);
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F xBackGround;
   pRenderTarget->GetTransform(&xBackGround);
@@ -257,7 +259,7 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   return mj::ECursor::ARROW;
 }
 
-HRESULT mj::TextEdit::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat, FLOAT width,
+HRESULT mj::TextEdit::CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory, mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width,
                                             FLOAT height)
 {
   // Set longest line width equal to widget width

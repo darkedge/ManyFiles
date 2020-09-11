@@ -4,7 +4,7 @@
 #include "mj_common.h"
 #include "render_target_resources.h"
 
-void mj::TextView::Init()
+void mj::TextView::Init() noexcept
 {
   this->pText         = nullptr;
   this->textLength    = 0;
@@ -13,7 +13,8 @@ void mj::TextView::Init()
   this->pRenderer     = new (this->renderer_storage) TextViewRenderer();
 }
 
-void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResources* pResources, UINT32 textPosition)
+void mj::TextView::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources,
+                        UINT32 textPosition) noexcept
 {
   if (!this->pTextLayout)
     return;
@@ -42,26 +43,23 @@ void mj::TextView::Draw(ID2D1HwndRenderTarget* pRenderTarget, RenderTargetResour
   rect.right  = caretX + (caretWidth - halfCaretWidth);
   rect.bottom = hitTestMetrics.top + hitTestMetrics.height;
 
-  pRenderTarget->FillRectangle(&rect, pResources->pCaretBrush);
+  pRenderTarget->FillRectangle(&rect, pResources->pCaretBrush.Get());
 }
 
-void mj::TextView::MouseMove(SHORT x, SHORT y)
+void mj::TextView::MouseMove(SHORT x, SHORT y) noexcept
 {
   MJ_DISCARD(this->GetTextPosition(x, y, MJ_REF this->hoverPosition));
 }
 
-HRESULT mj::TextView::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTextFormat* pTextFormat,
-                                            const mj::GapBuffer& buffer, FLOAT width, FLOAT height)
+HRESULT mj::TextView::CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
+                                            mj::ComPtr<IDWriteTextFormat> pTextFormat, const mj::GapBuffer& buffer,
+                                            FLOAT width, FLOAT height) noexcept
 {
   int numWideCharsLeft  = buffer.GetLeftLength();
   int numWideCharsRight = buffer.GetRightLength();
   int numWideCharsTotal = numWideCharsLeft + numWideCharsRight;
 
-  // Delete all rendered lines
-  if (this->pTextLayout)
-  {
-    this->pTextLayout->Release();
-  }
+  // Delete layout text
   delete[] this->pText;
 
   wchar_t* pText = new wchar_t[numWideCharsTotal];
@@ -77,14 +75,14 @@ HRESULT mj::TextView::CreateDeviceResources(IDWriteFactory* pFactory, IDWriteTex
   return pFactory->CreateTextLayout(
       this->pText,                // The string to be laid out and formatted.
       (UINT32)(this->textLength), // The length of the string.
-      pTextFormat,                // The text format to apply to the string (contains font information, etc).
+      pTextFormat.Get(),          // The text format to apply to the string (contains font information, etc).
       width,                      // The width of the layout box.
       height,                     // The height of the layout box.
-      &this->pTextLayout          // The IDWriteTextLayout interface pointer.
+      this->pTextLayout.ReleaseAndGetAddressOf() // The IDWriteTextLayout interface pointer.
   );
 }
 
-FLOAT mj::TextView::GetWidth() const
+FLOAT mj::TextView::GetWidth() const noexcept
 {
   // Get maximum line length
   MJ_UNINITIALIZED DWRITE_TEXT_METRICS dtm;
@@ -92,7 +90,7 @@ FLOAT mj::TextView::GetWidth() const
   return dtm.widthIncludingTrailingWhitespace;
 }
 
-bool mj::TextView::GetTextPosition(SHORT x, SHORT y, UINT32& textPosition)
+bool mj::TextView::GetTextPosition(SHORT x, SHORT y, UINT32& textPosition) noexcept
 {
   if (!this->pTextLayout)
     return false;

@@ -143,41 +143,41 @@ namespace mj
   class IStream
   {
   public:
-    IStream() : end(nullptr), position(nullptr)
+    IStream() noexcept : end(nullptr), position(nullptr)
     {
     }
 
-    IStream(void* begin, void* end) : end((char*)end), position((char*)begin)
+    IStream(void* begin, void* end) noexcept : end((char*)end), position((char*)begin)
     {
     }
 
-    IStream(void* begin, size_t size) : end((char*)begin + size), position((char*)begin)
+    IStream(void* begin, size_t size) noexcept : end((char*)begin + size), position((char*)begin)
     {
     }
 
-    IStream(const IStream& other) : end(other.end), position(other.position)
+    IStream(const IStream& other) noexcept : end(other.end), position(other.position)
     {
     }
 
-    IStream& operator=(const IStream& rhs)
+    IStream& operator=(const IStream& rhs) noexcept
     {
       this->end      = rhs.end;
       this->position = rhs.position;
       return *this;
     }
 
-    [[nodiscard]] char* Position()
+    [[nodiscard]] char* Position() noexcept
     {
       return this->position;
     }
 
-    [[nodiscard]] size_t SizeLeft()
+    [[nodiscard]] size_t SizeLeft() noexcept
     {
       return (this->end - this->position);
     }
 
     template <typename T>
-    IStream& operator>>(T& t)
+    IStream& operator>>(T& t) noexcept
     {
       if (SizeLeft() >= sizeof(T))
       {
@@ -193,7 +193,7 @@ namespace mj
     }
 
     template <typename T>
-    IStream& Write(T& t)
+    IStream& Write(T& t) noexcept
     {
       if (SizeLeft() >= sizeof(T))
       {
@@ -209,7 +209,7 @@ namespace mj
     }
 
     template <typename T>
-    IStream& Read(T& t)
+    IStream& Read(T& t) noexcept
     {
       if (SizeLeft() >= sizeof(T))
       {
@@ -224,7 +224,7 @@ namespace mj
       return *this;
     }
 
-    IStream& Skip(size_t numBytes)
+    IStream& Skip(size_t numBytes) noexcept
     {
       if (SizeLeft() >= numBytes)
       {
@@ -239,10 +239,10 @@ namespace mj
     }
 
     template <typename T>
-    void Fetch(T*&&) = delete;
+    void Fetch(T*&&) noexcept = delete;
 
     template <typename T>
-    IStream& Fetch(T*& t)
+    IStream& Fetch(T*& t) noexcept
     {
       if (SizeLeft() >= sizeof(T))
       {
@@ -258,7 +258,7 @@ namespace mj
     }
 
     template <typename T>
-    [[nodiscard]] T* ReserveArrayUnaligned(size_t numElements)
+    [[nodiscard]] T* ReserveArrayUnaligned(size_t numElements) noexcept
     {
       if (SizeLeft() >= (numElements * sizeof(T)))
       {
@@ -275,7 +275,7 @@ namespace mj
     }
 
     template <typename T, typename... Args>
-    [[nodiscard]] T* NewUnaligned(Args... args)
+    [[nodiscard]] T* NewUnaligned(Args... args) noexcept
     {
       if (SizeLeft() >= sizeof(T))
       {
@@ -292,7 +292,7 @@ namespace mj
     }
 
     template <typename T>
-    [[nodiscard]] T* NewArrayUnaligned(size_t numElements)
+    [[nodiscard]] T* NewArrayUnaligned(size_t numElements) noexcept
     {
       if (SizeLeft() >= (numElements * sizeof(T)))
       {
@@ -312,7 +312,7 @@ namespace mj
       }
     }
 
-    [[nodiscard]] bool Good()
+    [[nodiscard]] bool Good() noexcept
     {
       return (this->end && this->position);
     }

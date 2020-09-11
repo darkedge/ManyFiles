@@ -3,53 +3,70 @@
 #include "render_target_resources.h"
 #include "mj_common.h"
 
-HRESULT mj::TextView::TextViewRenderer::DrawGlyphRun(void* clientDrawingContext,                              //
-                                                     FLOAT baselineOriginX,                                   //
-                                                     FLOAT baselineOriginY,                                   //
-                                                     DWRITE_MEASURING_MODE measuringMode,                     //
-                                                     DWRITE_GLYPH_RUN const* glyphRun,                        //
-                                                     DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription, //
-                                                     IUnknown* clientDrawingEffect) // Brush set with SetDrawingEffect
+HRESULT mj::TextView::TextViewRenderer::DrawGlyphRun(
+    void* clientDrawingContext,                              //
+    FLOAT baselineOriginX,                                   //
+    FLOAT baselineOriginY,                                   //
+    DWRITE_MEASURING_MODE measuringMode,                     //
+    DWRITE_GLYPH_RUN const* glyphRun,                        //
+    DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription, //
+    IUnknown* clientDrawingEffect) noexcept                  // Brush set with SetDrawingEffect
 {
+  HRESULT hr = S_OK;
   MJ_DISCARD(glyphRunDescription);
   // Break out DrawingContext fields
   DrawingContext* drawingContext = static_cast<DrawingContext*>(clientDrawingContext);
 
-  ID2D1RenderTarget* pRenderTarget = drawingContext->pRenderTarget;
-  ID2D1Brush* foregroundBrush      = drawingContext->pResources->pTextBrush;
-  ID2D1Brush* backgroundBrush      = drawingContext->pResources->pScrollBarBrush;
+  mj::ComPtr<ID2D1RenderTarget> pRenderTarget;
+  mj::ComPtr<ID2D1Brush> foregroundBrush;
+  mj::ComPtr<ID2D1Brush> backgroundBrush;
 
-  // Get width of text
-  FLOAT totalWidth = 0;
-
-  for (UINT32 index = 0; index < glyphRun->glyphCount; index++)
+  if (SUCCEEDED(hr))
   {
-    totalWidth += glyphRun->glyphAdvances[index];
+    hr = drawingContext->pRenderTarget.As(&pRenderTarget);
+  }
+  if (SUCCEEDED(hr))
+  {
+    hr = drawingContext->pResources->pTextBrush.As(&foregroundBrush);
+  }
+  if (SUCCEEDED(hr))
+  {
+    hr = drawingContext->pResources->pScrollBarBrush.As(&backgroundBrush);
+  }
+  if (SUCCEEDED(hr))
+  {
+    // Get width of text
+    FLOAT totalWidth = 0;
+
+    for (UINT32 index = 0; index < glyphRun->glyphCount; index++)
+    {
+      totalWidth += glyphRun->glyphAdvances[index];
+    }
+
+    // Get height of text
+    MJ_UNINITIALIZED DWRITE_FONT_METRICS fontMetrics;
+    glyphRun->fontFace->GetMetrics(&fontMetrics);
+    FLOAT adjust  = glyphRun->fontEmSize / fontMetrics.designUnitsPerEm;
+    FLOAT ascent  = adjust * fontMetrics.ascent;
+    FLOAT descent = adjust * fontMetrics.descent;
+    D2D1_RECT_F rect =
+        D2D1::RectF(baselineOriginX, baselineOriginY - ascent, baselineOriginX + totalWidth, baselineOriginY + descent);
+
+    // Fill Rectangle
+    pRenderTarget->FillRectangle(rect, backgroundBrush.Get());
+
+    pRenderTarget->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, foregroundBrush.Get(),
+                                measuringMode);
   }
 
-  // Get height of text
-  MJ_UNINITIALIZED DWRITE_FONT_METRICS fontMetrics;
-  glyphRun->fontFace->GetMetrics(&fontMetrics);
-  FLOAT adjust  = glyphRun->fontEmSize / fontMetrics.designUnitsPerEm;
-  FLOAT ascent  = adjust * fontMetrics.ascent;
-  FLOAT descent = adjust * fontMetrics.descent;
-  D2D1_RECT_F rect =
-      D2D1::RectF(baselineOriginX, baselineOriginY - ascent, baselineOriginX + totalWidth, baselineOriginY + descent);
-
-  // Fill Rectangle
-  pRenderTarget->FillRectangle(rect, backgroundBrush);
-
-  pRenderTarget->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, foregroundBrush,
-                              measuringMode);
-
-  return S_OK;
+  return hr;
 }
 
 HRESULT mj::TextView::TextViewRenderer::DrawUnderline(void* clientDrawingContext,        //
                                                       FLOAT baselineOriginX,             //
                                                       FLOAT baselineOriginY,             //
                                                       DWRITE_UNDERLINE const* underline, //
-                                                      IUnknown* clientDrawingEffect)
+                                                      IUnknown* clientDrawingEffect) noexcept
 {
   MJ_DISCARD(clientDrawingContext);
   MJ_DISCARD(baselineOriginX);
@@ -64,7 +81,7 @@ HRESULT mj::TextView::TextViewRenderer::DrawStrikethrough(void* clientDrawingCon
                                                           FLOAT baselineOriginX,                     //
                                                           FLOAT baselineOriginY,                     //
                                                           DWRITE_STRIKETHROUGH const* strikethrough, //
-                                                          IUnknown* clientDrawingEffect)
+                                                          IUnknown* clientDrawingEffect) noexcept
 {
   MJ_DISCARD(clientDrawingContext);
   MJ_DISCARD(baselineOriginX);
@@ -81,7 +98,7 @@ HRESULT mj::TextView::TextViewRenderer::DrawInlineObject(void* clientDrawingCont
                                                          IDWriteInlineObject* inlineObject, //
                                                          BOOL isSideways,                   //
                                                          BOOL isRightToLeft,                //
-                                                         IUnknown* clientDrawingEffect)
+                                                         IUnknown* clientDrawingEffect) noexcept
 {
   MJ_DISCARD(clientDrawingContext);
   MJ_DISCARD(originX);
@@ -95,7 +112,7 @@ HRESULT mj::TextView::TextViewRenderer::DrawInlineObject(void* clientDrawingCont
 }
 
 // IDWritePixelSnapping
-HRESULT mj::TextView::TextViewRenderer::IsPixelSnappingDisabled(void* clientDrawingContext, BOOL* isDisabled)
+HRESULT mj::TextView::TextViewRenderer::IsPixelSnappingDisabled(void* clientDrawingContext, BOOL* isDisabled) noexcept
 {
   MJ_DISCARD(clientDrawingContext);
   MJ_DISCARD(isDisabled);
@@ -103,7 +120,8 @@ HRESULT mj::TextView::TextViewRenderer::IsPixelSnappingDisabled(void* clientDraw
   return S_OK;
 }
 
-HRESULT mj::TextView::TextViewRenderer::GetCurrentTransform(void* clientDrawingContext, DWRITE_MATRIX* transform)
+HRESULT mj::TextView::TextViewRenderer::GetCurrentTransform(void* clientDrawingContext,
+                                                            DWRITE_MATRIX* transform) noexcept
 {
   MJ_DISCARD(clientDrawingContext);
   MJ_DISCARD(transform);
@@ -111,7 +129,7 @@ HRESULT mj::TextView::TextViewRenderer::GetCurrentTransform(void* clientDrawingC
   return S_OK;
 }
 
-HRESULT mj::TextView::TextViewRenderer::GetPixelsPerDip(void* clientDrawingContext, FLOAT* pixelsPerDip)
+HRESULT mj::TextView::TextViewRenderer::GetPixelsPerDip(void* clientDrawingContext, FLOAT* pixelsPerDip) noexcept
 {
   MJ_DISCARD(clientDrawingContext);
   MJ_DISCARD(pixelsPerDip);
@@ -120,7 +138,7 @@ HRESULT mj::TextView::TextViewRenderer::GetPixelsPerDip(void* clientDrawingConte
 }
 
 // IUnknown
-HRESULT mj::TextView::TextViewRenderer::QueryInterface(REFIID riid, void** ppvObject)
+HRESULT mj::TextView::TextViewRenderer::QueryInterface(REFIID riid, void** ppvObject) noexcept
 {
   MJ_DISCARD(riid);
   MJ_DISCARD(ppvObject);
@@ -128,12 +146,12 @@ HRESULT mj::TextView::TextViewRenderer::QueryInterface(REFIID riid, void** ppvOb
   return S_OK;
 }
 
-ULONG mj::TextView::TextViewRenderer::AddRef()
+ULONG mj::TextView::TextViewRenderer::AddRef() noexcept
 {
   return 0;
 }
 
-ULONG mj::TextView::TextViewRenderer::Release()
+ULONG mj::TextView::TextViewRenderer::Release() noexcept
 {
   return 0;
 }
