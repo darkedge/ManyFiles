@@ -57,7 +57,7 @@ HRESULT mj::TextView::TextViewRenderer::DrawUnderline(void* clientDrawingContext
   MJ_DISCARD(underline);
   MJ_DISCARD(clientDrawingEffect);
 
-  return S_OK;
+  return E_NOTIMPL;
 }
 
 HRESULT mj::TextView::TextViewRenderer::DrawStrikethrough(void* clientDrawingContext,                //
@@ -72,7 +72,7 @@ HRESULT mj::TextView::TextViewRenderer::DrawStrikethrough(void* clientDrawingCon
   MJ_DISCARD(strikethrough);
   MJ_DISCARD(clientDrawingEffect);
 
-  return S_OK;
+  return E_NOTIMPL;
 }
 
 HRESULT mj::TextView::TextViewRenderer::DrawInlineObject(void* clientDrawingContext,        //
@@ -91,7 +91,7 @@ HRESULT mj::TextView::TextViewRenderer::DrawInlineObject(void* clientDrawingCont
   MJ_DISCARD(isRightToLeft);
   MJ_DISCARD(clientDrawingEffect);
 
-  return S_OK;
+  return E_NOTIMPL;
 }
 
 // IDWritePixelSnapping
