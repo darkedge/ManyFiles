@@ -119,7 +119,7 @@ void Main::OnResize(UINT width, UINT height)
 {
   if (s_pRenderTarget)
   {
-    D2D1_SIZE_U size;
+    MJ_UNINITIALIZED D2D1_SIZE_U size;
     size.width  = width;
     size.height = height;
 
@@ -330,6 +330,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT*)lParam)->lpCreateParams);
     SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
     break;
+  case WM_ERASEBKGND: // don't want flicker
+    return true;
   default:
     Main* pMain = (Main*)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
     if (pMain)
@@ -543,6 +545,12 @@ void Main::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 // CRT-less entry point
 void __stdcall WinMainCRTStartup()
 {
+  // The Microsoft Security Development Lifecycle recommends that all
+  // applications include the following call to ensure that heap corruptions
+  // do not go unnoticed and therefore do not introduce opportunities
+  // for security exploits.
+  MJ_DISCARD(HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
+
   // Explicit scope to make sure Main destructor is called before ExitProcess
   {
     Main main;
