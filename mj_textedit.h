@@ -69,7 +69,7 @@ namespace mj
     void MouseDown(SHORT x, SHORT y);
     void MouseUp();
     [[nodiscard]] ECursor::Enum MouseMove(SHORT x, SHORT y);
-    [[nodiscard]] HRESULT Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
+    [[nodiscard]] HRESULT Init(HWND pParent, FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
     void Resize(FLOAT width, FLOAT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources);

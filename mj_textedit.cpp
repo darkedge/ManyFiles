@@ -10,7 +10,7 @@
 static constexpr size_t BUFFER_SIZE   = 2 * 1024 * 1024; // 2 MiB
 static constexpr FLOAT SCROLLBAR_SIZE = 20.0f;
 
-HRESULT mj::TextEdit::Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
+HRESULT mj::TextEdit::Init(HWND pParent, FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
 {
   this->widgetRect.left = margin;
   this->widgetRect.top  = margin;

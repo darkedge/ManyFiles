@@ -345,31 +345,28 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
 void Main::Start()
 {
-  HRESULT hr = s_TextEdit.Init(20.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+  HRESULT hr = S_OK;
 
-  if (SUCCEEDED(hr))
+  // Register window class.
   {
-    // Register window class.
-    {
-      MJ_UNINITIALIZED WNDCLASSEX wcex;
-      wcex.cbSize        = sizeof(WNDCLASSEX);
-      wcex.style         = CS_HREDRAW | CS_VREDRAW;
-      wcex.lpfnWndProc   = ::WndProc;
-      wcex.cbClsExtra    = 0;
-      wcex.cbWndExtra    = sizeof(LONG_PTR);
-      wcex.hInstance     = HINST_THISCOMPONENT;
-      wcex.hbrBackground = nullptr;
-      wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
-      wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
-      wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-      wcex.lpszClassName = pWindowClassName;
-      wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
+    MJ_UNINITIALIZED WNDCLASSEX wcex;
+    wcex.cbSize        = sizeof(WNDCLASSEX);
+    wcex.style         = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc   = ::WndProc;
+    wcex.cbClsExtra    = 0;
+    wcex.cbWndExtra    = sizeof(LONG_PTR);
+    wcex.hInstance     = HINST_THISCOMPONENT;
+    wcex.hbrBackground = nullptr;
+    wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
+    wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
+    wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+    wcex.lpszClassName = pWindowClassName;
+    wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
 
-      hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
-    }
-
-    s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
+    hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
   }
+
+  s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
 
   // We currently assume that the application will always be created on the primary monitor.
   MJ_UNINITIALIZED UINT dpiX;
@@ -399,6 +396,11 @@ void Main::Start()
     s_Hwnd = CreateWindowExW(0, pWindowClassName, L"Rekenaar", dwStyle, CW_USEDEFAULT, CW_USEDEFAULT,
                              static_cast<int>(windowWidth), static_cast<int>(windowHeight), nullptr, nullptr,
                              HINST_THISCOMPONENT, this);
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    hr = s_TextEdit.Init(s_Hwnd, 20.0f, WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
   }
 
   if (SUCCEEDED(hr))
