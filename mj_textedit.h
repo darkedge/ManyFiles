@@ -50,18 +50,6 @@ namespace mj
   };
 
   class TextEdit;
-  class HorizontalScrollBar
-  {
-  private:
-    D2D1_RECT_F back;
-    D2D1_RECT_F front;
-    TextEdit* pParent;
-
-  public:
-    void Init(TextEdit* pParent);
-    void Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources);
-    [[nodiscard]] bool MouseDown(SHORT x, SHORT y);
-  };
 
   class TextEdit
   {
@@ -73,7 +61,6 @@ namespace mj
     FLOAT width;            // Equal to width of the longest rendered line
     DragAction drag;
     D2D1_POINT_2F scrollAmount; // Position of scroll area
-    HorizontalScrollBar horizontalScrollBar;
     FLOAT margin;
 
   public:

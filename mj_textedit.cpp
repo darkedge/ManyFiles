@@ -28,8 +28,6 @@ HRESULT mj::TextEdit::Init(FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
   this->buf.Init(this->pMemory, ((char*)this->pMemory) + BUFFER_SIZE);
   this->buf.SetText(pLoremIpsum);
 
-  this->horizontalScrollBar.Init(this);
-
   this->text.Init();
 
   return hr;
@@ -107,37 +105,6 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
 }
 #endif
 
-void mj::HorizontalScrollBar::Init(TextEdit* pParent)
-{
-  this->pParent = pParent;
-  this->back    = {};
-  this->front   = {};
-}
-
-void mj::HorizontalScrollBar::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources)
-{
-  D2D1_RECT_F widgetRect = this->pParent->GetWidgetRect();
-  FLOAT scrollPos        = this->pParent->GetScrollPosition().x;
-
-  const auto widgetWidth = (widgetRect.right - widgetRect.left);
-
-  FLOAT y = widgetRect.bottom - widgetRect.top - SCROLLBAR_SIZE;
-
-  // TODO: fix for high DPI
-  back.left   = 0.0f;
-  back.top    = y;
-  back.right  = widgetWidth;
-  back.bottom = y + SCROLLBAR_SIZE;
-  pRenderTarget->FillRectangle(MJ_REF back, pResources->pScrollBarBackgroundBrush.Get());
-
-  front = back;
-
-  front.left  = scrollPos / this->pParent->GetWidth() * widgetWidth;
-  front.right = (scrollPos + widgetWidth) / this->pParent->GetWidth() * widgetWidth;
-
-  pRenderTarget->FillRectangle(MJ_REF front, pResources->pScrollBarBrush.Get());
-}
-
 [[nodiscard]] static RECT ToRect(const D2D_RECT_F& rectf)
 {
   return RECT{
@@ -146,13 +113,6 @@ void mj::HorizontalScrollBar::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarg
     (LONG)rectf.right,
     (LONG)rectf.bottom,
   };
-}
-
-bool mj::HorizontalScrollBar::MouseDown(SHORT x, SHORT y)
-{
-  POINT pt{ (LONG)x, (LONG)y };
-  RECT rect = ToRect(this->front);
-  return PtInRect(&rect, pt);
 }
 
 void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources)
@@ -171,7 +131,6 @@ void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderT
   this->text.Draw(pRenderTarget, pResources, this->buf.GetVirtualCaretPosition());
 
   pRenderTarget->SetTransform(MJ_REF xWidget);
-  this->horizontalScrollBar.Draw(pRenderTarget, pResources);
 
   pRenderTarget->PopAxisAlignedClip();
   pRenderTarget->SetTransform(MJ_REF xBackGround);
@@ -190,18 +149,7 @@ void mj::TextEdit::MouseDown(SHORT x, SHORT y)
   y -= (SHORT)this->widgetRect.top;
 
   // Scroll bar
-  if (this->horizontalScrollBar.MouseDown(x, y))
-  {
-    // Use left edge of scroll bar
-    this->drag.start       = this->scrollAmount.x;
-    this->drag.mouseStartX = x;
-    // this->drag.mouseStartY = y;
-    this->drag.draggable = EDraggable::HOR_SCROLLBAR;
-  }
-  else
-  {
-    this->drag.draggable = EDraggable::NONE;
-  }
+  this->drag.draggable = EDraggable::NONE;
 
   // Caret
   MJ_UNINITIALIZED UINT32 textPosition;
@@ -259,8 +207,8 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
   return mj::ECursor::ARROW;
 }
 
-HRESULT mj::TextEdit::CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory, mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width,
-                                            FLOAT height)
+HRESULT mj::TextEdit::CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
+                                            mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width, FLOAT height)
 {
   // Set longest line width equal to widget width
   this->width = (this->widgetRect.right - this->widgetRect.left);
