@@ -146,9 +146,12 @@ HRESULT Main::CreateDeviceResources()
   if (!s_pRenderTarget)
   {
     UINT dpi = GetDpiForWindow(s_Hwnd);
-    if (dpi > 0)
+    if (dpi == 0)
     {
-
+      hr = E_FAIL;
+    }
+    else
+    {
       // Create a Direct2D render target.
       MJ_UNINITIALIZED D2D1_RENDER_TARGET_PROPERTIES rtp;
       rtp.type                  = D2D1_RENDER_TARGET_TYPE_DEFAULT;
@@ -165,11 +168,18 @@ HRESULT Main::CreateDeviceResources()
       hrtp.pixelSize.height = 0;
       hrtp.presentOptions   = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
 
-      hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, s_pRenderTarget.ReleaseAndGetAddressOf());
+      hr = s_pD2DFactory->CreateHwndRenderTarget(MJ_REF rtp, MJ_REF hrtp, this->s_pRenderTarget.GetAddressOf());
+    }
+
+    mj::ComPtr<ID2D1RenderTarget> pRenderTarget;
+    if (SUCCEEDED(hr))
+    {
+      hr = s_pRenderTarget.As(&pRenderTarget);
     }
 
     if (SUCCEEDED(hr))
     {
+      this->s_TextEdit.SetRenderTarget(pRenderTarget);
       hr = CreateRenderTargetResources();
     }
   }
@@ -210,7 +220,7 @@ HRESULT Main::DrawD2DContent()
 
     if (SUCCEEDED(hr))
     {
-      s_TextEdit.Draw(s_pRenderTarget, &s_RenderTargetResources);
+      s_TextEdit.Draw(&s_RenderTargetResources);
     }
 
     if (SUCCEEDED(hr))

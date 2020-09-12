@@ -141,25 +141,25 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
 }
 #endif
 
-void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources)
+void mj::TextEdit::Draw(RenderTargetResources* pResources)
 {
   // Background
-  pRenderTarget->FillRectangle(MJ_REF this->widgetRect, pResources->pTextEditBackgroundBrush.Get());
-  pRenderTarget->PushAxisAlignedClip(MJ_REF this->widgetRect, D2D1_ANTIALIAS_MODE_ALIASED);
+  this->pRenderTarget->FillRectangle(MJ_REF this->widgetRect, pResources->pTextEditBackgroundBrush.Get());
+  this->pRenderTarget->PushAxisAlignedClip(MJ_REF this->widgetRect, D2D1_ANTIALIAS_MODE_ALIASED);
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F xBackGround;
-  pRenderTarget->GetTransform(&xBackGround);
+  this->pRenderTarget->GetTransform(&xBackGround);
 
-  pRenderTarget->SetTransform(xBackGround * D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
+  this->pRenderTarget->SetTransform(xBackGround * D2D1::Matrix3x2F::Translation(this->widgetRect.left, this->widgetRect.top));
   MJ_UNINITIALIZED D2D1_MATRIX_3X2_F xWidget;
-  pRenderTarget->GetTransform(&xWidget);
+  this->pRenderTarget->GetTransform(&xWidget);
 
-  pRenderTarget->SetTransform(xWidget * D2D1::Matrix3x2F::Translation(-this->scrollAmount.x, -this->scrollAmount.y));
+  this->pRenderTarget->SetTransform(xWidget * D2D1::Matrix3x2F::Translation(-this->scrollAmount.x, -this->scrollAmount.y));
   this->text.Draw(pRenderTarget, pResources, this->buf.GetVirtualCaretPosition());
 
-  pRenderTarget->SetTransform(MJ_REF xWidget);
+  this->pRenderTarget->SetTransform(MJ_REF xWidget);
 
-  pRenderTarget->PopAxisAlignedClip();
-  pRenderTarget->SetTransform(MJ_REF xBackGround);
+  this->pRenderTarget->PopAxisAlignedClip();
+  this->pRenderTarget->SetTransform(MJ_REF xBackGround);
 }
 
 #if 0
@@ -169,6 +169,24 @@ void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderT
           (pPoint->y < (pRect->bottom)));
 }
 #endif
+
+void mj::TextEdit::OnDraw()
+{
+  MJ_UNINITIALIZED PAINTSTRUCT ps;
+  BeginPaint(this->hwnd, &ps);
+
+  if (this->pRenderTarget) // in case event received before we have a target
+  {
+    this->pRenderTarget->BeginDraw();
+    this->pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::LightGray));
+
+    //DrawPage(*this->pRenderTarget);
+
+    this->pRenderTarget->EndDraw();
+  }
+
+  EndPaint(this->hwnd, &ps);
+}
 
 void mj::TextEdit::MouseDown(SHORT x, SHORT y)
 {
@@ -242,12 +260,12 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
     return DefWindowProcW(hwnd, message, wParam, lParam);
   }
 
-#if 0
   case WM_PAINT:
   case WM_DISPLAYCHANGE:
-    window->OnDraw();
+    pTextEdit->OnDraw();
     break;
 
+#if 0
   case WM_ERASEBKGND: // don't want flicker
     return true;
 
@@ -350,6 +368,8 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
   default:
     return DefWindowProc(hwnd, message, wParam, lParam);
   }
+
+  return 0;
 }
 
 HRESULT mj::TextEdit::RegisterWindowClass()

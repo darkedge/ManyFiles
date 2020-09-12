@@ -15,15 +15,21 @@
 
 // Generates a const-reference getter.
 #define MJ_CRGETTER(name, member) \
-  const decltype(member)& name() const \
+  [[nodiscard]] const decltype(member)& name() const \
   { \
     return member; \
   }
 // Generates a by-value getter.
 #define MJ_GETTER(name, member) \
-  decltype(member) name() const \
+  [[nodiscard]] decltype(member) name() const \
   { \
     return member; \
+  }
+// Generates a by-value setter.
+#define MJ_SETTER(name, member) \
+  void name(const decltype(member)& member##_) \
+  { \
+    this->member = member##_; \
   }
 
 namespace mj

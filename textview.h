@@ -5,6 +5,7 @@
 struct ID2D1HwndRenderTarget;
 struct RenderTargetResources;
 struct ID2D1SolidColorBrush;
+struct ID2D1RenderTarget;
 
 namespace mj
 {
@@ -17,7 +18,7 @@ namespace mj
     public:
       struct DrawingContext
       {
-        mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget;
+        mj::ComPtr<ID2D1RenderTarget> pRenderTarget;
         RenderTargetResources* pResources;
       };
 
@@ -70,7 +71,7 @@ namespace mj
 
   public:
     void Init() noexcept;
-    void Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources,
+    void Draw(mj::ComPtr<ID2D1RenderTarget> pRenderTarget, RenderTargetResources* pResources,
               UINT32 textPosition) noexcept;
     void MouseMove(SHORT x, SHORT y) noexcept;
     [[nodiscard]] HRESULT CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,

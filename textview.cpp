@@ -13,7 +13,7 @@ void mj::TextView::Init() noexcept
   this->pRenderer     = new (this->renderer_storage) TextViewRenderer();
 }
 
-void mj::TextView::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources,
+void mj::TextView::Draw(mj::ComPtr<ID2D1RenderTarget> pRenderTarget, RenderTargetResources* pResources,
                         UINT32 textPosition) noexcept
 {
   if (!this->pTextLayout)

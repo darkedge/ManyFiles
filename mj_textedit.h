@@ -6,6 +6,7 @@
 struct ID2D1HwndRenderTarget;
 struct RenderTargetResources;
 struct ID2D1SolidColorBrush;
+struct ID2D1RenderTarget;
 
 namespace mj
 {
@@ -40,9 +41,12 @@ namespace mj
     D2D1_POINT_2F scrollAmount; // Position of scroll area
     FLOAT margin;
     HWND hwnd;
+    mj::ComPtr<ID2D1RenderTarget> pRenderTarget;
 
   public:
     static HRESULT RegisterWindowClass();
+
+    void OnDraw();
 
     [[nodiscard]] HRESULT CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
                                                 mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width, FLOAT height);
@@ -52,9 +56,10 @@ namespace mj
     [[nodiscard]] HRESULT Init(HWND pParent, FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
     void Resize(FLOAT width, FLOAT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-    void Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources);
+    void Draw(RenderTargetResources* pResources);
     void Destroy();
 
+    MJ_SETTER(SetRenderTarget, pRenderTarget);
     MJ_CRGETTER(GetDragAction, drag);
     MJ_CRGETTER(GetWidgetRect, widgetRect);
     MJ_GETTER(GetWidth, width);
