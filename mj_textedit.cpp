@@ -36,20 +36,18 @@ HRESULT mj::TextEdit::Init(HWND pParent, FLOAT margin, FLOAT parentWidth, FLOAT 
     this->buf.SetText(pLoremIpsum);
     this->text.Init();
 
-    // CreateWindowExW will return null here, we must instead store it when handling
-    // the WM_NCCREATE event (this is done before before CreateWindowExW returns)
-    MJ_DISCARD(CreateWindowExW(WS_EX_STATICEDGE,                         //
-                               L"TextEdit",                              //
-                               L"",                                      //
-                               WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, //
-                               CW_USEDEFAULT,                            //
-                               CW_USEDEFAULT,                            //
-                               CW_USEDEFAULT,                            //
-                               CW_USEDEFAULT,                            //
-                               pParent,                                  //
-                               NULL,                                     //
-                               HINST_THISCOMPONENT,                      //
-                               this));
+    this->hwnd = CreateWindowExW(WS_EX_STATICEDGE,                         //
+                                 L"TextEdit",                              //
+                                 L"",                                      //
+                                 WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, //
+                                 CW_USEDEFAULT,                            //
+                                 CW_USEDEFAULT,                            //
+                                 CW_USEDEFAULT,                            //
+                                 CW_USEDEFAULT,                            //
+                                 pParent,                                  //
+                                 NULL,                                     //
+                                 HINST_THISCOMPONENT,                      //
+                                 this);
     if (!this->hwnd)
     {
       hr = HRESULT_FROM_WIN32(GetLastError());
@@ -239,8 +237,6 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
     // and assign it to GWLP_USERDATA.
     CREATESTRUCT* pcs = (CREATESTRUCT*)(lParam);
     pTextEdit         = (mj::TextEdit*)(pcs->lpCreateParams);
-    pTextEdit->SetWindowHandle(hwnd);
-    // window->AddRef(); // implicit reference via HWND
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)pTextEdit);
 
     return DefWindowProcW(hwnd, message, wParam, lParam);

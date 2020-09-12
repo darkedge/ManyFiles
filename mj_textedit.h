@@ -44,11 +44,6 @@ namespace mj
   public:
     static HRESULT RegisterWindowClass();
 
-    void SetWindowHandle(HWND pHandle)
-    {
-      this->hwnd = pHandle;
-    }
-
     [[nodiscard]] HRESULT CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
                                                 mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
