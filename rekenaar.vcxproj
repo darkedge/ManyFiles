@@ -63,7 +63,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <DisableSpecificWarnings>4458</DisableSpecificWarnings>
-      <TreatSpecificWarningsAsErrors>4834;4456</TreatSpecificWarningsAsErrors>
+      <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,7 +86,7 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <DisableSpecificWarnings>4458</DisableSpecificWarnings>
-      <TreatSpecificWarningsAsErrors>4834;4456</TreatSpecificWarningsAsErrors>
+      <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

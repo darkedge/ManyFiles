@@ -13,13 +13,6 @@
 #include "render_target_resources.h"
 #include "resource.h"
 
-// __ImageBase is better than GetCurrentModule()
-// Can be cast to a HINSTANCE
-#ifndef HINST_THISCOMPONENT
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
-#endif
-
 class Main
 {
 public:
@@ -34,6 +27,8 @@ public:
   static constexpr float MJ_96_DPI = 96.0f;
   // In typography, the size of type is measured in units called points. One point equals 1/72 of an inch.
   static constexpr float MJ_POINT = (1.0f / 72.0f);
+
+  static HRESULT RegisterWindowClass();
 
   void Start();
   void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -52,8 +47,6 @@ private:
 
   HWND s_Hwnd;
 
-  HCURSOR s_cursorType;
-
   // how much to scale a design that assumes 96-DPI pixels
   float s_DpiScale;
 
@@ -68,7 +61,6 @@ private:
 
   mj::TextEdit s_TextEdit;
 
-  mj::ECursor::Enum s_Cursor;
   bool s_WordWrap = false;
 };
 
@@ -282,40 +274,35 @@ HRESULT Main::CreateDeviceIndependentResources()
 
 HRESULT Main::BasicFileOpen()
 {
-  HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  mj::ComPtr<IFileOpenDialog> pFileOpen;
+
+  // Create the FileOpenDialog object.
+  HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                                reinterpret_cast<void**>(pFileOpen.GetAddressOf()));
+
   if (SUCCEEDED(hr))
   {
-    mj::ComPtr<IFileOpenDialog> pFileOpen;
+    // Show the Open dialog box.
+    hr = pFileOpen->Show(nullptr);
 
-    // Create the FileOpenDialog object.
-    hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
-                          reinterpret_cast<void**>(pFileOpen.GetAddressOf()));
-
+    // Get the file name from the dialog box.
     if (SUCCEEDED(hr))
     {
-      // Show the Open dialog box.
-      hr = pFileOpen->Show(nullptr);
-
-      // Get the file name from the dialog box.
+      mj::ComPtr<IShellItem> pItem;
+      hr = pFileOpen->GetResult(pItem.GetAddressOf());
       if (SUCCEEDED(hr))
       {
-        mj::ComPtr<IShellItem> pItem;
-        hr = pFileOpen->GetResult(pItem.GetAddressOf());
+        PWSTR pszFilePath;
+        hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+        // Display the file name to the user.
         if (SUCCEEDED(hr))
         {
-          PWSTR pszFilePath;
-          hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-
-          // Display the file name to the user.
-          if (SUCCEEDED(hr))
-          {
-            MessageBoxW(nullptr, pszFilePath, L"File Path", MB_OK);
-            CoTaskMemFree(pszFilePath);
-          }
+          MessageBoxW(nullptr, pszFilePath, L"File Path", MB_OK);
+          CoTaskMemFree(pszFilePath);
         }
       }
     }
-    CoUninitialize();
   }
 
   return hr;
@@ -343,35 +330,55 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
   return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
+HRESULT Main::RegisterWindowClass()
+{
+  HRESULT hr = S_OK;
+
+  MJ_UNINITIALIZED WNDCLASSEX wcex;
+  wcex.cbSize        = sizeof(WNDCLASSEX);
+  wcex.style         = CS_HREDRAW | CS_VREDRAW;
+  wcex.lpfnWndProc   = ::WndProc;
+  wcex.cbClsExtra    = 0;
+  wcex.cbWndExtra    = sizeof(LONG_PTR);
+  wcex.hInstance     = HINST_THISCOMPONENT;
+  wcex.hbrBackground = nullptr;
+  wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
+  wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
+  wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+  wcex.lpszClassName = pWindowClassName;
+  wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
+
+  ATOM atom = RegisterClassExW(&wcex);
+  if (!atom)
+  {
+    hr = HRESULT_FROM_WIN32(GetLastError());
+  }
+
+  return hr;
+}
+
 void Main::Start()
 {
   HRESULT hr = S_OK;
 
-  // Register window class.
+  if (SUCCEEDED(hr))
   {
-    MJ_UNINITIALIZED WNDCLASSEX wcex;
-    wcex.cbSize        = sizeof(WNDCLASSEX);
-    wcex.style         = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc   = ::WndProc;
-    wcex.cbClsExtra    = 0;
-    wcex.cbWndExtra    = sizeof(LONG_PTR);
-    wcex.hInstance     = HINST_THISCOMPONENT;
-    wcex.hbrBackground = nullptr;
-    wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
-    wcex.hIcon         = LoadIconW(nullptr, IDI_APPLICATION);
-    wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
-    wcex.lpszClassName = pWindowClassName;
-    wcex.hIconSm       = LoadIconW(nullptr, IDI_APPLICATION);
-
-    hr = RegisterClassExW(&wcex) ? S_OK : E_FAIL;
+    hr = Main::RegisterWindowClass();
+  }
+  if (SUCCEEDED(hr))
+  {
+    hr = mj::TextEdit::RegisterWindowClass();
   }
 
-  s_cursorType = LoadCursorW(nullptr, IDC_IBEAM);
-
   // We currently assume that the application will always be created on the primary monitor.
-  MJ_UNINITIALIZED UINT dpiX;
-  MJ_UNINITIALIZED UINT dpiY;
-  hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+  UINT dpiX = 0;
+  UINT dpiY = 0;
+
+  if (SUCCEEDED(hr))
+  {
+    hr = GetDpiForMonitor(GetPrimaryMonitor(), MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+  }
+
   if (SUCCEEDED(hr))
   {
     s_DpiScale = (float)dpiX / MJ_96_DPI;
@@ -465,7 +472,7 @@ void Main::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     s_TextEdit.MouseUp();
     break;
   case WM_MOUSEMOVE:
-    s_Cursor = s_TextEdit.MouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    s_TextEdit.MouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
     if (s_TextEdit.GetDragAction().draggable != mj::EDraggable::NONE)
     {
       DrawD2DContent();
@@ -503,19 +510,6 @@ void Main::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       break;
     }
     break;
-  case WM_SETCURSOR:
-    if (LOWORD(lParam) == HTCLIENT)
-    {
-      switch (s_Cursor)
-      {
-      case mj::ECursor::IBEAM:
-        SetCursor(s_cursorType);
-        break;
-      default:
-        break;
-      }
-    }
-    break;
   case WM_SIZE:
   {
     UINT width  = LOWORD(lParam);
@@ -545,7 +539,7 @@ void Main::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 // CRT-less entry point
-void __stdcall WinMainCRTStartup()
+void CALLBACK WinMainCRTStartup() noexcept
 {
   // The Microsoft Security Development Lifecycle recommends that all
   // applications include the following call to ensure that heap corruptions
@@ -553,11 +547,13 @@ void __stdcall WinMainCRTStartup()
   // for security exploits.
   MJ_DISCARD(HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
 
-  // Explicit scope to make sure Main destructor is called before ExitProcess
+  HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  if (SUCCEEDED(hr))
   {
     Main main;
     main.Start();
   }
+  CoUninitialize();
 
   // CRT-less exit
   ExitProcess(0);

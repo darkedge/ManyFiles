@@ -9,29 +9,6 @@ struct ID2D1SolidColorBrush;
 
 namespace mj
 {
-  struct ECursor
-  {
-    enum Enum
-    {
-      ARROW,
-      IBEAM,
-      WAIT,
-      CROSS,
-      UPARROW,
-      SIZENWSE,
-      SIZENESW,
-      SIZEWE,
-      SIZENS,
-      SIZEALL,
-      NO,
-      HAND,
-      APPSTARTING,
-      HELP,
-      PIN,
-      PERSON,
-    };
-  };
-
   enum class EDraggable
   {
     NONE,
@@ -62,13 +39,21 @@ namespace mj
     DragAction drag;
     D2D1_POINT_2F scrollAmount; // Position of scroll area
     FLOAT margin;
+    HWND hwnd;
 
   public:
+    static HRESULT RegisterWindowClass();
+
+    void SetWindowHandle(HWND pHandle)
+    {
+      this->hwnd = pHandle;
+    }
+
     [[nodiscard]] HRESULT CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
                                                 mj::ComPtr<IDWriteTextFormat> pTextFormat, FLOAT width, FLOAT height);
     void MouseDown(SHORT x, SHORT y);
     void MouseUp();
-    [[nodiscard]] ECursor::Enum MouseMove(SHORT x, SHORT y);
+    void MouseMove(SHORT x, SHORT y);
     [[nodiscard]] HRESULT Init(HWND pParent, FLOAT margin, FLOAT parentWidth, FLOAT parentHeight);
     void Resize(FLOAT width, FLOAT height);
     void WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);

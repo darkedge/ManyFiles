@@ -3,6 +3,13 @@
 #define NOMINMAX
 #include <unknwn.h>
 
+// __ImageBase is better than GetCurrentModule()
+// Can be cast to a HINSTANCE
+#ifndef HINST_THISCOMPONENT
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+#endif
+
 namespace mj
 {
   namespace win32

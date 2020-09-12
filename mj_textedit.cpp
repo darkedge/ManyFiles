@@ -12,23 +12,49 @@ static constexpr FLOAT SCROLLBAR_SIZE = 20.0f;
 
 HRESULT mj::TextEdit::Init(HWND pParent, FLOAT margin, FLOAT parentWidth, FLOAT parentHeight)
 {
+  HRESULT hr = S_OK;
+
   this->widgetRect.left = margin;
   this->widgetRect.top  = margin;
   this->margin          = margin;
   this->Resize(parentWidth, parentHeight);
 
-  HRESULT hr = S_OK;
   // Init memory for buffer
-  this->pMemory = VirtualAlloc(0, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  this->pMemory = VirtualAlloc(0,                        //
+                               BUFFER_SIZE,              //
+                               MEM_COMMIT | MEM_RESERVE, //
+                               PAGE_READWRITE);
+
   if (!this->pMemory)
   {
-    hr = E_FAIL;
+    hr = HRESULT_FROM_WIN32(GetLastError());
   }
 
-  this->buf.Init(this->pMemory, ((char*)this->pMemory) + BUFFER_SIZE);
-  this->buf.SetText(pLoremIpsum);
+  if (SUCCEEDED(hr))
+  {
+    this->buf.Init(this->pMemory, ((char*)this->pMemory) + BUFFER_SIZE);
+    this->buf.SetText(pLoremIpsum);
+    this->text.Init();
 
-  this->text.Init();
+    // CreateWindowExW will return null here, we must instead store it when handling
+    // the WM_NCCREATE event (this is done before before CreateWindowExW returns)
+    MJ_DISCARD(CreateWindowExW(WS_EX_STATICEDGE,                         //
+                               L"TextEdit",                              //
+                               L"",                                      //
+                               WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, //
+                               CW_USEDEFAULT,                            //
+                               CW_USEDEFAULT,                            //
+                               CW_USEDEFAULT,                            //
+                               CW_USEDEFAULT,                            //
+                               pParent,                                  //
+                               NULL,                                     //
+                               HINST_THISCOMPONENT,                      //
+                               this));
+    if (!this->hwnd)
+    {
+      hr = HRESULT_FROM_WIN32(GetLastError());
+    }
+  }
 
   return hr;
 }
@@ -105,6 +131,7 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
 }
 #endif
 
+#if 0
 [[nodiscard]] static RECT ToRect(const D2D_RECT_F& rectf)
 {
   return RECT{
@@ -114,6 +141,7 @@ void mj::TextEdit::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
     (LONG)rectf.bottom,
   };
 }
+#endif
 
 void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderTargetResources* pResources)
 {
@@ -136,11 +164,13 @@ void mj::TextEdit::Draw(mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget, RenderT
   pRenderTarget->SetTransform(MJ_REF xBackGround);
 }
 
+#if 0
 [[nodiscard]] static bool RectContainsPoint(D2D1_RECT_F* pRect, D2D1_POINT_2F* pPoint)
 {
   return ((pPoint->x >= pRect->left) && (pPoint->x <= pRect->right) && (pPoint->y >= pRect->top) &&
           (pPoint->y < (pRect->bottom)));
 }
+#endif
 
 void mj::TextEdit::MouseDown(SHORT x, SHORT y)
 {
@@ -164,7 +194,7 @@ void mj::TextEdit::MouseUp()
   this->drag.draggable = mj::EDraggable::NONE;
 }
 
-mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
+void mj::TextEdit::MouseMove(SHORT x, SHORT y)
 {
   // Translate
   SHORT xRel = x - (SHORT)this->widgetRect.left;
@@ -192,19 +222,165 @@ mj::ECursor::Enum mj::TextEdit::MouseMove(SHORT x, SHORT y)
     break;
   }
 
-  MJ_UNINITIALIZED D2D1_POINT_2F p;
-  p.x       = (FLOAT)x;
-  p.y       = (FLOAT)y;
-  auto rect = this->widgetRect;
-  rect.bottom -= SCROLLBAR_SIZE;
-  if (RectContainsPoint(&rect, &p))
+  this->text.MouseMove(x, y);
+}
+
+static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  // Relays messages for the text editor to the internal class.
+
+  mj::TextEdit* pTextEdit = (mj::TextEdit*)(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+
+  switch (message)
   {
-    return mj::ECursor::IBEAM;
+  case WM_NCCREATE:
+  {
+    // pTextEdit is not valid yet. Extract it from this message
+    // and assign it to GWLP_USERDATA.
+    CREATESTRUCT* pcs = (CREATESTRUCT*)(lParam);
+    pTextEdit         = (mj::TextEdit*)(pcs->lpCreateParams);
+    pTextEdit->SetWindowHandle(hwnd);
+    // window->AddRef(); // implicit reference via HWND
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)pTextEdit);
+
+    return DefWindowProcW(hwnd, message, wParam, lParam);
   }
 
-  this->text.MouseMove(x, y);
+#if 0
+  case WM_PAINT:
+  case WM_DISPLAYCHANGE:
+    window->OnDraw();
+    break;
 
-  return mj::ECursor::ARROW;
+  case WM_ERASEBKGND: // don't want flicker
+    return true;
+
+  case WM_DESTROY:
+    window->OnDestroy();
+    break;
+
+  case WM_NCDESTROY:
+    // Remove implicit reference via HWND.
+    // After this, the window and data structure no longer exist.
+    window->Release();
+    break;
+
+  case WM_KEYDOWN:
+    window->OnKeyPress(static_cast<UINT>(wParam));
+    break;
+
+  case WM_CHAR:
+    window->OnKeyCharacter(static_cast<UINT>(wParam));
+    break;
+
+  case WM_LBUTTONDOWN:
+  case WM_RBUTTONDOWN:
+  case WM_MBUTTONDOWN:
+  case WM_LBUTTONDBLCLK:
+  case WM_MBUTTONDBLCLK:
+  case WM_RBUTTONDBLCLK:
+    SetFocus(hwnd);
+    SetCapture(hwnd);
+    window->OnMousePress(message, float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
+    break;
+
+  case WM_MOUSELEAVE:
+  case WM_CAPTURECHANGED:
+    window->OnMouseExit();
+    break;
+
+  case WM_LBUTTONUP:
+  case WM_RBUTTONUP:
+  case WM_MBUTTONUP:
+    ReleaseCapture();
+    window->OnMouseRelease(message, float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
+    break;
+
+  case WM_SETFOCUS:
+  {
+    RectF rect;
+    window->GetCaretRect(rect);
+    window->UpdateSystemCaret(rect);
+  }
+  break;
+
+  case WM_KILLFOCUS:
+    DestroyCaret();
+    break;
+
+  case WM_MOUSEMOVE:
+    window->OnMouseMove(float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
+    break;
+
+  case WM_MOUSEWHEEL:
+  case WM_MOUSEHWHEEL:
+  {
+    // Retrieve the lines-to-scroll or characters-to-scroll user setting,
+    // using a default value if the API failed.
+    UINT userSetting;
+    BOOL success = SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &userSetting, 0);
+    if (success == FALSE)
+      userSetting = 1;
+
+    // Set x,y scroll difference,
+    // depending on whether horizontal or vertical scroll.
+    float zDelta  = GET_WHEEL_DELTA_WPARAM(wParam);
+    float yScroll = (zDelta / WHEEL_DELTA) * userSetting;
+    float xScroll = 0;
+    if (message == WM_MOUSEHWHEEL)
+    {
+      xScroll = -yScroll;
+      yScroll = 0;
+    }
+
+    window->OnMouseScroll(xScroll, yScroll);
+  }
+  break;
+
+  case WM_VSCROLL:
+  case WM_HSCROLL:
+    window->OnScroll(message, LOWORD(wParam));
+    break;
+
+  case WM_SIZE:
+  {
+    UINT width  = LOWORD(lParam);
+    UINT height = HIWORD(lParam);
+    window->OnSize(width, height);
+  }
+  break;
+#endif
+
+  default:
+    return DefWindowProc(hwnd, message, wParam, lParam);
+  }
+}
+
+HRESULT mj::TextEdit::RegisterWindowClass()
+{
+  HRESULT hr = S_OK;
+
+  WNDCLASSEX wcex;
+  wcex.cbSize        = sizeof(WNDCLASSEX);
+  wcex.style         = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+  wcex.lpfnWndProc   = &WindowProc;
+  wcex.cbClsExtra    = 0;
+  wcex.cbWndExtra    = sizeof(LONG_PTR);
+  wcex.hInstance     = HINST_THISCOMPONENT;
+  wcex.hIcon         = nullptr;
+  wcex.hCursor       = LoadCursorW(nullptr, IDC_IBEAM);
+  wcex.hbrBackground = nullptr;
+  wcex.lpszMenuName  = nullptr;
+  wcex.lpszClassName = L"TextEdit";
+  wcex.hIconSm       = nullptr;
+
+  ATOM atom = RegisterClassExW(&wcex);
+  if (!atom)
+  {
+    hr = HRESULT_FROM_WIN32(GetLastError());
+  }
+
+  return hr;
 }
 
 HRESULT mj::TextEdit::CreateDeviceResources(mj::ComPtr<IDWriteFactory> pFactory,
