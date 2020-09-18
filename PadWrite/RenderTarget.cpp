@@ -190,7 +190,7 @@ ID2D1Bitmap* RenderTargetD2D::GetCachedImage(IWICBitmapSource* image)
     if (bitmap == NULL)
         return NULL;
 
-    // Save for later calls. TODO MJ: STL/Exception
+    // Save for later calls.
         imageCache_.push_back(ImageCacheEntry(image, bitmap));
 
     // Release it locally and return the pointer.
@@ -593,7 +593,6 @@ HBITMAP RenderTargetDW::GetCachedImage(IWICBitmapSource* image)
         );
 
     // Save for later calls.
-      // TODO MJ: STL/Exception
         imageCache_.push_back(ImageCacheEntry(image, bitmap));
 
     return bitmap;

@@ -150,11 +150,14 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   // MJ
   (void)StringCchCopyW(text_, 1024, text);
 
+  // MJ: wide string length
+  size_t length;
+  (void)StringCchLengthW(text_, 1024, &length);
+
   // Create an ideal layout for the text editor based on the text and format,
   // favoring document layout over pixel alignment.
   hr = layoutEditor_.GetFactory()->CreateTextLayout(text_,
-                                                    // TODO MJ: Reading outside null terminator
-                                                    static_cast<UINT32>(MJ_COUNTOF(text_)), textFormat,
+                                                    static_cast<UINT32>(length), textFormat,
                                                     580, // maximum width
                                                     420, // maximum height
                                                     &textLayout_);

@@ -23,7 +23,7 @@ HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout,
 
   IDWriteTextLayout* newLayout = NULL;
 
-  // TODO MJ: wide string length
+  // MJ: wide string length
   size_t length;
   (void)StringCchLengthW(pText, 1024, &length);
 
@@ -171,7 +171,7 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
   // The inserted string gets all the properties of the character right before position.
   // If there is no text right before position, so use the properties of the character right after position.
 
-  // TODO MJ: wide string length
+  // MJ: wide string length
   size_t length;
   (void)StringCchLengthW(pText, 1024, &length);
 
@@ -234,7 +234,7 @@ STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayo
 
   HRESULT hr = S_OK;
 
-  // TODO MJ: wide string length
+  // MJ: wide string length
   size_t length;
   (void)StringCchLengthW(pText, 1024, &length);
 
@@ -243,7 +243,7 @@ STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayo
   UINT32 oldTextLength         = static_cast<UINT32>(length);
 
   // Remove the old text and recreate the new text layout.
-  // TODO MJ: STL/Exception
+  // MJ: STL/Exception
   // text.erase(position, lengthToRemove);
   pText[position] = '\0';
 
@@ -284,8 +284,9 @@ STDMETHODIMP EditableLayout::Clear(IN OUT IDWriteTextLayout*& currentLayout, wch
 {
   HRESULT hr = S_OK;
 
-  // TODO MJ: STL/Exception
+  // MJ: STL/Exception
   // text.clear();
+  pText[0] = '\0';
 
   if (SUCCEEDED(hr))
   {
