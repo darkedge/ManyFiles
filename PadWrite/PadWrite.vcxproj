@@ -77,6 +77,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
+    <CodeAnalysisRuleSet>..\rekenaar.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(Configuration)_$(Platform)\</OutDir>
@@ -89,6 +90,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
+    <CodeAnalysisRuleSet>..\rekenaar.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -212,9 +214,6 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="sse_mathfun.h" />
     <ClInclude Include="TextEditor.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="InlineObjects.png" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="PadWrite.manifest">

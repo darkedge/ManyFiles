@@ -1,18 +1,7 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Main user interface window.
-//
-//----------------------------------------------------------------------------
-#include "Common.h"
+﻿#include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 #include "EditableLayout.h"
-//#include "InlineImage.h"
 #include "TextEditor.h"
 #include "PadWrite.h"
 #include "resource.h"
@@ -20,14 +9,11 @@
 static void FailApplication(const wchar_t* message, int functionResult);
 
 const static wchar_t g_sampleText[] =
-    L"\tDirectWrite SDK sample\r\n"
+    L"DirectWrite SDK sample\r\n"
     L"\n"
     L"Feel free to play around with the formatting options to see just some of what DWrite is capable of:\n\n"
-    L"Glyph rendering, Complex script shaping, Script analysis, Bidi ordering (\x202E"
-    L"abc"
-    L"\x202C), Line breaking, Font fallback, "
-    L"Font enumeration, ClearType rendering, Bold/Italic/Underline/Strikethrough/Narrow/Light, OpenType styles, Inline "
-    L"objects \xFFFC\xFFFC, "
+    L"Glyph rendering, Complex script shaping, Script analysis, Line breaking, Font fallback, "
+    L"Font enumeration, ClearType rendering, Bold/Italic/Underline/Strikethrough/Narrow/Light, OpenType styles, "
     L"Trimming, Selection hit-testing...\r\n"
     L"\r\n"
     L"Mixed scripts: 한글 الْعَرَبيّة 中文 日本語 ภาษาไทย\r\n"
@@ -44,11 +30,11 @@ void CALLBACK WinMainCRTStartup() noexcept
   // applications include the following call to ensure that heap corruptions
   // do not go unnoticed and therefore do not introduce opportunities
   // for security exploits.
-  HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
+  HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0);
 
   HRESULT hr = S_OK;
 
-  hr = CoInitialize(NULL);
+  hr = CoInitialize(nullptr);
   if (SUCCEEDED(hr))
   {
     MainWindow app;
@@ -70,7 +56,7 @@ void CALLBACK WinMainCRTStartup() noexcept
 }
 
 MainWindow::MainWindow()
-    : renderTargetType_(RenderTargetTypeD2D), hwnd_(NULL), dwriteFactory_(),
+    : renderTargetType_(RenderTargetTypeD2D), hwnd_(nullptr), dwriteFactory_(),
       // wicFactory_(),
       d2dFactory_(), renderTarget_(), textEditor_()
 // inlineObjectImages_()
@@ -107,7 +93,7 @@ HRESULT MainWindow::Initialize()
     {
         hr = CoCreateInstance(
                 CLSID_WICImagingFactory,
-                NULL,
+                nullptr,
                 CLSCTX_INPROC_SERVER,
                 IID_IWICImagingFactory,
                 (IID_PPV_ARGS(&wicFactory_))
@@ -125,9 +111,9 @@ HRESULT MainWindow::Initialize()
 
     // create window (the hwnd is stored in the create event)
     CreateWindow(L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT,
-                 CW_USEDEFAULT, 800, 600, NULL, NULL, HINST_THISCOMPONENT, this);
+                 CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
-    if (hwnd_ == NULL)
+    if (hwnd_ == nullptr)
       hr = HRESULT_FROM_WIN32(GetLastError());
   }
 
@@ -141,10 +127,10 @@ HRESULT MainWindow::Initialize()
   }
 
   // Need a text format to base the layout on.
-  IDWriteTextFormat* textFormat = NULL;
+  IDWriteTextFormat* textFormat = nullptr;
   if (SUCCEEDED(hr))
   {
-    hr = dwriteFactory_->CreateTextFormat(L"Arial", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+    hr = dwriteFactory_->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
                                           DWRITE_FONT_STRETCH_NORMAL, 16, L"", &textFormat);
   }
 
@@ -191,12 +177,12 @@ ATOM MainWindow::RegisterWindowClass()
   wcex.cbClsExtra    = 0;
   wcex.cbWndExtra    = sizeof(LONG_PTR);
   wcex.hInstance     = HINST_THISCOMPONENT;
-  wcex.hIcon         = NULL;
-  wcex.hCursor       = LoadCursor(NULL, IDC_ARROW);
-  wcex.hbrBackground = NULL;
+  wcex.hIcon         = nullptr;
+  wcex.hCursor       = LoadCursor(nullptr, IDC_ARROW);
+  wcex.hbrBackground = nullptr;
   wcex.lpszMenuName  = MAKEINTRESOURCE(1);
   wcex.lpszClassName = TEXT("DirectWritePadDemo");
-  wcex.hIconSm       = NULL;
+  wcex.hIconSm       = nullptr;
 
   return RegisterClassEx(&wcex);
 }
@@ -207,13 +193,13 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
 
   HRESULT hr = S_OK;
 
-  RenderTarget* renderTarget = NULL;
+  RenderTarget* renderTarget = nullptr;
 
   // Create the render target.
   switch (renderTargetType)
   {
   case RenderTargetTypeD2D:
-    if (d2dFactory_ != NULL)
+    if (d2dFactory_ != nullptr)
     {
       hr = RenderTargetD2D::Create(d2dFactory_, dwriteFactory_, hwnd, &renderTarget);
       break;
@@ -241,7 +227,7 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
 WPARAM MainWindow::RunMessageLoop()
 {
   MSG msg;
-  while (GetMessage(&msg, NULL, 0, 0) > 0)
+  while (GetMessage(&msg, nullptr, 0, 0) > 0)
   {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
@@ -289,7 +275,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_SETFOCUS:
     // Forward focus to the text editor.
-    if (window->textEditor_ != NULL)
+    if (window->textEditor_ != nullptr)
       SetFocus(window->textEditor_->GetHwnd());
     break;
 
@@ -300,7 +286,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_WINDOWPOSCHANGED:
     // Window moved. Update ClearType settings if changed monitor.
-    if (window->renderTarget_ != NULL)
+    if (window->renderTarget_ != nullptr)
       window->renderTarget_->UpdateMonitor();
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -379,7 +365,7 @@ void MainWindow::OnCommand(UINT commandId)
   {
     // Retrieve existing trimming sign and settings
     // and modify them according to button state.
-    IDWriteInlineObject* inlineObject = NULL;
+    IDWriteInlineObject* inlineObject = nullptr;
     DWRITE_TRIMMING trimming          = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
 
     textLayout->GetTrimming(&trimming, &inlineObject);
@@ -431,13 +417,13 @@ void MainWindow::OnSize()
 {
   // Updates the child edit control's size to fill the whole window.
 
-  if (textEditor_ == NULL)
+  if (textEditor_ == nullptr)
     return;
 
   RECT clientRect = {};
   GetClientRect(hwnd_, &clientRect);
 
-  SetWindowPos(textEditor_->GetHwnd(), NULL, clientRect.left, clientRect.top, clientRect.right - clientRect.left,
+  SetWindowPos(textEditor_->GetHwnd(), nullptr, clientRect.left, clientRect.top, clientRect.right - clientRect.left,
                clientRect.bottom - clientRect.top, SWP_NOACTIVATE | SWP_NOZORDER);
 }
 
@@ -466,7 +452,7 @@ void MainWindow::UpdateMenuToCaret()
   DWRITE_WORD_WRAPPING wordWrapping         = textLayout->GetWordWrapping();
   DWRITE_READING_DIRECTION readingDirection = textLayout->GetReadingDirection();
   DWRITE_TRIMMING trimming                  = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
-  IDWriteInlineObject* inlineObject         = NULL;
+  IDWriteInlineObject* inlineObject         = nullptr;
   textLayout->GetTrimming(&trimming, &inlineObject);
   SafeRelease(&inlineObject); // We don't need the inline object.
 
@@ -539,7 +525,7 @@ HRESULT MainWindow::OnChooseFont()
   if (logFont.lfFaceName[0] == L'\0')
     return hr;
 
-  IDWriteFont* font = NULL;
+  IDWriteFont* font = nullptr;
   hr                = CreateFontFromLOGFONT(logFont, &font);
 
   if (SUCCEEDED(hr))
@@ -598,7 +584,7 @@ HRESULT MainWindow::OnSetInlineImage()
     OPENFILENAME chooseFile = {};
     chooseFile.lStructSize  = sizeof(chooseFile);
     chooseFile.hwndOwner    = hwnd_;
-    chooseFile.hInstance    = GetModuleHandle(NULL);
+    chooseFile.hInstance    = GetModuleHandle(nullptr);
     chooseFile.lpstrFilter  = L"Supported images\0" L"*.png;*.jpg;*.jpeg;*.tif;*.tiff;*.bmp;*.gif\0" L"All files\0" L"(*)\0";
     chooseFile.lpstrFile    = &fileName[0];
     chooseFile.nMaxFile     = ARRAYSIZE(fileName);
@@ -611,7 +597,7 @@ HRESULT MainWindow::OnSetInlineImage()
     //////////////////////////////
     // Create an inline object, using WIC to load the image.
 
-    IWICBitmapSource* bitmap = NULL;
+    IWICBitmapSource* bitmap = nullptr;
     hr = InlineImage::LoadImageFromFile(
             fileName,
             wicFactory_,
@@ -648,12 +634,12 @@ HRESULT MainWindow::OnSetInlineImage()
 
 STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWriteFont** font)
 {
-  *font = NULL;
+  *font = nullptr;
 
   HRESULT hr = S_OK;
 
   // Conversion to and from LOGFONT uses the IDWriteGdiInterop interface.
-  IDWriteGdiInterop* gdiInterop = NULL;
+  IDWriteGdiInterop* gdiInterop = nullptr;
   hr                            = dwriteFactory_->GetGdiInterop(&gdiInterop);
 
   // Find the font object that best matches the specified LOGFONT.
@@ -672,12 +658,12 @@ STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontF
   HRESULT hr = S_OK;
 
   // Get the font family to which this font belongs.
-  IDWriteFontFamily* fontFamily = NULL;
+  IDWriteFontFamily* fontFamily = nullptr;
   hr                            = font->GetFontFamily(&fontFamily);
 
   // Get the family names. This returns an object that encapsulates one or
   // more names with the same meaning but in different languages.
-  IDWriteLocalizedStrings* localizedFamilyNames = NULL;
+  IDWriteLocalizedStrings* localizedFamilyNames = nullptr;
   if (SUCCEEDED(hr))
   {
     hr = fontFamily->GetFamilyNames(&localizedFamilyNames);
@@ -721,7 +707,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 
   // Set initial trimming sign, but leave it disabled (granularity is none).
 
-  IDWriteInlineObject* inlineObject = NULL;
+  IDWriteInlineObject* inlineObject = nullptr;
   if (SUCCEEDED(hr))
   {
     hr = dwriteFactory_->CreateEllipsisTrimmingSign(textLayout, &inlineObject);
@@ -740,6 +726,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
     textLayout->SetFontFamilyName(L"Segoe UI", MakeDWriteTextRange(0));
     textLayout->SetFontSize(18, MakeDWriteTextRange(0));
 
+#if 0
     // Apply a color to the title words.
     {
       DrawingEffect* drawingEffect1 = SafeAcquire(new DrawingEffect(0xFF1010D0));
@@ -758,7 +745,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 
     // Add fancy swashes.
     {
-      IDWriteTypography* typoFeature = NULL;
+      IDWriteTypography* typoFeature = nullptr;
       dwriteFactory_->CreateTypography(&typoFeature);
       DWRITE_FONT_FEATURE feature = { DWRITE_FONT_FEATURE_TAG_STYLISTIC_SET_7, 1 };
       typoFeature->AddFontFeature(feature);
@@ -796,6 +783,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
     textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(519, 2));
     textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(525, 2));
     textLayout->SetLocaleName(L"ur-PK", MakeDWriteTextRange(525, 2));
+#endif
   }
 
   SafeRelease(&inlineObject);
@@ -811,9 +799,9 @@ void FailApplication(const wchar_t* message, int functionResult)
   wchar_t buffer[1000];
   buffer[0] = '\0';
 
-  const wchar_t* format = L"%s\r\nError code = %X";
+  // const wchar_t* format = L"%s\r\nError code = %X";
 
   // StringCchPrintf(buffer, ARRAYSIZE(buffer), format, message, functionResult);
-  MessageBox(NULL, buffer, TEXT(APPLICATION_TITLE), MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
+  MessageBoxW(nullptr, buffer, TEXT(APPLICATION_TITLE), MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
   ExitProcess(functionResult);
 }

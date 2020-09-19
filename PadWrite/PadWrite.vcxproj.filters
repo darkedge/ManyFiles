@@ -9,9 +9,9 @@
     <ClInclude Include="ncrt_memory.h" />
     <ClInclude Include="PadWrite.h" />
     <ClInclude Include="RenderTarget.h" />
-    <ClInclude Include="resource.h" />
     <ClInclude Include="sse_mathfun.h" />
     <ClInclude Include="TextEditor.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EditableLayout.cpp" />
@@ -21,9 +21,6 @@
     <ClCompile Include="PadWrite.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="TextEditor.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="InlineObjects.png" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="PadWrite.manifest" />

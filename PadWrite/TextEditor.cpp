@@ -951,9 +951,12 @@ DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
   if (caretBegin > caretEnd)
     mj::swap(caretBegin, caretEnd);
 
+  // MJ: wide string length
+  size_t length;
+  (void)StringCchLengthW(text_, 1024, &length);
+
   // Limit to actual text length.
-  // TODO MJ: Reading outside null terminator
-  UINT32 textLength = static_cast<UINT32>(MJ_COUNTOF(text_));
+  UINT32 textLength = static_cast<UINT32>(length);
   caretBegin        = mj_min(caretBegin, textLength);
   caretEnd          = mj_min(caretEnd, textLength);
 
