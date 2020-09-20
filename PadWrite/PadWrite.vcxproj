@@ -224,9 +224,6 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="PadWrite.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="EditableLayout.cpp" />
     <ClCompile Include="mj_math.cpp" />
     <ClCompile Include="ncrt_math_float.cpp" />
@@ -234,6 +231,9 @@
     <ClCompile Include="PadWrite.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="TextEditor.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

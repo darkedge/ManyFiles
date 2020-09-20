@@ -306,11 +306,11 @@ void MainWindow::OnCommand(UINT commandId)
 
   switch (commandId)
   {
-  case CommandIdPaste:
+  case ID_EDIT_PASTETEXT:
     textEditor_->PasteFromClipboard();
     break;
 
-  case CommandIdCopy:
+  case ID_EDIT_COPYTEXT:
     textEditor_->CopyToClipboard();
     break;
 
@@ -318,19 +318,21 @@ void MainWindow::OnCommand(UINT commandId)
     textEditor_->DeleteSelection();
     break;
 
+#if 0
   case CommandIdRenderD2D:
   case CommandIdRenderDW:
     CreateRenderTarget(textEditor_->GetHwnd(), RenderTargetType(commandId - CommandIdRenderFirst));
     textEditor_->SetRenderTarget(renderTarget_);
     break;
+#endif
 
-  case CommandIdFont:
+  case ID_FORMAT_FONT:
     OnChooseFont();
     break;
 
-  case CommandIdAlignLeading:
-  case CommandIdAlignHCenter:
-  case CommandIdAlignTrailing:
+  case ID_FORMAT_LEADINGALIGNMENT:
+  case ID_FORMAT_CENTEREDALIGNMENT:
+  case ID_FORMAT_TRAILINGALIGNMENT:
     textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT(commandId - CommandIdAlignHFirst));
     RedrawTextEditor();
     break;
@@ -342,17 +344,17 @@ void MainWindow::OnCommand(UINT commandId)
     RedrawTextEditor();
     break;
 
-  case CommandIdLeftToRight:
+  case ID_FORMAT_LEFT:
     textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
     RedrawTextEditor();
     break;
 
-  case CommandIdRightToLeft:
+  case ID_FORMAT_RIGHT:
     textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_RIGHT_TO_LEFT);
     RedrawTextEditor();
     break;
 
-  case CommandIdWrap:
+  case ID_FORMAT_WRAP:
   {
     DWRITE_WORD_WRAPPING wordWrapping = textLayout->GetWordWrapping();
     textLayout->SetWordWrapping((wordWrapping == DWRITE_WORD_WRAPPING_NO_WRAP) ? DWRITE_WORD_WRAPPING_WRAP
@@ -361,7 +363,7 @@ void MainWindow::OnCommand(UINT commandId)
   }
   break;
 
-  case CommandIdTrim:
+  case ID_FORMAT_TRIM:
   {
     // Retrieve existing trimming sign and settings
     // and modify them according to button state.
@@ -379,11 +381,11 @@ void MainWindow::OnCommand(UINT commandId)
   }
   break;
 
-  case CommandIdZoomIn:
+  case ID_VIEW_ZOOMIN:
     textEditor_->SetScale(1.25f, 1.25f, true);
     break;
 
-  case CommandIdZoomOut:
+  case ID_VIEW_Z:
     textEditor_->SetScale(1 / 1.25f, 1 / 1.25f, true);
     break;
 

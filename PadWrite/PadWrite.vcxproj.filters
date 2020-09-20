@@ -26,6 +26,6 @@
     <CustomBuild Include="PadWrite.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="PadWrite.rc" />
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
 </Project>
