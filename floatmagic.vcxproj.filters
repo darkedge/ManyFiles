@@ -27,6 +27,6 @@
     <Manifest Include="DeclareDPIAware.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="rekenaar.rc" />
+    <ResourceCompile Include="floatmagic.rc" />
   </ItemGroup>
 </Project>

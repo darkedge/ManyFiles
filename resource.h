@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by rekenaar.rc
+// Used by floatmagic.rc
 //
 #define IDR_MENU1                       101
 #define IDR_ACCELERATOR1                102

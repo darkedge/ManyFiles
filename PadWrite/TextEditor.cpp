@@ -1,20 +1,4 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    UI formatted text editor.
-//
-// Usage:       Type to edit text.
-//              Arrow keys move, +shift selects, +ctrl moves whole word
-//              Left drag selects.
-//              Middle drag pans.
-//              Scroll wheel scrolls, +shift for horizontal, +ctrl zooms.
-//
-//----------------------------------------------------------------------------
-#include "Common.h"
+﻿#include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 #include "EditableLayout.h"
@@ -81,9 +65,7 @@ namespace
 
   bool IsLandscapeAngle(float angle)
   {
-    // Returns true if the angle is rotated 90 degrees clockwise
-    // or anticlockwise (or any multiple of that).
-    return fmod(abs(angle) + 45.0f, 180.0f) >= 90.0f;
+    return false;
   }
 } // namespace
 
@@ -100,12 +82,12 @@ ATOM TextEditor::RegisterWindowClass()
   wcex.cbClsExtra    = 0;
   wcex.cbWndExtra    = sizeof(LONG_PTR);
   wcex.hInstance     = HINST_THISCOMPONENT;
-  wcex.hIcon         = NULL;
-  wcex.hCursor       = LoadCursor(NULL, IDC_IBEAM);
-  wcex.hbrBackground = NULL;
-  wcex.lpszMenuName  = NULL;
+  wcex.hIcon         = nullptr;
+  wcex.hCursor       = LoadCursor(nullptr, IDC_IBEAM);
+  wcex.hbrBackground = nullptr;
+  wcex.lpszMenuName  = nullptr;
   wcex.lpszClassName = TEXT("DirectWriteEdit");
-  wcex.hIconSm       = NULL;
+  wcex.hIconSm       = nullptr;
 
   return RegisterClassEx(&wcex);
 }
@@ -123,12 +105,12 @@ TextEditor::TextEditor(IDWriteFactory* factory)
 HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextFormat* textFormat, IDWriteFactory* factory,
                            OUT TextEditor** textEditor)
 {
-  *textEditor = NULL;
+  *textEditor = nullptr;
   HRESULT hr  = S_OK;
 
   // Create and initialize.
   TextEditor* newTextEditor = SafeAcquire(new TextEditor(factory));
-  if (newTextEditor == NULL)
+  if (newTextEditor == nullptr)
   {
     return E_OUTOFMEMORY;
   }
@@ -156,8 +138,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 
   // Create an ideal layout for the text editor based on the text and format,
   // favoring document layout over pixel alignment.
-  hr = layoutEditor_.GetFactory()->CreateTextLayout(text_,
-                                                    static_cast<UINT32>(length), textFormat,
+  hr = layoutEditor_.GetFactory()->CreateTextLayout(text_, static_cast<UINT32>(length), textFormat,
                                                     580, // maximum width
                                                     420, // maximum height
                                                     &textLayout_);
@@ -180,16 +161,16 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   imageSelectionEffect_  = SafeAcquire(new DrawingEffect(0x80000000 | D2D1::ColorF::LightSkyBlue));
   caretBackgroundEffect_ = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::Black));
 
-  if (pageBackgroundEffect_ == NULL || textSelectionEffect_ == NULL || imageSelectionEffect_ == NULL ||
-      caretBackgroundEffect_ == NULL)
+  if (pageBackgroundEffect_ == nullptr || textSelectionEffect_ == nullptr || imageSelectionEffect_ == nullptr ||
+      caretBackgroundEffect_ == nullptr)
   {
     return E_OUTOFMEMORY;
   }
 
   // Create text editor window (hwnd is stored in the create event)
   CreateWindowEx(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
-                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, NULL, HINST_THISCOMPONENT, this);
-  if (hwnd_ == NULL)
+                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
+  if (hwnd_ == nullptr)
     return HRESULT_FROM_WIN32(GetLastError());
 
   return S_OK;
@@ -197,7 +178,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 
 inline void TextEditor::InitDefaults()
 {
-  hwnd_ = NULL;
+  hwnd_ = nullptr;
 
   caretPosition_       = 0;
   caretAnchor_         = 0;
@@ -370,7 +351,7 @@ void TextEditor::OnDraw()
   PAINTSTRUCT ps;
   BeginPaint(hwnd_, &ps);
 
-  if (renderTarget_ != NULL) // in case event received before we have a target
+  if (renderTarget_ != nullptr) // in case event received before we have a target
   {
     renderTarget_->BeginDraw();
     renderTarget_->Clear(D2D1::ColorF::LightGray);
@@ -409,13 +390,15 @@ void TextEditor::DrawPage(RenderTarget& target)
     textLayout_->HitTestTextRange(caretRange.startPosition, caretRange.length,
                                   0, // x
                                   0, // y
-                                  NULL,
+                                  nullptr,
                                   0, // metrics count
                                   &actualHitTestCount);
   }
 
   // Allocate enough room to return all hit-test metrics.
+  // MJ TODO: Use pre-allocated memory
   mj::ArrayList<DWRITE_HIT_TEST_METRICS> hitTestMetrics(actualHitTestCount);
+  hitTestMetrics.Reserve(actualHitTestCount);
 
   if (caretRange.length > 0)
   {
@@ -572,7 +555,7 @@ void TextEditor::UpdateScrollInfo()
 {
   // Updates scroll bars.
 
-  if (textLayout_ == NULL)
+  if (textLayout_ == nullptr)
     return;
 
   // Determine scroll bar's step size in pixels by multiplying client rect by current view.
@@ -621,7 +604,7 @@ void TextEditor::UpdateScrollInfo()
 
 void TextEditor::OnSize(UINT width, UINT height)
 {
-  if (renderTarget_ != NULL)
+  if (renderTarget_ != nullptr)
     renderTarget_->Resize(width, height);
 
   RefreshView();
@@ -1187,7 +1170,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     // First need to know how many clusters there are.
     mj::ArrayList<DWRITE_CLUSTER_METRICS> clusterMetrics;
     UINT32 clusterCount;
-    textLayout_->GetClusterMetrics(NULL, 0, &clusterCount);
+    textLayout_->GetClusterMetrics(nullptr, 0, &clusterCount);
 
     if (clusterCount == 0)
       break;
@@ -1271,9 +1254,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   case SetSelectionModeAll:
     caretAnchor_    = 0;
     extendSelection = true;
-    __fallthrough;
 
-  case SetSelectionModeLast:
+  case SetSelectionModeLast: // Fall-through
     caretPosition_       = UINT32_MAX;
     caretPositionOffset_ = 0;
     AlignCaretToNearestCluster(true);
@@ -1320,7 +1302,7 @@ void TextEditor::GetCaretRect(OUT RectF& rect)
   RectF zeroRect = {};
   rect           = zeroRect;
 
-  if (textLayout_ == NULL)
+  if (textLayout_ == nullptr)
     return;
 
   // Translate text character offset to point x,y.
@@ -1393,7 +1375,7 @@ void TextEditor::UpdateSystemCaret(const RectF& rect)
   int intWidth  = RoundToInt(transformedWidth);
   int intHeight = RoundToInt(caretPoint.y + transformedHeight) - intY;
 
-  CreateCaret(hwnd_, NULL, intWidth, intHeight);
+  CreateCaret(hwnd_, nullptr, intWidth, intHeight);
   SetCaretPos(intX, intY);
 
   // Don't actually call ShowCaret. It's enough to just set its position.
@@ -1425,10 +1407,10 @@ void TextEditor::UpdateCaretFormatting()
   textLayout_->GetStrikethrough(currentPos, &caretFormat_.hasStrikethrough);
 
   // Get the current color.
-  IUnknown* drawingEffect = NULL;
+  IUnknown* drawingEffect = nullptr;
   textLayout_->GetDrawingEffect(currentPos, &drawingEffect);
   caretFormat_.color = 0;
-  if (drawingEffect != NULL)
+  if (drawingEffect != nullptr)
   {
     DrawingEffect& effect = *reinterpret_cast<DrawingEffect*>(drawingEffect);
     caretFormat_.color    = effect.GetColor();
@@ -1457,20 +1439,20 @@ void TextEditor::CopyToClipboard()
       size_t byteSize        = sizeof(wchar_t) * (selectionRange.length + 1);
       HGLOBAL hClipboardData = GlobalAlloc(GMEM_DDESHARE | GMEM_ZEROINIT, byteSize);
 
-      if (hClipboardData != NULL)
+      if (hClipboardData != nullptr)
       {
         void* memory = GlobalLock(hClipboardData); // [byteSize] in bytes
 
-        if (memory != NULL)
+        if (memory != nullptr)
         {
           // Copy text to memory block.
           const wchar_t* text = text_;
           memcpy(memory, &text[selectionRange.startPosition], byteSize);
           GlobalUnlock(hClipboardData);
 
-          if (SetClipboardData(CF_UNICODETEXT, hClipboardData) != NULL)
+          if (SetClipboardData(CF_UNICODETEXT, hClipboardData) != nullptr)
           {
-            hClipboardData = NULL; // system now owns the clipboard, so don't touch it.
+            hClipboardData = nullptr; // system now owns the clipboard, so don't touch it.
           }
         }
         GlobalFree(hClipboardData); // free if failed
@@ -1508,7 +1490,7 @@ void TextEditor::PasteFromClipboard()
   {
     HGLOBAL hClipboardData = GetClipboardData(CF_UNICODETEXT);
 
-    if (hClipboardData != NULL)
+    if (hClipboardData != nullptr)
     {
       // Get text and size of text.
       size_t byteSize     = GlobalSize(hClipboardData);
@@ -1519,7 +1501,7 @@ void TextEditor::PasteFromClipboard()
       (void)StringCchLengthW(text, 1024, &length);
       characterCount = static_cast<UINT32>(length);
 
-      if (memory != NULL)
+      if (memory != nullptr)
       {
         // Insert the text at the current position.
         layoutEditor_.InsertTextAt(textLayout_, text_, caretPosition_ + caretPositionOffset_, text, characterCount);

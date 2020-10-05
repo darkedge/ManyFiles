@@ -38,21 +38,21 @@ extern "C"
 
 void* operator new(size_t n)
 {
-  return HeapAlloc(GetProcessHeap(), NULL, n);
+  return HeapAlloc(GetProcessHeap(), 0, n);
 }
 
 void* operator new[](size_t n)
 {
-  return HeapAlloc(GetProcessHeap(), NULL, n);
+  return HeapAlloc(GetProcessHeap(), 0, n);
 }
 
 void operator delete(void* p, size_t sz)
 {
   (void)sz;
-  HeapFree(GetProcessHeap(), NULL, p);
+  HeapFree(GetProcessHeap(), 0, p);
 }
 
 void operator delete[](void* p)
 {
-  HeapFree(GetProcessHeap(), NULL, p);
+  HeapFree(GetProcessHeap(), 0, p);
 }

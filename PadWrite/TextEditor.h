@@ -85,7 +85,7 @@ public:
   void SetRenderTarget(RenderTarget* target);
   void PostRedraw()
   {
-    InvalidateRect(hwnd_, NULL, FALSE);
+    InvalidateRect(hwnd_, nullptr, FALSE);
   }
 
   ////////////////////
@@ -191,6 +191,4 @@ protected:
   float angle_;   // in degrees
   float originX_; // focused point in document (moves on panning and caret navigation)
   float originY_;
-  float contentWidth_; // page size - margin left - margin right (can be fixed or variable)
-  float contentHeight_;
 };

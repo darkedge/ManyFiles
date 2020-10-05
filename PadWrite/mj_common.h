@@ -135,15 +135,18 @@ namespace mj
     ArrayList() : ArrayList(4)
     {
     }
+    /// <summary>
+    /// Note: Only reserves space. The element count is left at zero.
+    /// </summary>
+    /// <param name="capacity"></param>
+    /// <returns></returns>
     ArrayList(uint32_t capacity) : capacity(capacity)
     {
 
-      pData =
-
-          (T*)VirtualAlloc(0,                        //
-                           capacity * sizeof(T),     //
-                           MEM_COMMIT | MEM_RESERVE, //
-                           PAGE_READWRITE);
+      pData = (T*)VirtualAlloc(0,                        //
+                               capacity * sizeof(T),     //
+                               MEM_COMMIT | MEM_RESERVE, //
+                               PAGE_READWRITE);
     }
     ~ArrayList()
     {
@@ -169,7 +172,7 @@ namespace mj
     /// Reserves memory for multiple objects. No construction is done.
     /// </summary>
     /// <param name="num">Amount of objects</param>
-    /// <returns>Null if there is no more space</returns>
+    /// <returns>nullptr if there is no more space</returns>
     T* Reserve(uint32_t num)
     {
       if (num == 0)
@@ -185,7 +188,7 @@ namespace mj
       }
       else
       {
-        // TODO: Be smarter here
+        // TODO: Make sure double is at least > num
         if (Double())
         {
           return Reserve(num);
@@ -199,9 +202,9 @@ namespace mj
 
     /// <summary>
     /// Emplaces (constructs in-place) a new object.
-    /// Uses placement-new. Could still be uninitialized!
+    /// Uses placement-new with provided constructor arguments. Could still be uninitialized!
     /// </summary>
-    /// <returns>Null if there is no more space.</returns>
+    /// <returns>Nullptr if there is no more space.</returns>
     template <typename... Ts>
     T* EmplaceSingle(Ts&&... args)
     {
@@ -217,39 +220,6 @@ namespace mj
         if (Double())
         {
           return EmplaceSingle();
-        }
-        else
-        {
-          return nullptr;
-        }
-      }
-    }
-
-    /// <summary>
-    /// Emplaces (constructs in-place) multiple objects.
-    /// Uses placement-new.
-    /// </summary>
-    /// <returns>Null if there is no more space.</returns>
-    template <typename... Ts>
-    T* EmplaceMultiple(uint32_t num)
-    {
-      if (num == 0)
-      {
-        return nullptr;
-      }
-
-      if (numElements + num <= capacity)
-      {
-        T* ptr = (T*)operator new(num, pData + numElements);
-        numElements += num;
-        return ptr;
-      }
-      else
-      {
-        // TODO: Be smarter here
-        if (Double())
-        {
-          return EmplaceMultiple(num);
         }
         else
         {

@@ -13,9 +13,9 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{0F629598-C87F-4DDA-8BF6-936F7ADB9422}</ProjectGuid>
-    <RootNamespace>rekenaar</RootNamespace>
+    <RootNamespace>floatmagic</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Rekenaar</ProjectName>
+    <ProjectName>floatmagic</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -46,13 +46,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <CodeAnalysisRuleSet>rekenaar.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>floatmagic.ruleset</CodeAnalysisRuleSet>
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <CodeAnalysisRuleSet>rekenaar.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>floatmagic.ruleset</CodeAnalysisRuleSet>
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
   </PropertyGroup>
@@ -135,7 +135,7 @@
     <Manifest Include="DeclareDPIAware.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="rekenaar.rc" />
+    <ResourceCompile Include="floatmagic.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

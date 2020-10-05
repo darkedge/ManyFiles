@@ -180,7 +180,7 @@ ATOM MainWindow::RegisterWindowClass()
   wcex.hIcon         = nullptr;
   wcex.hCursor       = LoadCursor(nullptr, IDC_ARROW);
   wcex.hbrBackground = nullptr;
-  wcex.lpszMenuName  = MAKEINTRESOURCE(1);
+  wcex.lpszMenuName  = MAKEINTRESOURCE(IDR_MENU1);
   wcex.lpszClassName = TEXT("DirectWritePadDemo");
   wcex.hIconSm       = nullptr;
 
@@ -204,13 +204,6 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
       hr = RenderTargetD2D::Create(d2dFactory_, dwriteFactory_, hwnd, &renderTarget);
       break;
     }
-    // Fall through to DirectWrite if no D2D factory exists.
-
-  case RenderTargetTypeDW:
-  default:
-    renderTargetType = RenderTargetTypeDW;
-    hr               = RenderTargetDW::Create(dwriteFactory_, hwnd, &renderTarget);
-    break;
   }
 
   // Set the new target.
@@ -314,11 +307,11 @@ void MainWindow::OnCommand(UINT commandId)
     textEditor_->CopyToClipboard();
     break;
 
+#if 0
   case CommandIdDelete:
     textEditor_->DeleteSelection();
     break;
 
-#if 0
   case CommandIdRenderD2D:
   case CommandIdRenderDW:
     CreateRenderTarget(textEditor_->GetHwnd(), RenderTargetType(commandId - CommandIdRenderFirst));
@@ -330,6 +323,7 @@ void MainWindow::OnCommand(UINT commandId)
     OnChooseFont();
     break;
 
+#if 0
   case ID_FORMAT_LEADINGALIGNMENT:
   case ID_FORMAT_CENTEREDALIGNMENT:
   case ID_FORMAT_TRAILINGALIGNMENT:
@@ -343,6 +337,7 @@ void MainWindow::OnCommand(UINT commandId)
     textLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT(commandId - CommandIdAlignVFirst));
     RedrawTextEditor();
     break;
+#endif
 
   case ID_FORMAT_LEFT:
     textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
@@ -389,27 +384,19 @@ void MainWindow::OnCommand(UINT commandId)
     textEditor_->SetScale(1 / 1.25f, 1 / 1.25f, true);
     break;
 
-  case CommandIdRotateCW:
-    textEditor_->SetAngle(90, true);
-    break;
-
-  case CommandIdRotateACW:
-    textEditor_->SetAngle(-90, true);
-    break;
-
+#if 0
   case CommandIdResetView:
     textEditor_->ResetView();
     break;
 
-#if 0
     case CommandIdSetInlineImage:
         OnSetInlineImage();
         break;
-#endif
 
   case CommandIdExit:
     PostMessage(hwnd_, WM_CLOSE, 0, 0);
     break;
+#endif
   }
 
   return;
@@ -458,6 +445,8 @@ void MainWindow::UpdateMenuToCaret()
   textLayout->GetTrimming(&trimming, &inlineObject);
   SafeRelease(&inlineObject); // We don't need the inline object.
 
+  // Set checkbox/radio to true on certain menu items
+#if 0
   HMENU hmenu = GetMenu(hwnd_);
   CheckMenuItem(hmenu, CommandIdWrap,
                 MF_BYCOMMAND | (wordWrapping != DWRITE_WORD_WRAPPING_NO_WRAP ? MF_CHECKED : MF_UNCHECKED));
@@ -470,6 +459,7 @@ void MainWindow::UpdateMenuToCaret()
                      MF_BYCOMMAND);
   CheckMenuRadioItem(hmenu, CommandIdRenderFirst, CommandIdRenderLast, CommandIdRenderFirst + renderTargetType_,
                      MF_BYCOMMAND);
+#endif
 }
 
 HRESULT MainWindow::OnChooseFont()

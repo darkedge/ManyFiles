@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RuleSet Name="Rekenaar" Description="Modified copy of Microsoft Native Recommended Rules" ToolsVersion="16.0">
+<RuleSet Name="floatmagic" Description="Modified copy of Microsoft Native Recommended Rules" ToolsVersion="16.0">
   <Rules AnalyzerId="Microsoft.Analyzers.NativeCodeAnalysis" RuleNamespace="Microsoft.Rules.Native">
     <Rule Id="C26100" Action="Warning" />
     <Rule Id="C26101" Action="Warning" />

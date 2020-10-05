@@ -77,7 +77,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
-    <CodeAnalysisRuleSet>..\rekenaar.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\floatmagic.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(Configuration)_$(Platform)\</OutDir>
@@ -90,7 +90,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
-    <CodeAnalysisRuleSet>..\rekenaar.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\floatmagic.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

@@ -21,7 +21,7 @@ HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout,
 
   HRESULT hr = S_OK;
 
-  IDWriteTextLayout* newLayout = NULL;
+  IDWriteTextLayout* newLayout = nullptr;
 
   // MJ: wide string length
   size_t length;
@@ -48,12 +48,12 @@ void EditableLayout::CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT3
   DWRITE_TEXT_RANGE range = { startPosForNew, mj_min(length, UINT32_MAX - startPosForNew) };
 
   // font collection
-  IDWriteFontCollection* fontCollection = NULL;
+  IDWriteFontCollection* fontCollection = nullptr;
   oldLayout->GetFontCollection(startPosForOld, &fontCollection);
   newLayout->SetFontCollection(fontCollection, range);
   SafeRelease(&fontCollection);
 
-  if (caretFormat != NULL)
+  if (caretFormat != nullptr)
   {
     newLayout->SetFontFamilyName(caretFormat->fontFamilyName, range);
     newLayout->SetLocaleName(caretFormat->localeName, range);
@@ -104,19 +104,19 @@ void EditableLayout::CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT3
   }
 
   // drawing effect
-  IUnknown* drawingEffect = NULL;
+  IUnknown* drawingEffect = nullptr;
   oldLayout->GetDrawingEffect(startPosForOld, &drawingEffect);
   newLayout->SetDrawingEffect(drawingEffect, range);
   SafeRelease(&drawingEffect);
 
   // inline object
-  IDWriteInlineObject* inlineObject = NULL;
+  IDWriteInlineObject* inlineObject = nullptr;
   oldLayout->GetInlineObject(startPosForOld, &inlineObject);
   newLayout->SetInlineObject(inlineObject, range);
   SafeRelease(&inlineObject);
 
   // typography
-  IDWriteTypography* typography = NULL;
+  IDWriteTypography* typography = nullptr;
   oldLayout->GetTypography(startPosForOld, &typography);
   newLayout->SetTypography(typography, range);
   SafeRelease(&typography);
@@ -181,8 +181,7 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
   position                     = mj_min(position, static_cast<UINT32>(length));
 
   // Insert the new text and recreate the new text layout.
-  // TODO MJ: STL/Exception
-  // XXX
+  // TODO MJ:
   // text.insert(position, textToInsert, textToInsertLength);
 
   if (SUCCEEDED(hr))
@@ -308,7 +307,7 @@ void EditableLayout::CopyGlobalProperties(IDWriteTextLayout* oldLayout, IDWriteT
   newLayout->SetIncrementalTabStop(oldLayout->GetIncrementalTabStop());
 
   DWRITE_TRIMMING trimmingOptions   = {};
-  IDWriteInlineObject* inlineObject = NULL;
+  IDWriteInlineObject* inlineObject = nullptr;
   oldLayout->GetTrimming(&trimmingOptions, &inlineObject);
   newLayout->SetTrimming(&trimmingOptions, inlineObject);
   SafeRelease(&inlineObject);

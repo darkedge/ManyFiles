@@ -152,10 +152,10 @@ inline HRESULT ExceptionToHResult() throw()
 template <typename InterfaceType>
 inline void SafeRelease(InterfaceType** currentObject)
 {
-  if (*currentObject != NULL)
+  if (*currentObject != nullptr)
   {
     (*currentObject)->Release();
-    *currentObject = NULL;
+    *currentObject = nullptr;
   }
 }
 
@@ -163,7 +163,7 @@ inline void SafeRelease(InterfaceType** currentObject)
 template <typename InterfaceType>
 inline InterfaceType* SafeAcquire(InterfaceType* newObject)
 {
-  if (newObject != NULL)
+  if (newObject != nullptr)
     newObject->AddRef();
 
   return newObject;
@@ -183,7 +183,7 @@ template <typename InterfaceType>
 inline InterfaceType* SafeDetach(InterfaceType** currentObject)
 {
   InterfaceType* oldObject = *currentObject;
-  *currentObject           = NULL;
+  *currentObject           = nullptr;
   return oldObject;
 }
 
@@ -214,9 +214,9 @@ public:
   // IUnknown interface
   IFACEMETHOD(QueryInterface)(IID const& iid, OUT void** ppObject)
   {
-    *ppObject = NULL;
+    *ppObject = nullptr;
     InterfaceChain::QueryInterfaceInternal(iid, ppObject);
-    if (*ppObject == NULL)
+    if (*ppObject == nullptr)
       return E_NOINTERFACE;
 
     AddRef();

@@ -79,7 +79,7 @@ public:
   /// Inserts a given string in the text layout's stored string at a certain text postion;
   HRESULT STDMETHODCALLTYPE InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText, UINT32 position,
                                          WCHAR const* textToInsert, // [lengthToInsert]
-                                         UINT32 textToInsertLength, CaretFormat* caretFormat = NULL);
+                                         UINT32 textToInsertLength, CaretFormat* caretFormat = nullptr);
 
   /// Deletes a specified amount characters from the layout's stored string.
   HRESULT STDMETHODCALLTYPE RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText, UINT32 position,
@@ -98,7 +98,7 @@ private:
 
   static void CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT32 startPosForOld, IDWriteTextLayout* newLayout,
                                       UINT32 startPosForNew, UINT32 length,
-                                      EditableLayout::CaretFormat* caretFormat = NULL);
+                                      EditableLayout::CaretFormat* caretFormat = nullptr);
 
 public:
   IDWriteFactory* factory_;
