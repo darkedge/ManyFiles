@@ -62,36 +62,25 @@ LANGUAGE LANG_DUTCH, SUBLANG_DUTCH
 
 IDR_MENU1 MENU
 BEGIN
-    POPUP "File"
+    POPUP "&File"
     BEGIN
         MENUITEM "Exit",                        ID_FILE_EXIT
+        MENUITEM "&New",                        ID_FILE_NEW
+        MENUITEM "&Open...",                    ID_FILE_OPEN
+        MENUITEM "&Save",                       ID_FILE_SAVE
+        MENUITEM "Save &As...",                 ID_FILE_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_FILE_EXIT40021
     END
-    POPUP "Edit"
-    BEGIN
-        MENUITEM "Copy text",                   ID_EDIT_COPYTEXT
-        MENUITEM "Paste text",                  ID_EDIT_PASTETEXT
-    END
-    POPUP "View"
-    BEGIN
-        MENUITEM "Zoom in",                     ID_VIEW_ZOOMIN
-        MENUITEM "Zoom out",                    ID_VIEW_Z
-        MENUITEM "Rotate",                      ID_VIEW_ROTATE
-        MENUITEM "Reset view",                  ID_VIEW_RESETVIEW
-    END
-    POPUP "Format"
+    MENUITEM "&Edit",                       65535
+    POPUP "F&ormat"
     BEGIN
         MENUITEM "Font...",                     ID_FORMAT_FONT
         MENUITEM SEPARATOR
-        MENUITEM "Leading alignment",           ID_FORMAT_LEADINGALIGNMENT
-        MENUITEM "Centered alignment",          ID_FORMAT_CENTEREDALIGNMENT
-        MENUITEM "Trailing alignment",          ID_FORMAT_TRAILINGALIGNMENT
-        MENUITEM SEPARATOR
-        MENUITEM "Left-to-right",               ID_FORMAT_LEFT
-        MENUITEM "Right-to-left",               ID_FORMAT_RIGHT
-        MENUITEM SEPARATOR
         MENUITEM "Wrap",                        ID_FORMAT_WRAP, CHECKED
-        MENUITEM "Trim",                        ID_FORMAT_TRIM
     END
+    MENUITEM "&View",                       65535
+    MENUITEM "&Help",                       0
 END
 
 #endif    // Dutch (Netherlands) resources

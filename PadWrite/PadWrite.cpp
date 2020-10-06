@@ -8,18 +8,7 @@
 
 static void FailApplication(const wchar_t* message, int functionResult);
 
-const static wchar_t g_sampleText[] =
-    L"DirectWrite SDK sample\r\n"
-    L"\n"
-    L"Feel free to play around with the formatting options to see just some of what DWrite is capable of:\n\n"
-    L"Glyph rendering, Complex script shaping, Script analysis, Line breaking, Font fallback, "
-    L"Font enumeration, ClearType rendering, Bold/Italic/Underline/Strikethrough/Narrow/Light, OpenType styles, "
-    L"Trimming, Selection hit-testing...\r\n"
-    L"\r\n"
-    L"Mixed scripts: 한글 الْعَرَبيّة 中文 日本語 ภาษาไทย\r\n"
-    L"CJK characters beyond BMP - 𠂢𠂤𠌫𝟙𝟚𝟛\r\n"
-    L"Localized forms - Ş Ș vs Ş Ș; ۴۶ vs ۴۶\r\n"
-    L"Incremental tabs - 1	2	3";
+const static wchar_t g_sampleText[] = L"Hello, world!\r\n";
 
 ////////////////////////////////////////
 // Main entry.

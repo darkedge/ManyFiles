@@ -105,7 +105,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 ////////////////////////////////////////
 // Application specific headers/functions:
 
-#define APPLICATION_TITLE "PadWrite - DirectWrite layout SDK sample"
+#define APPLICATION_TITLE "FloatMagic"
 
 // Needed text editor backspace deletion.
 inline bool IsSurrogate(UINT32 ch) throw()
