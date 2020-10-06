@@ -45,10 +45,12 @@ void CALLBACK WinMainCRTStartup() noexcept
 }
 
 MainWindow::MainWindow()
-    : renderTargetType_(RenderTargetTypeD2D), hwnd_(nullptr), dwriteFactory_(),
-      // wicFactory_(),
-      d2dFactory_(), renderTarget_(), textEditor_()
-// inlineObjectImages_()
+    : renderTargetType_(RenderTargetTypeD2D), //
+      hwnd_(nullptr),                         //
+      dwriteFactory_(),                       //
+      d2dFactory_(),                          //
+      renderTarget_(),                        //
+      textEditor_()
 {
   // no heavyweight initialization in the constructor.
 }
@@ -75,20 +77,6 @@ HRESULT MainWindow::Initialize()
   {
     D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2dFactory_);
   }
-
-#if 0
-    // Create WIC factory to load images.
-    if (SUCCEEDED(hr))
-    {
-        hr = CoCreateInstance(
-                CLSID_WICImagingFactory,
-                nullptr,
-                CLSCTX_INPROC_SERVER,
-                IID_IWICImagingFactory,
-                (IID_PPV_ARGS(&wicFactory_))
-                );
-    }
-#endif
 
   //////////////////////////////
   // Create the main window
@@ -296,37 +284,9 @@ void MainWindow::OnCommand(UINT commandId)
     textEditor_->CopyToClipboard();
     break;
 
-#if 0
-  case CommandIdDelete:
-    textEditor_->DeleteSelection();
-    break;
-
-  case CommandIdRenderD2D:
-  case CommandIdRenderDW:
-    CreateRenderTarget(textEditor_->GetHwnd(), RenderTargetType(commandId - CommandIdRenderFirst));
-    textEditor_->SetRenderTarget(renderTarget_);
-    break;
-#endif
-
   case ID_FORMAT_FONT:
     OnChooseFont();
     break;
-
-#if 0
-  case ID_FORMAT_LEADINGALIGNMENT:
-  case ID_FORMAT_CENTEREDALIGNMENT:
-  case ID_FORMAT_TRAILINGALIGNMENT:
-    textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT(commandId - CommandIdAlignHFirst));
-    RedrawTextEditor();
-    break;
-
-  case CommandIdAlignTop:
-  case CommandIdAlignVCenter:
-  case CommandIdAlignBottom:
-    textLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT(commandId - CommandIdAlignVFirst));
-    RedrawTextEditor();
-    break;
-#endif
 
   case ID_FORMAT_LEFT:
     textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
@@ -373,19 +333,9 @@ void MainWindow::OnCommand(UINT commandId)
     textEditor_->SetScale(1 / 1.25f, 1 / 1.25f, true);
     break;
 
-#if 0
-  case CommandIdResetView:
-    textEditor_->ResetView();
-    break;
-
-    case CommandIdSetInlineImage:
-        OnSetInlineImage();
-        break;
-
-  case CommandIdExit:
+  case ID_FILE_EXIT:
     PostMessage(hwnd_, WM_CLOSE, 0, 0);
     break;
-#endif
   }
 
   return;
