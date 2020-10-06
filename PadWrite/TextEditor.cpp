@@ -27,7 +27,7 @@ namespace
 
   inline double DegreesToRadians(float degrees)
   {
-    return degrees * M_PI * 2.0f / 360.0f;
+    return degrees * mj::kPi * 2.0f / 360.0f;
   }
 
   inline float GetDeterminant(DWRITE_MATRIX const& matrix)

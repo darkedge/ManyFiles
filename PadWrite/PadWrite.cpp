@@ -418,37 +418,18 @@ void MainWindow::RedrawTextEditor()
   textEditor_->RefreshView();
 }
 
+/// <summary>
+/// Updates the menu state according to the formatting
+/// at the current caret position.
+/// </summary>
 void MainWindow::UpdateMenuToCaret()
 {
-  // Updates the menu state according to the formatting
-  // at the current caret position.
-
-  IDWriteTextLayout* textLayout = textEditor_->GetLayout();
-
   // Read layout-wide attributes from the layout.
-  DWRITE_TEXT_ALIGNMENT textAlignment       = textLayout->GetTextAlignment();
-  DWRITE_WORD_WRAPPING wordWrapping         = textLayout->GetWordWrapping();
-  DWRITE_READING_DIRECTION readingDirection = textLayout->GetReadingDirection();
-  DWRITE_TRIMMING trimming                  = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
-  IDWriteInlineObject* inlineObject         = nullptr;
-  textLayout->GetTrimming(&trimming, &inlineObject);
-  SafeRelease(&inlineObject); // We don't need the inline object.
+  DWRITE_WORD_WRAPPING wordWrapping = textEditor_->GetLayout()->GetWordWrapping();
 
   // Set checkbox/radio to true on certain menu items
-#if 0
-  HMENU hmenu = GetMenu(hwnd_);
-  CheckMenuItem(hmenu, CommandIdWrap,
+  CheckMenuItem(GetMenu(hwnd_), ID_FORMAT_WRAP,
                 MF_BYCOMMAND | (wordWrapping != DWRITE_WORD_WRAPPING_NO_WRAP ? MF_CHECKED : MF_UNCHECKED));
-  CheckMenuItem(hmenu, CommandIdTrim,
-                MF_BYCOMMAND | (trimming.granularity != DWRITE_TRIMMING_GRANULARITY_NONE ? MF_CHECKED : MF_UNCHECKED));
-
-  CheckMenuRadioItem(hmenu, CommandIdAlignHFirst, CommandIdAlignHLast, CommandIdAlignHFirst + textAlignment,
-                     MF_BYCOMMAND);
-  CheckMenuRadioItem(hmenu, CommandIdLeftToRight, CommandIdRightToLeft, CommandIdLeftToRight + readingDirection,
-                     MF_BYCOMMAND);
-  CheckMenuRadioItem(hmenu, CommandIdRenderFirst, CommandIdRenderLast, CommandIdRenderFirst + renderTargetType_,
-                     MF_BYCOMMAND);
-#endif
 }
 
 HRESULT MainWindow::OnChooseFont()
@@ -496,7 +477,7 @@ HRESULT MainWindow::OnChooseFont()
   // and don't show bitmap fonts because DirectWrite doesn't support them.
 
   // Show the common font dialog box.
-  if (!ChooseFont(&chooseFont))
+  if (!ChooseFontW(&chooseFont))
     return hr; // user canceled.
 
   //////////////////////////////
@@ -548,70 +529,6 @@ HRESULT MainWindow::OnChooseFont()
 
   return hr;
 }
-
-#if 0
-HRESULT MainWindow::OnSetInlineImage()
-{
-    // Displays a open dialog to choose the image to insert.
-
-    HRESULT hr = S_OK;
-
-    //////////////////////////////
-    // Initialize OPENFILENAME for the dialog.
-
-    wchar_t fileName[MAX_PATH];
-    fileName[0] = 0;
-
-    OPENFILENAME chooseFile = {};
-    chooseFile.lStructSize  = sizeof(chooseFile);
-    chooseFile.hwndOwner    = hwnd_;
-    chooseFile.hInstance    = GetModuleHandle(nullptr);
-    chooseFile.lpstrFilter  = L"Supported images\0" L"*.png;*.jpg;*.jpeg;*.tif;*.tiff;*.bmp;*.gif\0" L"All files\0" L"(*)\0";
-    chooseFile.lpstrFile    = &fileName[0];
-    chooseFile.nMaxFile     = ARRAYSIZE(fileName);
-    chooseFile.Flags        = OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
-
-    // Get filename.
-    if (!GetOpenFileName(&chooseFile))
-        return hr ;
-
-    //////////////////////////////
-    // Create an inline object, using WIC to load the image.
-
-    IWICBitmapSource* bitmap = nullptr;
-    hr = InlineImage::LoadImageFromFile(
-            fileName,
-            wicFactory_,
-            &bitmap
-            );
-
-    // Get the range of text to be replaced with an inline image.
-    // If no text is selected, insert the Unicode object replacement
-    // character as an anchor.
-    if (SUCCEEDED(hr))
-    {
-        DWRITE_TEXT_RANGE textRange = textEditor_->GetSelectionRange();
-        if (textRange.length <= 0)
-        {
-            textRange.length = 1;
-            textEditor_->InsertText(L"\xFFFC");
-            textEditor_->SetSelection(TextEditor::SetSelectionModeAbsoluteLeading, textRange.startPosition, false, false);
-            textEditor_->SetSelection(TextEditor::SetSelectionModeAbsoluteLeading, textRange.startPosition + 1, true, false);
-        }
-
-        IDWriteTextLayout*   textLayout   = textEditor_->GetLayout();
-        IDWriteInlineObject* inlineObject = SafeAcquire(new InlineImage(bitmap));
-        textLayout->SetInlineObject(inlineObject, textRange);
-        SafeRelease(&inlineObject);
-    }
-
-    SafeRelease(&bitmap);
-
-    RedrawTextEditor();
-
-    return hr;
-}
-#endif
 
 STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWriteFont** font)
 {
@@ -670,14 +587,6 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
   // typographic features.
 
   HRESULT hr = S_OK;
-
-#if 0
-    // Load images for inline objects.
-    if (SUCCEEDED(hr))
-    {
-        hr = InlineImage::LoadImageFromResource(L"InlineObjects", L"Image", wicFactory_, &inlineObjectImages_);
-    }
-#endif
 
   // Set default color of black on entire range.
   DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(0xFF000000));
@@ -742,16 +651,6 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
     textLayout->SetFontFamilyName(L"Arial", MakeDWriteTextRange(313, 6));
     textLayout->SetFontStretch(DWRITE_FONT_STRETCH_CONDENSED, MakeDWriteTextRange(313, 6));
     textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_LIGHT, MakeDWriteTextRange(320, 5));
-
-#if 0
-        // Add two inline objects.
-        InlineImage* image1 = SafeAcquire(new InlineImage(inlineObjectImages_, 0));
-        InlineImage* image2 = SafeAcquire(new InlineImage(inlineObjectImages_, 1));
-        textLayout->SetInlineObject(image1, MakeDWriteTextRange(359, 1));
-        textLayout->SetInlineObject(image2, MakeDWriteTextRange(360, 1));
-        SafeRelease(&image1);
-        SafeRelease(&image2);
-#endif
 
     // Localized S with comma below.
     textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(507, 3));

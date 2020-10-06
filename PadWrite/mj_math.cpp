@@ -36,6 +36,7 @@ static __inline unsigned __FLOAT_BITS(float __f)
   __u.__f = __f;
   return __u.__i;
 }
+
 static __inline unsigned long long __DOUBLE_BITS(double __f)
 {
   union {
@@ -45,6 +46,7 @@ static __inline unsigned long long __DOUBLE_BITS(double __f)
   __u.__f = __f;
   return __u.__i;
 }
+
 #define isnan(x) \
   (sizeof(x) == sizeof(float) ? (__FLOAT_BITS(x) & 0x7fffffff) > 0x7f800000 \
                               : sizeof(x) == sizeof(double) ? (__DOUBLE_BITS(x) & -1ULL >> 1) > 0x7ffULL << 52 : true)
