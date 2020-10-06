@@ -221,7 +221,7 @@ namespace mj
     }
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <param name="position"></param>
     /// <param name="num"></param>
@@ -233,7 +233,7 @@ namespace mj
         T* ptr = begin() + position;
 
         // Move elements left
-        memmove(ptr, end() - num, num * TSize);
+        memmove(ptr, ptr + num, (end() - ptr - 1) * TSize);
 
         this->numElements -= num;
 
@@ -276,7 +276,7 @@ namespace mj
       if (numElements < capacity)
       {
         T* ptr = pData + numElements;
-        *ptr = t;
+        *ptr   = t;
         ++numElements;
         return true;
       }
