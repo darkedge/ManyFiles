@@ -15,7 +15,7 @@
 #include "Common.h"
 #include "EditableLayout.h"
 
-HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout, const wchar_t* pText)
+HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout, const mj::ArrayList<wchar_t>& text)
 {
   // Recreates the internally held layout.
 
@@ -25,9 +25,9 @@ HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout,
 
   // MJ: wide string length
   size_t length;
-  (void)StringCchLengthW(pText, 1024, &length);
+  (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
 
-  hr = factory_->CreateTextLayout(pText, static_cast<UINT32>(length), currentLayout, currentLayout->GetMaxWidth(),
+  hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout, currentLayout->GetMaxWidth(),
                                   currentLayout->GetMaxHeight(), &newLayout);
 
   if (SUCCEEDED(hr))
@@ -160,7 +160,7 @@ void EditableLayout::CopyRangedProperties(IDWriteTextLayout* oldLayout, UINT32 s
   }
 }
 
-STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText, UINT32 position,
+STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
                                           WCHAR const* textToInsert, // [lengthToInsert]
                                           UINT32 textToInsertLength, CaretFormat* caretFormat)
 {
@@ -172,8 +172,8 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
   // If there is no text right before position, so use the properties of the character right after position.
 
   // MJ: wide string length
-  size_t length;
-  (void)StringCchLengthW(pText, 1024, &length);
+  MJ_UNINITIALIZED size_t length;
+  (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
 
   // Copy all the old formatting.
   IDWriteTextLayout* oldLayout = SafeAcquire(currentLayout);
@@ -181,12 +181,11 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
   position                     = mj_min(position, static_cast<UINT32>(length));
 
   // Insert the new text and recreate the new text layout.
-  // TODO MJ:
-  // text.insert(position, textToInsert, textToInsertLength);
+  text.Insert(position, textToInsert, textToInsertLength);
 
   if (SUCCEEDED(hr))
   {
-    hr = RecreateLayout(currentLayout, pText);
+    hr = RecreateLayout(currentLayout, text);
   }
 
   IDWriteTextLayout* newLayout = currentLayout;
@@ -217,7 +216,7 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
     }
 
     // Copy trailing end.
-    (void)StringCchLengthW(pText, 1024, &length);
+    (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
     CopySinglePropertyRange(oldLayout, oldTextLength, newLayout, static_cast<UINT32>(length), UINT32_MAX);
   }
 
@@ -226,7 +225,7 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
   return S_OK;
 }
 
-STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText, UINT32 position,
+STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
                                           UINT32 lengthToRemove)
 {
   // Removes text and shifts all formatting.
@@ -235,20 +234,18 @@ STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayo
 
   // MJ: wide string length
   size_t length;
-  (void)StringCchLengthW(pText, 1024, &length);
+  (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
 
   // copy all the old formatting.
   IDWriteTextLayout* oldLayout = SafeAcquire(currentLayout);
   UINT32 oldTextLength         = static_cast<UINT32>(length);
 
   // Remove the old text and recreate the new text layout.
-  // MJ: STL/Exception
-  // text.erase(position, lengthToRemove);
-  pText[position] = '\0';
+  text.Erase(position, lengthToRemove);
 
   if (SUCCEEDED(hr))
   {
-    RecreateLayout(currentLayout, pText);
+    RecreateLayout(currentLayout, text);
   }
 
   IDWriteTextLayout* newLayout = currentLayout;
@@ -270,7 +267,7 @@ STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayo
       // Last block (if it exists, we increment past the deleted text)
       CopyRangedProperties(oldLayout, position + lengthToRemove, oldTextLength, lengthToRemove, newLayout, true);
     }
-    (void)StringCchLengthW(pText, 1024, &length);
+    (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
     CopySinglePropertyRange(oldLayout, oldTextLength, newLayout, static_cast<UINT32>(length), UINT32_MAX);
   }
 
@@ -279,17 +276,16 @@ STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayo
   return S_OK;
 }
 
-STDMETHODIMP EditableLayout::Clear(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText)
+STDMETHODIMP EditableLayout::Clear(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text)
 {
   HRESULT hr = S_OK;
 
-  // MJ: STL/Exception
-  // text.clear();
-  pText[0] = '\0';
+  text.Clear();
+  text.Add('\0');
 
   if (SUCCEEDED(hr))
   {
-    hr = RecreateLayout(currentLayout, L"");
+    hr = RecreateLayout(currentLayout, text);
   }
 
   return hr;

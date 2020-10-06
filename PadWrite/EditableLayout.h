@@ -1,18 +1,5 @@
-// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Extended TextLayout that permits editing.
-//
-// Remarks:     Internally, a new DirectWrite layout is recreated when the
-//              text is edited, but the caller can safely hold the same
-//              reference, since the adapter forwards all the calls onward.
-//
-//----------------------------------------------------------------------------
 #pragma once
+#include "mj_common.h"
 
 ////////////////////////////////////////
 // Helper to construct text ranges when calling setters.
@@ -77,18 +64,18 @@ public:
   }
 
   /// Inserts a given string in the text layout's stored string at a certain text postion;
-  HRESULT STDMETHODCALLTYPE InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText, UINT32 position,
+  HRESULT STDMETHODCALLTYPE InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
                                          WCHAR const* textToInsert, // [lengthToInsert]
                                          UINT32 textToInsertLength, CaretFormat* caretFormat = nullptr);
 
   /// Deletes a specified amount characters from the layout's stored string.
-  HRESULT STDMETHODCALLTYPE RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText, UINT32 position,
+  HRESULT STDMETHODCALLTYPE RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
                                          UINT32 lengthToRemove);
 
-  HRESULT STDMETHODCALLTYPE Clear(IN OUT IDWriteTextLayout*& currentLayout, wchar_t* pText);
+  HRESULT STDMETHODCALLTYPE Clear(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text);
 
 private:
-  HRESULT STDMETHODCALLTYPE RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout, const wchar_t* pText);
+  HRESULT STDMETHODCALLTYPE RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout, const mj::ArrayList<wchar_t>& text);
 
   static void CopyGlobalProperties(IDWriteTextLayout* oldLayout, IDWriteTextLayout* newLayout);
 

@@ -130,17 +130,19 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 
   // Set the initial text.
   // MJ
-  (void)StringCchCopyW(text_, 1024, text);
+  //(void)StringCchCopyW(text_, 1024, text);
 
   // MJ: wide string length
   size_t length;
-  (void)StringCchLengthW(text_, 1024, &length);
+  (void)StringCchLengthW(text, 1024, &length);
+  this->text_.Assign(text, length);
+  this->text_.Add('\0');
 
   // Create an ideal layout for the text editor based on the text and format,
   // favoring document layout over pixel alignment.
-  hr = layoutEditor_.GetFactory()->CreateTextLayout(text_, static_cast<UINT32>(length), textFormat,
-                                                    580, // maximum width
-                                                    420, // maximum height
+  hr = layoutEditor_.GetFactory()->CreateTextLayout(text_.begin(), static_cast<UINT32>(length), textFormat,
+                                                    580, // TODO MJ: maximum width
+                                                    420, // TODO MJ: maximum height
                                                     &textLayout_);
 
   if (FAILED(hr))
@@ -780,7 +782,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     {
       // MJ
       size_t length;
-      (void)StringCchLengthW(text_, 1024, &length);
+      (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
 
       UINT32 count = 1;
       // Need special case for surrogate pairs and CR/LF pair.
@@ -936,7 +938,7 @@ DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
 
   // MJ: wide string length
   size_t length;
-  (void)StringCchLengthW(text_, 1024, &length);
+  (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
 
   // Limit to actual text length.
   UINT32 textLength = static_cast<UINT32>(length);
@@ -1052,7 +1054,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
 
   // MJ
   size_t length;
-  (void)StringCchLengthW(text_, 1024, &length);
+  (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
 
   switch (moveMode)
   {
@@ -1446,7 +1448,7 @@ void TextEditor::CopyToClipboard()
         if (memory != nullptr)
         {
           // Copy text to memory block.
-          const wchar_t* text = text_;
+          const wchar_t* text = text_.begin();
           memcpy(memory, &text[selectionRange.startPosition], byteSize);
           GlobalUnlock(hClipboardData);
 

@@ -150,7 +150,7 @@ protected:
   IDWriteTextLayout* textLayout_;
   EditableLayout layoutEditor_;
 
-  wchar_t text_[1024];
+  mj::ArrayList<wchar_t> text_;
 
   ////////////////////
   // Selection/Caret navigation
