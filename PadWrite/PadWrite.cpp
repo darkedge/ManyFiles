@@ -452,7 +452,7 @@ HRESULT MainWindow::OnChooseFont()
     caretFormat.fontWeight       = font->GetWeight();
     caretFormat.fontStretch      = font->GetStretch();
     caretFormat.fontStyle        = font->GetStyle();
-    caretFormat.fontSize         = floor(float(chooseFont.iPointSize * (96.0f / 720)));
+    caretFormat.fontSize         = mj::floor(float(chooseFont.iPointSize * (96.0f / 720)));
     caretFormat.color            = DrawingEffect::GetBgra(chooseFont.rgbColors);
 
     DWRITE_TEXT_RANGE textRange = textEditor_->GetSelectionRange();

@@ -22,7 +22,7 @@ namespace
 
   inline int RoundToInt(float x)
   {
-    return static_cast<int>(floor(x + .5));
+    return static_cast<int>(mj::floor(x + .5));
   }
 
   inline double DegreesToRadians(float degrees)
@@ -587,7 +587,7 @@ void TextEditor::UpdateScrollInfo()
   }
 
   // Set vertical scroll bar.
-  scrollInfo.nPage = int(abs(scaledSize.y));
+  scrollInfo.nPage = int(mj::abs(scaledSize.y));
   scrollInfo.nPos  = int(scaledSize.y >= 0 ? y : pageSize.y - y);
   scrollInfo.nMin  = 0;
   scrollInfo.nMax  = int(pageSize.y) + scrollInfo.nPage;
@@ -597,7 +597,7 @@ void TextEditor::UpdateScrollInfo()
   GetScrollInfo(hwnd_, SB_VERT, &scrollInfo);
 
   // Set horizontal scroll bar.
-  scrollInfo.nPage = int(abs(scaledSize.x));
+  scrollInfo.nPage = int(mj::abs(scaledSize.x));
   scrollInfo.nPos  = int(scaledSize.x >= 0 ? x : pageSize.x - x);
   scrollInfo.nMin  = 0;
   scrollInfo.nMax  = int(pageSize.x) + scrollInfo.nPage;
@@ -1333,7 +1333,7 @@ void TextEditor::GetCaretRect(OUT RectF& rect)
   // The default thickness of 1 pixel is almost _too_ thin on modern large monitors,
   // but we'll use it.
   DWORD caretIntThickness = 2;
-  SystemParametersInfo(SPI_GETCARETWIDTH, 0, &caretIntThickness, FALSE);
+  SystemParametersInfoW(SPI_GETCARETWIDTH, 0, &caretIntThickness, FALSE);
   const float caretThickness = float(caretIntThickness);
 
   // Return the caret rect, untransformed.
@@ -1592,15 +1592,15 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   DWRITE_MATRIX translationMatrix = { 1, 0, 0, 1, -originX_, -originY_ };
 
   // Scale and rotate
-  double radians  = DegreesToRadians(fmod(angle_, 360.0f));
-  double cosValue = cos(radians);
-  double sinValue = sin(radians);
+  double radians  = DegreesToRadians(mj::fmod(angle_, 360.0f));
+  double cosValue = mj::cos(radians);
+  double sinValue = mj::sin(radians);
 
   // If rotation is a quarter multiple, ensure sin and cos are exactly one of {-1,0,1}
-  if (fmod(angle_, 90.0f) == 0)
+  if (mj::fmod(angle_, 90.0f) == 0)
   {
-    cosValue = floor(cosValue + .5);
-    sinValue = floor(sinValue + .5);
+    cosValue = mj::floor(cosValue + .5);
+    sinValue = mj::floor(sinValue + .5);
   }
 
   DWRITE_MATRIX rotationMatrix = {
@@ -1610,7 +1610,7 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   // Set the origin in the center of the window
   float centeringFactor      = .5f;
   DWRITE_MATRIX centerMatrix = {
-    1, 0, 0, 1, floor(float(rect.right * centeringFactor)), floor(float(rect.bottom * centeringFactor))
+    1, 0, 0, 1, mj::floor(float(rect.right * centeringFactor)), mj::floor(float(rect.bottom * centeringFactor))
   };
 
   D2D1::Matrix3x2F resultA, resultB;
@@ -1619,8 +1619,8 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   resultA.SetProduct(resultB, Cast(centerMatrix));
 
   // For better pixel alignment (less blurry text)
-  resultA._31 = floor(resultA._31);
-  resultA._32 = floor(resultA._32);
+  resultA._31 = mj::floor(resultA._31);
+  resultA._32 = mj::floor(resultA._32);
 
   *matrix = *reinterpret_cast<DWRITE_MATRIX*>(&resultA);
 }

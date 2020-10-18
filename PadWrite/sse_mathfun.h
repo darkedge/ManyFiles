@@ -36,6 +36,9 @@
 #ifdef _MSC_VER /* visual c++ */
 # define ALIGN16_BEG __declspec(align(16))
 # define ALIGN16_END 
+# pragma warning( push )
+# pragma warning( disable : 4305 ) // 'initializing': truncation from 'double' to 'const float'
+
 #else /* gcc or icc */
 # define ALIGN16_BEG
 # define ALIGN16_END __attribute__((aligned(16)))
@@ -709,3 +712,6 @@ void sincos_ps(v4sf x, v4sf *s, v4sf *c) {
   *c = _mm_xor_ps(xmm2, sign_bit_cos);
 }
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

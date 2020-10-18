@@ -1,28 +1,29 @@
+#include "mj_math.h"
 #include <stdint.h>
 #define USE_SSE2
 #include "sse_mathfun.h"
 
-float cos(float x)
+float mj::cos(float x)
 {
   float f[4];
   _mm_store_ps1(f, cos_ps(_mm_set_ps1(x)));
   return f[0];
 }
 
-float sin(float x)
+float mj::sin(float x)
 {
   float f[4];
   _mm_store_ps1(f, sin_ps(_mm_set_ps1(x)));
   return f[0];
 }
 
-float floor(float x)
+float mj::floor(float x)
 {
   int xi = (int)x;
   return x < xi ? xi - 1 : xi;
 }
 
-float abs(float x)
+float mj::abs(float x)
 {
   return x < 0 ? -x : x;
 }
@@ -51,7 +52,7 @@ static __inline unsigned long long __DOUBLE_BITS(double __f)
   (sizeof(x) == sizeof(float) ? (__FLOAT_BITS(x) & 0x7fffffff) > 0x7f800000 \
                               : sizeof(x) == sizeof(double) ? (__DOUBLE_BITS(x) & -1ULL >> 1) > 0x7ffULL << 52 : true)
 
-double fmod(double x, double y)
+double mj::fmod(double x, double y)
 {
   union {
     double f;
