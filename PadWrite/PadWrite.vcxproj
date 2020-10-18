@@ -134,6 +134,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Shcore.lib;d2d1.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -188,6 +189,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Shcore.lib;d2d1.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
