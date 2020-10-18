@@ -2,7 +2,7 @@
 
 namespace mj
 {
-  constexpr auto kPi = 3.14159265358979323846264338327950288;
+  constexpr auto kPi = 3.14159265358979323846264338327950288f;
 
   float cos(float x);
   float sin(float x);

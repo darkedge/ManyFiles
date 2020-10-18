@@ -22,10 +22,10 @@ namespace
 
   inline int RoundToInt(float x)
   {
-    return static_cast<int>(mj::floor(x + .5));
+    return static_cast<int>(mj::floor(x + 0.5f));
   }
 
-  inline double DegreesToRadians(float degrees)
+  inline float DegreesToRadians(float degrees)
   {
     return degrees * mj::kPi * 2.0f / 360.0f;
   }
@@ -135,7 +135,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   // MJ: wide string length
   size_t length;
   (void)StringCchLengthW(text, 1024, &length);
-  this->text_.Assign(text, length);
+  this->text_.Assign(text, static_cast<uint32_t>(length));
   this->text_.Add('\0');
 
   // Create an ideal layout for the text editor based on the text and format,
@@ -419,7 +419,7 @@ void TextEditor::DrawPage(RenderTarget& target)
     // it is disabled (better for performance anyway).
     target.SetAntialiasing(false);
 
-    for (size_t i = 0; i < actualHitTestCount; ++i)
+    for (uint32_t i = 0; i < actualHitTestCount; ++i)
     {
       const DWRITE_HIT_TEST_METRICS& htm = hitTestMetrics[i];
       RectF highlightRect                = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
@@ -451,7 +451,7 @@ void TextEditor::DrawPage(RenderTarget& target)
     // it is disabled (better for performance anyway).
     target.SetAntialiasing(false);
 
-    for (size_t i = 0; i < actualHitTestCount; ++i)
+    for (uint32_t i = 0; i < actualHitTestCount; ++i)
     {
       const DWRITE_HIT_TEST_METRICS& htm = hitTestMetrics[i];
       if (htm.isText)
@@ -1495,7 +1495,7 @@ void TextEditor::PasteFromClipboard()
     if (hClipboardData != nullptr)
     {
       // Get text and size of text.
-      size_t byteSize     = GlobalSize(hClipboardData);
+      // size_t byteSize     = GlobalSize(hClipboardData);
       void* memory        = GlobalLock(hClipboardData); // [byteSize] in bytes
       const wchar_t* text = reinterpret_cast<const wchar_t*>(memory);
       // MJ
@@ -1592,15 +1592,15 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   DWRITE_MATRIX translationMatrix = { 1, 0, 0, 1, -originX_, -originY_ };
 
   // Scale and rotate
-  double radians  = DegreesToRadians(mj::fmod(angle_, 360.0f));
-  double cosValue = mj::cos(radians);
-  double sinValue = mj::sin(radians);
+  float radians  = DegreesToRadians(static_cast<float>(mj::fmod(angle_, 360.0)));
+  float cosValue = mj::cos(radians);
+  float sinValue = mj::sin(radians);
 
   // If rotation is a quarter multiple, ensure sin and cos are exactly one of {-1,0,1}
   if (mj::fmod(angle_, 90.0f) == 0)
   {
-    cosValue = mj::floor(cosValue + .5);
-    sinValue = mj::floor(sinValue + .5);
+    cosValue = mj::floor(cosValue + 0.5f);
+    sinValue = mj::floor(sinValue + 0.5f);
   }
 
   DWRITE_MATRIX rotationMatrix = {
