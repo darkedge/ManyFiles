@@ -106,7 +106,7 @@ inline bool IsLowSurrogate(UINT32 ch) noexcept
 template <typename InterfaceType>
 inline void SafeRelease(InterfaceType** currentObject)
 {
-  if (*currentObject != nullptr)
+  if (*currentObject)
   {
     (*currentObject)->Release();
     *currentObject = nullptr;
@@ -117,7 +117,7 @@ inline void SafeRelease(InterfaceType** currentObject)
 template <typename InterfaceType>
 inline InterfaceType* SafeAcquire(InterfaceType* newObject)
 {
-  if (newObject != nullptr)
+  if (newObject)
     newObject->AddRef();
 
   return newObject;
@@ -170,7 +170,7 @@ public:
   {
     *ppObject = nullptr;
     InterfaceChain::QueryInterfaceInternal(iid, ppObject);
-    if (*ppObject == nullptr)
+    if (!*ppObject)
       return E_NOINTERFACE;
 
     AddRef();

@@ -10,16 +10,14 @@
 #define MJ_UNINITIALIZED
 // Argument is passed by reference
 #define MJ_REF
-// Return value is discarded
-#define MJ_DISCARD(x) (void)(x)
 
 #define MJ_COUNTOF(arr) sizeof(arr) / sizeof(arr[0])
 
 #define SAFE_RELEASE(_ptr) \
-  if ((_ptr) != nullptr) \
-  { \
-    (_ptr)->Release(); \
-    (_ptr) = nullptr; \
+  if (_ptr)                \
+  {                        \
+    (_ptr)->Release();     \
+    (_ptr) = nullptr;      \
   }
 
 // Raytracer resolution
@@ -82,9 +80,9 @@ namespace mj
   private:
     static constexpr const uint32_t TSize = sizeof(T);
 
-    T* pData                              = nullptr;
-    uint32_t numElements                  = 0;
-    uint32_t capacity                     = 0;
+    T* pData             = nullptr;
+    uint32_t numElements = 0;
+    uint32_t capacity    = 0;
 
   public:
     /// <summary>

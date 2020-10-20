@@ -35,8 +35,9 @@ HRESULT RenderTargetD2D::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwrite
   *renderTarget = nullptr;
   HRESULT hr    = S_OK;
 
-  RenderTargetD2D* newRenderTarget = SafeAcquire(new RenderTargetD2D(d2dFactory, dwriteFactory, hwnd));
-  if (newRenderTarget == nullptr)
+  RenderTargetD2D* newRenderTarget =
+      SafeAcquire(new RenderTargetD2D(d2dFactory, dwriteFactory, hwnd)); // TODO MJ: Untracked memory allocation
+  if (!newRenderTarget)
   {
     return E_OUTOFMEMORY;
   }
@@ -166,44 +167,10 @@ void RenderTargetD2D::Clear(UINT32 color)
   target_->Clear(D2D1::ColorF(color));
 }
 
-#if 0
-ID2D1Bitmap* RenderTargetD2D::GetCachedImage(IWICBitmapSource* image)
-{
-    // Maps a WIC image source to an aready cached D2D bitmap.
-    // If not already cached, it creates the D2D bitmap from WIC.
-
-    if (image == nullptr)
-        return nullptr;
-
-    // Find an existing match
-    mj::ArrayList<ImageCacheEntry>::iterator match = std::find(imageCache_.begin(), imageCache_.end(), image);
-    if (match != imageCache_.end())
-        return match->converted; // already cached
-
-    // Convert the WIC image to a ready-to-use device-dependent D2D bitmap.
-    // This avoids needing to recreate a new texture every draw call, but
-    // allows easy reconstruction of textures if the device changes and
-    // resources need recreation (also lets callers be D2D agnostic).
-
-    ID2D1Bitmap* bitmap = nullptr;
-    target_->CreateBitmapFromWicBitmap(image, nullptr, &bitmap);
-    if (bitmap == nullptr)
-        return nullptr;
-
-    // Save for later calls.
-        imageCache_.push_back(ImageCacheEntry(image, bitmap));
-
-    // Release it locally and return the pointer.
-    // The bitmap is now referenced by the bitmap cache.
-    bitmap->Release();
-    return bitmap;
-}
-#endif
-
 void RenderTargetD2D::FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect)
 {
   ID2D1Brush* brush = GetCachedBrush(&drawingEffect);
-  if (brush == nullptr)
+  if (!brush)
     return;
 
   // We will always get a strikethrough as a LTR rectangle
@@ -211,41 +178,9 @@ void RenderTargetD2D::FillRectangle(const RectF& destRect, const DrawingEffect& 
   target_->FillRectangle(destRect, brush);
 }
 
-#if 0
-void RenderTargetD2D::DrawImage(
-    IWICBitmapSource* image,
-    const RectF& sourceRect,  // where in source atlas texture
-    const RectF& destRect     // where on display to draw it
-    )
-{
-    // Ignore zero size source rects.
-    // Draw nothing if the destination is zero size.
-    if (&sourceRect    == nullptr
-    || sourceRect.left >= sourceRect.right
-    || sourceRect.top  >= sourceRect.bottom
-    || destRect.left   >= destRect.right
-    || destRect.top    >= destRect.bottom)
-    {
-        return;
-    }
-
-    ID2D1Bitmap* bitmap = GetCachedImage(image);
-    if (bitmap == nullptr)
-        return;
-
-    target_->DrawBitmap(
-            bitmap,
-            destRect,
-            1.0, // opacity
-            D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
-            sourceRect
-            );
-}
-#endif
-
 void RenderTargetD2D::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect)
 {
-  if (textLayout == nullptr)
+  if (!textLayout)
     return;
 
   Context context(this, nullptr);
@@ -254,7 +189,7 @@ void RenderTargetD2D::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF&
 
 ID2D1Brush* RenderTargetD2D::GetCachedBrush(const DrawingEffect* effect)
 {
-  if (effect == nullptr || brush_ == nullptr)
+  if (!effect || !brush_)
     return nullptr;
 
   // Update the D2D brush to the new effect color.
@@ -296,7 +231,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawGlyphRun(void* clientDrawingConte
   // safely cast it directly.
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
   ID2D1Brush* brush     = GetCachedBrush(effect);
-  if (brush == nullptr)
+  if (!brush)
     return E_FAIL;
 
   target_->DrawGlyphRun(D2D1::Point2(baselineOriginX, baselineOriginY), glyphRun, brush, measuringMode);
@@ -312,7 +247,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawUnderline(void* clientDrawingCont
 
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
   ID2D1Brush* brush     = GetCachedBrush(effect);
-  if (brush == nullptr)
+  if (!brush)
     return E_FAIL;
 
   // We will always get a strikethrough as a LTR rectangle
@@ -335,7 +270,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawStrikethrough(void* clientDrawing
 
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
   ID2D1Brush* brush     = GetCachedBrush(effect);
-  if (brush == nullptr)
+  if (!brush)
     return E_FAIL;
 
   // We will always get an underline as a LTR rectangle
@@ -359,7 +294,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawInlineObject(void* clientDrawingC
   // on this range, use the drawing context's effect instead).
   Context subContext(*reinterpret_cast<RenderTarget::Context*>(clientDrawingContext));
 
-  if (clientDrawingEffect != nullptr)
+  if (clientDrawingEffect)
     subContext.drawingEffect = clientDrawingEffect;
 
   inlineObject->Draw(&subContext, this, originX, originY, false, false, subContext.drawingEffect);

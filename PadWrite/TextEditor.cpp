@@ -109,8 +109,8 @@ HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextForm
   HRESULT hr  = S_OK;
 
   // Create and initialize.
-  TextEditor* newTextEditor = SafeAcquire(new TextEditor(factory));
-  if (newTextEditor == nullptr)
+  TextEditor* newTextEditor = SafeAcquire(new TextEditor(factory)); // TODO MJ: Untracked memory allocation
+  if (!newTextEditor)
   {
     return E_OUTOFMEMORY;
   }
@@ -158,13 +158,13 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   UpdateCaretFormatting();
 
   // Set main two colors for drawing.
+  // TODO MJ: Untracked memory allocations
   pageBackgroundEffect_  = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::White));
   textSelectionEffect_   = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::LightSkyBlue));
   imageSelectionEffect_  = SafeAcquire(new DrawingEffect(0x80000000 | D2D1::ColorF::LightSkyBlue));
   caretBackgroundEffect_ = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::Black));
 
-  if (pageBackgroundEffect_ == nullptr || textSelectionEffect_ == nullptr || imageSelectionEffect_ == nullptr ||
-      caretBackgroundEffect_ == nullptr)
+  if (!pageBackgroundEffect_ || !textSelectionEffect_ || !imageSelectionEffect_ || !caretBackgroundEffect_)
   {
     return E_OUTOFMEMORY;
   }
@@ -172,7 +172,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   // Create text editor window (hwnd is stored in the create event)
   CreateWindowEx(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
-  if (hwnd_ == nullptr)
+  if (!hwnd_)
     return HRESULT_FROM_WIN32(GetLastError());
 
   return S_OK;
@@ -353,7 +353,7 @@ void TextEditor::OnDraw()
   PAINTSTRUCT ps;
   BeginPaint(hwnd_, &ps);
 
-  if (renderTarget_ != nullptr) // in case event received before we have a target
+  if (renderTarget_) // in case event received before we have a target
   {
     renderTarget_->BeginDraw();
     renderTarget_->Clear(D2D1::ColorF::LightGray);
@@ -557,7 +557,7 @@ void TextEditor::UpdateScrollInfo()
 {
   // Updates scroll bars.
 
-  if (textLayout_ == nullptr)
+  if (!textLayout_)
     return;
 
   // Determine scroll bar's step size in pixels by multiplying client rect by current view.
@@ -606,7 +606,7 @@ void TextEditor::UpdateScrollInfo()
 
 void TextEditor::OnSize(UINT width, UINT height)
 {
-  if (renderTarget_ != nullptr)
+  if (renderTarget_)
     renderTarget_->Resize(width, height);
 
   RefreshView();
@@ -1304,7 +1304,7 @@ void TextEditor::GetCaretRect(OUT RectF& rect)
   RectF zeroRect = {};
   rect           = zeroRect;
 
-  if (textLayout_ == nullptr)
+  if (!textLayout_)
     return;
 
   // Translate text character offset to point x,y.
@@ -1412,7 +1412,7 @@ void TextEditor::UpdateCaretFormatting()
   IUnknown* drawingEffect = nullptr;
   textLayout_->GetDrawingEffect(currentPos, &drawingEffect);
   caretFormat_.color = 0;
-  if (drawingEffect != nullptr)
+  if (drawingEffect)
   {
     DrawingEffect& effect = *reinterpret_cast<DrawingEffect*>(drawingEffect);
     caretFormat_.color    = effect.GetColor();
@@ -1441,18 +1441,18 @@ void TextEditor::CopyToClipboard()
       size_t byteSize        = sizeof(wchar_t) * (selectionRange.length + 1);
       HGLOBAL hClipboardData = GlobalAlloc(GMEM_DDESHARE | GMEM_ZEROINIT, byteSize);
 
-      if (hClipboardData != nullptr)
+      if (hClipboardData)
       {
         void* memory = GlobalLock(hClipboardData); // [byteSize] in bytes
 
-        if (memory != nullptr)
+        if (memory)
         {
           // Copy text to memory block.
           const wchar_t* text = text_.begin();
           memcpy(memory, &text[selectionRange.startPosition], byteSize);
           GlobalUnlock(hClipboardData);
 
-          if (SetClipboardData(CF_UNICODETEXT, hClipboardData) != nullptr)
+          if (SetClipboardData(CF_UNICODETEXT, hClipboardData))
           {
             hClipboardData = nullptr; // system now owns the clipboard, so don't touch it.
           }

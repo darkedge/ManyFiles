@@ -27,8 +27,8 @@ HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout,
   size_t length;
   (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
 
-  hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout, currentLayout->GetMaxWidth(),
-                                  currentLayout->GetMaxHeight(), &newLayout);
+  hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout,
+                                  currentLayout->GetMaxWidth(), currentLayout->GetMaxHeight(), &newLayout);
 
   if (SUCCEEDED(hr))
     SafeAttach(&currentLayout, SafeDetach(&newLayout));
@@ -53,7 +53,7 @@ void EditableLayout::CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT3
   newLayout->SetFontCollection(fontCollection, range);
   SafeRelease(&fontCollection);
 
-  if (caretFormat != nullptr)
+  if (caretFormat)
   {
     newLayout->SetFontFamilyName(caretFormat->fontFamilyName, range);
     newLayout->SetLocaleName(caretFormat->localeName, range);
@@ -160,7 +160,8 @@ void EditableLayout::CopyRangedProperties(IDWriteTextLayout* oldLayout, UINT32 s
   }
 }
 
-STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
+STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text,
+                                          UINT32 position,
                                           WCHAR const* textToInsert, // [lengthToInsert]
                                           UINT32 textToInsertLength, CaretFormat* caretFormat)
 {
@@ -225,8 +226,8 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
   return S_OK;
 }
 
-STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
-                                          UINT32 lengthToRemove)
+STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text,
+                                          UINT32 position, UINT32 lengthToRemove)
 {
   // Removes text and shifts all formatting.
 

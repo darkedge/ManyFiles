@@ -47,7 +47,7 @@ void CALLBACK WinMainCRTStartup() noexcept
 MainWindow::MainWindow()
     : renderTargetType_(RenderTargetTypeD2D), //
       hwnd_(nullptr),                         //
-      textEditor_()
+      pTextEditor()
 {
   // no heavyweight initialization in the constructor.
 }
@@ -87,7 +87,7 @@ HRESULT MainWindow::Initialize()
     CreateWindow(L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT,
                  CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
-    if (hwnd_ == nullptr)
+    if (!hwnd_)
       hr = HRESULT_FROM_WIN32(GetLastError());
   }
 
@@ -111,20 +111,21 @@ HRESULT MainWindow::Initialize()
   // Set initial text and assign to the text editor.
   if (SUCCEEDED(hr))
   {
-    hr = TextEditor::Create(hwnd_, g_sampleText, textFormat, dwriteFactory_.Get(), textEditor_.ReleaseAndGetAddressOf());
+    hr = TextEditor::Create(hwnd_, g_sampleText, textFormat, dwriteFactory_.Get(),
+                            this->pTextEditor.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
-    hr = FormatSampleLayout(textEditor_->GetLayout());
+    hr = FormatSampleLayout(this->pTextEditor->GetLayout());
   }
 
   // Create our target on behalf of text editor control
   // and tell it to draw onto it.
   if (SUCCEEDED(hr))
   {
-    hr = CreateRenderTarget(textEditor_->GetHwnd(), RenderTargetTypeD2D);
-    textEditor_->SetRenderTarget(renderTarget_.Get());
+    hr = CreateRenderTarget(this->pTextEditor->GetHwnd(), RenderTargetTypeD2D);
+    this->pTextEditor->SetRenderTarget(renderTarget_.Get());
   }
 
   if (SUCCEEDED(hr))
@@ -133,7 +134,7 @@ HRESULT MainWindow::Initialize()
     OnSize();
 
     // Put focus on editor to begin typing.
-    SetFocus(textEditor_->GetHwnd());
+    SetFocus(this->pTextEditor->GetHwnd());
   }
 
   SafeRelease(&textFormat);
@@ -144,7 +145,7 @@ HRESULT MainWindow::Initialize()
 ATOM MainWindow::RegisterWindowClass()
 {
   // Registers window class.
-  WNDCLASSEX wcex;
+  MJ_UNINITIALIZED WNDCLASSEX wcex;
   wcex.cbSize        = sizeof(WNDCLASSEX);
   wcex.style         = CS_DBLCLKS;
   wcex.lpfnWndProc   = &WindowProc;
@@ -152,19 +153,17 @@ ATOM MainWindow::RegisterWindowClass()
   wcex.cbWndExtra    = sizeof(LONG_PTR);
   wcex.hInstance     = HINST_THISCOMPONENT;
   wcex.hIcon         = nullptr;
-  wcex.hCursor       = LoadCursor(nullptr, IDC_ARROW);
+  wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
   wcex.hbrBackground = nullptr;
-  wcex.lpszMenuName  = MAKEINTRESOURCE(IDR_MENU1);
+  wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
   wcex.lpszClassName = TEXT("DirectWritePadDemo");
   wcex.hIconSm       = nullptr;
 
-  return RegisterClassEx(&wcex);
+  return RegisterClassExW(&wcex);
 }
 
 HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetType)
 {
-  // Creates a render target, either a D2D surface or DirectWrite GDI DIB.
-
   HRESULT hr = S_OK;
 
   mj::ComPtr<RenderTarget> renderTarget;
@@ -175,7 +174,8 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
   case RenderTargetTypeD2D:
     if (d2dFactory_)
     {
-      hr = RenderTargetD2D::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
+      hr =
+          RenderTargetD2D::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
       break;
     }
   }
@@ -183,7 +183,7 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
   // Set the new target.
   if (SUCCEEDED(hr))
   {
-    renderTarget_ = renderTarget;
+    renderTarget_     = renderTarget;
     renderTargetType_ = renderTargetType;
   }
 
@@ -193,10 +193,10 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
 WPARAM MainWindow::RunMessageLoop()
 {
   MSG msg;
-  while (GetMessage(&msg, nullptr, 0, 0) > 0)
+  while (GetMessageW(&msg, nullptr, 0, 0) > 0)
   {
     TranslateMessage(&msg);
-    DispatchMessage(&msg);
+    DispatchMessageW(&msg);
   }
   return msg.wParam;
 }
@@ -241,8 +241,8 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_SETFOCUS:
     // Forward focus to the text editor.
-    if (window->textEditor_)
-      SetFocus(window->textEditor_->GetHwnd());
+    if (window->pTextEditor)
+      SetFocus(window->pTextEditor->GetHwnd());
     break;
 
   case WM_INITMENU:
@@ -268,16 +268,16 @@ void MainWindow::OnCommand(UINT commandId)
 {
   // Handles menu commands.
 
-  IDWriteTextLayout* textLayout = textEditor_->GetLayout();
+  IDWriteTextLayout* textLayout = this->pTextEditor->GetLayout();
 
   switch (commandId)
   {
   case ID_EDIT_PASTETEXT:
-    textEditor_->PasteFromClipboard();
+    this->pTextEditor->PasteFromClipboard();
     break;
 
   case ID_EDIT_COPYTEXT:
-    textEditor_->CopyToClipboard();
+    this->pTextEditor->CopyToClipboard();
     break;
 
   case ID_FORMAT_FONT:
@@ -322,11 +322,11 @@ void MainWindow::OnCommand(UINT commandId)
   break;
 
   case ID_VIEW_ZOOMIN:
-    textEditor_->SetScale(1.25f, 1.25f, true);
+    this->pTextEditor->SetScale(1.25f, 1.25f, true);
     break;
 
   case ID_VIEW_Z:
-    textEditor_->SetScale(1 / 1.25f, 1 / 1.25f, true);
+    this->pTextEditor->SetScale(1 / 1.25f, 1 / 1.25f, true);
     break;
 
   case ID_FILE_EXIT:
@@ -341,14 +341,19 @@ void MainWindow::OnSize()
 {
   // Updates the child edit control's size to fill the whole window.
 
-  if (!textEditor_)
+  if (!this->pTextEditor)
     return;
 
   RECT clientRect = {};
-  GetClientRect(hwnd_, &clientRect);
+  static_cast<void>(GetClientRect(hwnd_, &clientRect));
 
-  SetWindowPos(textEditor_->GetHwnd(), nullptr, clientRect.left, clientRect.top, clientRect.right - clientRect.left,
-               clientRect.bottom - clientRect.top, SWP_NOACTIVATE | SWP_NOZORDER);
+  static_cast<void>(SetWindowPos(this->pTextEditor->GetHwnd(),       //
+                                 nullptr,                            //
+                                 clientRect.left,                    //
+                                 clientRect.top,                     //
+                                 clientRect.right - clientRect.left, //
+                                 clientRect.bottom - clientRect.top, //
+                                 SWP_NOACTIVATE | SWP_NOZORDER));
 }
 
 void MainWindow::OnDestroy()
@@ -358,8 +363,7 @@ void MainWindow::OnDestroy()
 void MainWindow::RedrawTextEditor()
 {
   // Flags text editor to redraw itself after significant changes.
-
-  textEditor_->RefreshView();
+  this->pTextEditor->RefreshView();
 }
 
 /// <summary>
@@ -369,7 +373,7 @@ void MainWindow::RedrawTextEditor()
 void MainWindow::UpdateMenuToCaret()
 {
   // Read layout-wide attributes from the layout.
-  DWRITE_WORD_WRAPPING wordWrapping = textEditor_->GetLayout()->GetWordWrapping();
+  DWRITE_WORD_WRAPPING wordWrapping = this->pTextEditor->GetLayout()->GetWordWrapping();
 
   // Set checkbox/radio to true on certain menu items
   CheckMenuItem(GetMenu(hwnd_), ID_FORMAT_WRAP,
@@ -386,7 +390,7 @@ HRESULT MainWindow::OnChooseFont()
 
   //////////////////////////////
   // Read the caret format.
-  EditableLayout::CaretFormat& caretFormat = textEditor_->GetCaretFormat();
+  EditableLayout::CaretFormat& caretFormat = this->pTextEditor->GetCaretFormat();
 
   //////////////////////////////
   // Initialize the LOGFONT from the caret format.
@@ -404,7 +408,7 @@ HRESULT MainWindow::OnChooseFont()
   logFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
   logFont.lfQuality        = DEFAULT_QUALITY;
   logFont.lfPitchAndFamily = DEFAULT_PITCH;
-  StringCchCopy(logFont.lfFaceName, ARRAYSIZE(logFont.lfFaceName), caretFormat.fontFamilyName);
+  static_cast<void>(StringCchCopyW(logFont.lfFaceName, ARRAYSIZE(logFont.lfFaceName), caretFormat.fontFamilyName));
 
   //////////////////////////////
   // Initialize CHOOSEFONT for the dialog.
@@ -449,10 +453,10 @@ HRESULT MainWindow::OnChooseFont()
     caretFormat.fontSize         = mj::floorf(float(chooseFont.iPointSize * (96.0f / 720)));
     caretFormat.color            = DrawingEffect::GetBgra(chooseFont.rgbColors);
 
-    DWRITE_TEXT_RANGE textRange = textEditor_->GetSelectionRange();
+    DWRITE_TEXT_RANGE textRange = this->pTextEditor->GetSelectionRange();
     if (textRange.length > 0)
     {
-      IDWriteTextLayout* textLayout = textEditor_->GetLayout();
+      IDWriteTextLayout* textLayout = this->pTextEditor->GetLayout();
       textLayout->SetUnderline(caretFormat.hasUnderline, textRange);
       textLayout->SetStrikethrough(caretFormat.hasStrikethrough, textRange);
       textLayout->SetFontWeight(caretFormat.fontWeight, textRange);
@@ -533,7 +537,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
   HRESULT hr = S_OK;
 
   // Set default color of black on entire range.
-  DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(0xFF000000));
+  DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(0xFF000000)); // TODO MJ: Untracked memory allocation
   if (SUCCEEDED(hr))
   {
     textLayout->SetDrawingEffect(drawingEffect, MakeDWriteTextRange(0));
@@ -541,16 +545,16 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 
   // Set initial trimming sign, but leave it disabled (granularity is none).
 
-  IDWriteInlineObject* inlineObject = nullptr;
+  mj::ComPtr<IDWriteInlineObject> inlineObject;
   if (SUCCEEDED(hr))
   {
-    hr = dwriteFactory_->CreateEllipsisTrimmingSign(textLayout, &inlineObject);
+    hr = dwriteFactory_->CreateEllipsisTrimmingSign(textLayout, inlineObject.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
   {
     const static DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
-    textLayout->SetTrimming(&trimming, inlineObject);
+    textLayout->SetTrimming(&trimming, inlineObject.Get());
   }
 
   if (SUCCEEDED(hr))
@@ -610,7 +614,6 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 #endif
   }
 
-  SafeRelease(&inlineObject);
   SafeRelease(&drawingEffect);
 
   return hr;

@@ -64,7 +64,7 @@ protected:
   {
     // Callbacks use this to use a drawing effect from the client context
     // if none was passed into the callback.
-    if (drawingEffect != nullptr)
+    if (drawingEffect)
       return drawingEffect;
 
     return (reinterpret_cast<Context*>(clientDrawingContext))->drawingEffect;

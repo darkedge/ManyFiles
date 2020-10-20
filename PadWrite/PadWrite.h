@@ -32,7 +32,7 @@ protected:
   mj::ComPtr<RenderTarget> renderTarget_;
   RenderTargetType renderTargetType_;
 
-  mj::ComPtr<TextEditor> textEditor_;
+  mj::ComPtr<TextEditor> pTextEditor;
 
 protected:
   HRESULT CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetType);

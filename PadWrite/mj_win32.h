@@ -23,7 +23,7 @@ namespace mj
 
     void InternalAddRef() const noexcept
     {
-      if (this->ptr != nullptr)
+      if (this->ptr)
       {
         this->ptr->AddRef();
       }
@@ -34,7 +34,7 @@ namespace mj
       unsigned long ref = 0;
       T* temp           = this->ptr;
 
-      if (temp != nullptr)
+      if (temp)
       {
         this->ptr = nullptr;
         ref       = temp->Release();
@@ -181,7 +181,7 @@ namespace mj
 
     void Attach(T* other) noexcept
     {
-      if (this->ptr != nullptr)
+      if (this->ptr)
       {
         auto ref = this->ptr->Release();
         MJ_DISCARD(ref);
