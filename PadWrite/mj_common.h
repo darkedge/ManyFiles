@@ -81,6 +81,7 @@ namespace mj
   {
   private:
     static constexpr const uint32_t TSize = sizeof(T);
+
     T* pData                              = nullptr;
     uint32_t numElements                  = 0;
     uint32_t capacity                     = 0;

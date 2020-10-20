@@ -22,7 +22,7 @@ namespace
 
   inline int RoundToInt(float x)
   {
-    return static_cast<int>(mj::floor(x + 0.5f));
+    return static_cast<int>(mj::floorf(x + 0.5f));
   }
 
   inline float DegreesToRadians(float degrees)
@@ -953,7 +953,7 @@ void TextEditor::GetLineMetrics(OUT mj::ArrayList<DWRITE_LINE_METRICS>& lineMetr
 {
   // Retrieves the line metrics, used for caret navigation, up/down and home/end.
 
-  DWRITE_TEXT_METRICS textMetrics;
+  MJ_UNINITIALIZED DWRITE_TEXT_METRICS textMetrics;
   textLayout_->GetMetrics(&textMetrics);
 
   lineMetrics.Reserve(textMetrics.lineCount);
@@ -993,8 +993,8 @@ void TextEditor::AlignCaretToNearestCluster(bool isTrailingHit, bool skipZeroWid
   // rather than residing in the middle of a base character + diacritic,
   // surrogate pair, or character + UVS.
 
-  DWRITE_HIT_TEST_METRICS hitTestMetrics;
-  float caretX, caretY;
+  MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+  MJ_UNINITIALIZED float caretX, caretY;
 
   // Align the caret to the nearest whole cluster.
   textLayout_->HitTestTextPosition(caretPosition_, false, &caretX, &caretY, &hitTestMetrics);
@@ -1022,12 +1022,12 @@ bool TextEditor::SetSelectionFromPoint(float x, float y, bool extendSelection)
   // If hitting the trailing side of a cluster, return the
   // leading edge of the following text position.
 
-  BOOL isTrailingHit;
-  BOOL isInside;
-  DWRITE_HIT_TEST_METRICS caretMetrics;
+  MJ_UNINITIALIZED BOOL isTrailingHit;
+  MJ_UNINITIALIZED BOOL isInside;
+  MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS caretMetrics;
 
   // Remap display coordinates to actual.
-  DWRITE_MATRIX matrix;
+  MJ_UNINITIALIZED DWRITE_MATRIX matrix;
   GetInverseViewMatrix(&matrix);
 
   float transformedX = (x * matrix.m11 + y * matrix.m21 + matrix.dx);
@@ -1053,7 +1053,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   UINT32 oldCaretAnchor      = caretAnchor_;
 
   // MJ
-  size_t length;
+  MJ_UNINITIALIZED size_t length;
   (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
 
   switch (moveMode)
@@ -1101,8 +1101,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     caretPositionOffset_ = 0;
     {
       // Use hit-testing to limit text position.
-      DWRITE_HIT_TEST_METRICS hitTestMetrics;
-      float caretX, caretY;
+      MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+      MJ_UNINITIALIZED float caretX, caretY;
 
       textLayout_->HitTestTextPosition(caretPosition_, false, &caretX, &caretY, &hitTestMetrics);
       caretPosition_ = mj_min(caretPosition_, hitTestMetrics.textPosition + hitTestMetrics.length);
@@ -1116,7 +1116,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics;
     GetLineMetrics(lineMetrics);
 
-    UINT32 linePosition;
+    MJ_UNINITIALIZED UINT32 linePosition;
     GetLineFromPosition(&lineMetrics[0], static_cast<UINT32>(lineMetrics.Size()), caretPosition_, &line, &linePosition);
 
     // Move up a line or down
@@ -1141,8 +1141,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     // 3. New text position from the determined x and y.
     // This is because the characters are variable size.
 
-    DWRITE_HIT_TEST_METRICS hitTestMetrics;
-    float caretX, caretY, dummyX;
+    MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+    MJ_UNINITIALIZED float caretX, caretY, dummyX;
 
     // Get x of current text position
     textLayout_->HitTestTextPosition(caretPosition_,
@@ -1171,7 +1171,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
 
     // First need to know how many clusters there are.
     mj::ArrayList<DWRITE_CLUSTER_METRICS> clusterMetrics;
-    UINT32 clusterCount;
+    MJ_UNINITIALIZED UINT32 clusterCount;
     textLayout_->GetClusterMetrics(nullptr, 0, &clusterCount);
 
     if (clusterCount == 0)
@@ -1492,18 +1492,18 @@ void TextEditor::PasteFromClipboard()
   {
     HGLOBAL hClipboardData = GetClipboardData(CF_UNICODETEXT);
 
-    if (hClipboardData != nullptr)
+    if (hClipboardData)
     {
       // Get text and size of text.
       // size_t byteSize     = GlobalSize(hClipboardData);
-      void* memory        = GlobalLock(hClipboardData); // [byteSize] in bytes
-      const wchar_t* text = reinterpret_cast<const wchar_t*>(memory);
+      void* pMemory       = GlobalLock(hClipboardData); // [byteSize] in bytes
+      const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
       // MJ
       size_t length;
       (void)StringCchLengthW(text, 1024, &length);
       characterCount = static_cast<UINT32>(length);
 
-      if (memory != nullptr)
+      if (pMemory)
       {
         // Insert the text at the current position.
         layoutEditor_.InsertTextAt(textLayout_, text_, caretPosition_ + caretPositionOffset_, text, characterCount);
@@ -1592,15 +1592,15 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   DWRITE_MATRIX translationMatrix = { 1, 0, 0, 1, -originX_, -originY_ };
 
   // Scale and rotate
-  float radians  = DegreesToRadians(static_cast<float>(mj::fmod(angle_, 360.0)));
+  float radians  = DegreesToRadians(mj::fmodf(angle_, 360.0f));
   float cosValue = mj::cos(radians);
   float sinValue = mj::sin(radians);
 
   // If rotation is a quarter multiple, ensure sin and cos are exactly one of {-1,0,1}
-  if (mj::fmod(angle_, 90.0f) == 0)
+  if (mj::fmodf(angle_, 90.0f) == 0)
   {
-    cosValue = mj::floor(cosValue + 0.5f);
-    sinValue = mj::floor(sinValue + 0.5f);
+    cosValue = mj::floorf(cosValue + 0.5f);
+    sinValue = mj::floorf(sinValue + 0.5f);
   }
 
   DWRITE_MATRIX rotationMatrix = {
@@ -1608,9 +1608,10 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   };
 
   // Set the origin in the center of the window
-  float centeringFactor      = .5f;
+  float centeringFactor      = 0.5f;
   DWRITE_MATRIX centerMatrix = {
-    1, 0, 0, 1, mj::floor(float(rect.right * centeringFactor)), mj::floor(float(rect.bottom * centeringFactor))
+    1.0f, 0.0f, //
+    0.0f, 1.0f, mj::floorf(float(rect.right * centeringFactor)), mj::floorf(float(rect.bottom * centeringFactor))
   };
 
   D2D1::Matrix3x2F resultA, resultB;
@@ -1619,8 +1620,8 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   resultA.SetProduct(resultB, Cast(centerMatrix));
 
   // For better pixel alignment (less blurry text)
-  resultA._31 = mj::floor(resultA._31);
-  resultA._32 = mj::floor(resultA._32);
+  resultA._31 = mj::floorf(resultA._31);
+  resultA._32 = mj::floorf(resultA._32);
 
   *matrix = *reinterpret_cast<DWRITE_MATRIX*>(&resultA);
 }

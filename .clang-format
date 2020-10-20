@@ -10,5 +10,5 @@ NamespaceIndentation: All
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: true
-AlignEscapedNewlines: DontAlign
+AlignEscapedNewlines: Left
 AlwaysBreakTemplateDeclarations: Yes

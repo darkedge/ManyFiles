@@ -6,7 +6,7 @@ namespace mj
 
   float cos(float x);
   float sin(float x);
-  float floor(float x);
+  float floorf(float x);
   float abs(float x);
-  double fmod(double x, double y);
+  float fmodf(float x, float y);
 } // namespace mj

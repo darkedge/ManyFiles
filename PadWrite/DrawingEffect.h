@@ -17,26 +17,26 @@ public:
   {
   }
 
-  inline UINT32 GetColor() const throw()
+  inline UINT32 GetColor() const noexcept
   {
     // Returns the BGRA value for D2D.
     return color_;
   }
 
-  inline COLORREF GetColorRef() const throw()
+  inline COLORREF GetColorRef() const noexcept
   {
     // Returns color as COLORREF.
     return GetColorRef(color_);
   }
 
-  static inline COLORREF GetColorRef(UINT32 bgra) throw()
+  static inline COLORREF GetColorRef(UINT32 bgra) noexcept
   {
     // Swaps color order (bgra <-> rgba) from D2D/GDI+'s to a COLORREF.
     // This also leaves the top byte 0, since alpha is ignored anyway.
     return RGB(GetBValue(bgra), GetGValue(bgra), GetRValue(bgra));
   }
 
-  static inline COLORREF GetBgra(COLORREF rgb) throw()
+  static inline COLORREF GetBgra(COLORREF rgb) noexcept
   {
     // Swaps color order (bgra <-> rgba) from COLORREF to D2D/GDI+'s.
     // Sets alpha to full opacity.

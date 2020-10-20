@@ -1,11 +1,3 @@
-// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-//----------------------------------------------------------------------------
 #pragma once
 
 // The following macros define the minimum required platform.  The minimum required platform
@@ -41,25 +33,6 @@
 #endif
 
 ////////////////////////////////////////
-
-// C headers:
-#if 0
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
-#include <utility>
-#include <math.h>
-
-// C++ headers:
-#include <algorithm>
-
-#include <limits>
-#include <memory>
-#include <new>
-#include <numeric>
-#include <string>
-#include <vector>
-#endif
 
 #include "mj_common.h"
 #include "mj_math.h"
@@ -108,42 +81,23 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define APPLICATION_TITLE "FloatMagic"
 
 // Needed text editor backspace deletion.
-inline bool IsSurrogate(UINT32 ch) throw()
+inline bool IsSurrogate(UINT32 ch) noexcept
 {
   // 0xD800 <= ch <= 0xDFFF
   return (ch & 0xF800) == 0xD800;
 }
 
-inline bool IsHighSurrogate(UINT32 ch) throw()
+inline bool IsHighSurrogate(UINT32 ch) noexcept
 {
   // 0xD800 <= ch <= 0xDBFF
   return (ch & 0xFC00) == 0xD800;
 }
 
-inline bool IsLowSurrogate(UINT32 ch) throw()
+inline bool IsLowSurrogate(UINT32 ch) noexcept
 {
   // 0xDC00 <= ch <= 0xDFFF
   return (ch & 0xFC00) == 0xDC00;
 }
-
-#if 0
-// Maps exceptions to equivalent HRESULTs,
-inline HRESULT ExceptionToHResult() throw()
-{
-    try
-    {
-        throw;  // Rethrow previous exception.
-    }
-    catch(std::bad_alloc&)
-    {
-        return E_OUTOFMEMORY;
-    }
-    catch (...)
-    {
-        return E_FAIL;
-    }
-}
-#endif
 
 ////////////////////////////////////////
 // COM help.
@@ -207,7 +161,7 @@ template <typename InterfaceChain>
 class ComBase : public InterfaceChain
 {
 public:
-  explicit ComBase() throw() : refValue_(0)
+  explicit ComBase() noexcept : refValue_(0)
   {
   }
 
@@ -260,7 +214,7 @@ template <typename InterfaceName, typename InterfaceChain>
 class QiListSelf : public InterfaceChain
 {
 public:
-  inline void QueryInterfaceInternal(IID const& iid, OUT void** ppObject) throw()
+  inline void QueryInterfaceInternal(IID const& iid, OUT void** ppObject) noexcept
   {
     if (iid != __uuidof(InterfaceName))
       return InterfaceChain::QueryInterfaceInternal(iid, ppObject);
@@ -274,7 +228,7 @@ template <typename InterfaceName, typename InterfaceChain = QiListNil>
 class QiList : public InterfaceName, public InterfaceChain
 {
 public:
-  inline void QueryInterfaceInternal(IID const& iid, OUT void** ppObject) throw()
+  inline void QueryInterfaceInternal(IID const& iid, OUT void** ppObject) noexcept
   {
     if (iid != __uuidof(InterfaceName))
       return InterfaceChain::QueryInterfaceInternal(iid, ppObject);
@@ -288,7 +242,7 @@ template <typename InterfaceName>
 class QiList<InterfaceName, QiListNil> : public InterfaceName
 {
 public:
-  inline void QueryInterfaceInternal(IID const& iid, OUT void** ppObject) throw()
+  inline void QueryInterfaceInternal(IID const& iid, OUT void** ppObject) noexcept
   {
     if (iid != __uuidof(InterfaceName))
       return;

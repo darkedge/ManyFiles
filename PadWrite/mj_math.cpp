@@ -3,6 +3,26 @@
 #define USE_SSE2
 #include "sse_mathfun.h"
 
+#define FORCE_EVAL(x)                               \
+  do                                                \
+  {                                                 \
+    if constexpr (sizeof(x) == sizeof(float))       \
+    {                                               \
+      volatile float __x;                           \
+      __x = (x);                                    \
+    }                                               \
+    else if constexpr (sizeof(x) == sizeof(double)) \
+    {                                               \
+      volatile double __x;                          \
+      __x = (x);                                    \
+    }                                               \
+    else                                            \
+    {                                               \
+      volatile long double __x;                     \
+      __x = (x);                                    \
+    }                                               \
+  } while (0)
+
 float mj::cos(float x)
 {
   float f[4];
@@ -17,10 +37,36 @@ float mj::sin(float x)
   return f[0];
 }
 
-float mj::floor(float x)
+float mj::floorf(float x)
 {
-  int xi = (int)x;
-  return x < xi ? xi - 1 : xi;
+  union {
+    float f;
+    uint32_t i;
+  } u   = { x };
+  int e = (int)(u.i >> 23 & 0xff) - 0x7f;
+  uint32_t m;
+
+  if (e >= 23)
+    return x;
+  if (e >= 0)
+  {
+    m = 0x007fffff >> e;
+    if ((u.i & m) == 0)
+      return x;
+    FORCE_EVAL(x + 0x1p120f);
+    if (u.i >> 31)
+      u.i += m;
+    u.i &= ~m;
+  }
+  else
+  {
+    FORCE_EVAL(x + 0x1p120f);
+    if (u.i >> 31 == 0)
+      u.i = 0;
+    else if (u.i << 1)
+      u.f = -1.0;
+  }
+  return u.f;
 }
 
 float mj::abs(float x)
@@ -48,26 +94,23 @@ static __inline unsigned long long __DOUBLE_BITS(double __f)
   return __u.__i;
 }
 
-#define isnan(x) \
+#define isnan(x)                                                            \
   (sizeof(x) == sizeof(float) ? (__FLOAT_BITS(x) & 0x7fffffff) > 0x7f800000 \
                               : sizeof(x) == sizeof(double) ? (__DOUBLE_BITS(x) & -1ULL >> 1) > 0x7ffULL << 52 : true)
 
-double mj::fmod(double x, double y)
+float mj::fmodf(float x, float y)
 {
   union {
-    double f;
-    uint64_t i;
+    float f;
+    uint32_t i;
   } ux = { x }, uy = { y };
-  int ex = ux.i >> 52 & 0x7ff;
-  int ey = uy.i >> 52 & 0x7ff;
-  int sx = ux.i >> 63;
-  uint64_t i;
+  int ex      = ux.i >> 23 & 0xff;
+  int ey      = uy.i >> 23 & 0xff;
+  uint32_t sx = ux.i & 0x80000000;
+  uint32_t i;
+  uint32_t uxi = ux.i;
 
-  /* in the followings uxi should be ux.i, but then gcc wrongly adds */
-  /* float load/store to inner loops ruining performance and code size */
-  uint64_t uxi = ux.i;
-
-  if (uy.i << 1 == 0 || isnan(y) || ex == 0x7ff)
+  if (uy.i << 1 == 0 || isnan(y) || ex == 0xff)
     return (x * y) / (x * y);
   if (uxi << 1 <= uy.i << 1)
   {
@@ -79,32 +122,32 @@ double mj::fmod(double x, double y)
   /* normalize x and y */
   if (!ex)
   {
-    for (i = uxi << 12; i >> 63 == 0; ex--, i <<= 1)
+    for (i = uxi << 9; i >> 31 == 0; ex--, i <<= 1)
       ;
     uxi <<= -ex + 1;
   }
   else
   {
-    uxi &= -1ULL >> 12;
-    uxi |= 1ULL << 52;
+    uxi &= -1U >> 9;
+    uxi |= 1U << 23;
   }
   if (!ey)
   {
-    for (i = uy.i << 12; i >> 63 == 0; ey--, i <<= 1)
+    for (i = uy.i << 9; i >> 31 == 0; ey--, i <<= 1)
       ;
     uy.i <<= -ey + 1;
   }
   else
   {
-    uy.i &= -1ULL >> 12;
-    uy.i |= 1ULL << 52;
+    uy.i &= -1U >> 9;
+    uy.i |= 1U << 23;
   }
 
   /* x mod y */
   for (; ex > ey; ex--)
   {
     i = uxi - uy.i;
-    if (i >> 63 == 0)
+    if (i >> 31 == 0)
     {
       if (i == 0)
         return 0 * x;
@@ -113,26 +156,26 @@ double mj::fmod(double x, double y)
     uxi <<= 1;
   }
   i = uxi - uy.i;
-  if (i >> 63 == 0)
+  if (i >> 31 == 0)
   {
     if (i == 0)
       return 0 * x;
     uxi = i;
   }
-  for (; uxi >> 52 == 0; uxi <<= 1, ex--)
+  for (; uxi >> 23 == 0; uxi <<= 1, ex--)
     ;
 
-  /* scale result */
+  /* scale result up */
   if (ex > 0)
   {
-    uxi -= 1ULL << 52;
-    uxi |= (uint64_t)ex << 52;
+    uxi -= 1U << 23;
+    uxi |= (uint32_t)ex << 23;
   }
   else
   {
     uxi >>= -ex + 1;
   }
-  uxi |= (uint64_t)sx << 63;
+  uxi |= sx;
   ux.i = uxi;
   return ux.f;
 }
