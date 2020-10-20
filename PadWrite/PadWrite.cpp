@@ -19,7 +19,7 @@ void CALLBACK WinMainCRTStartup() noexcept
   // applications include the following call to ensure that heap corruptions
   // do not go unnoticed and therefore do not introduce opportunities
   // for security exploits.
-  HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0);
+  static_cast<void>(HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
 
   HRESULT hr = S_OK;
 
@@ -27,7 +27,6 @@ void CALLBACK WinMainCRTStartup() noexcept
   if (SUCCEEDED(hr))
   {
     MainWindow app;
-    app.AddRef(); // an implicit reference to the root window
 
     hr = app.Initialize();
     if (SUCCEEDED(hr))
@@ -46,7 +45,7 @@ void CALLBACK WinMainCRTStartup() noexcept
 
 MainWindow::MainWindow()
     : renderTargetType_(RenderTargetTypeD2D), //
-      hwnd_(nullptr),                         //
+      pHwnd(nullptr),                         //
       pTextEditor()
 {
   // no heavyweight initialization in the constructor.
@@ -72,7 +71,7 @@ HRESULT MainWindow::Initialize()
   // Failure to create this factory is ok. We can live with GDI alone.
   if (SUCCEEDED(hr))
   {
-    D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2dFactory_.ReleaseAndGetAddressOf());
+    static_cast<void>(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2dFactory_.ReleaseAndGetAddressOf()));
   }
 
   //////////////////////////////
@@ -80,14 +79,14 @@ HRESULT MainWindow::Initialize()
 
   if (SUCCEEDED(hr))
   {
-    MainWindow::RegisterWindowClass();
-    TextEditor::RegisterWindowClass();
+    static_cast<void>(MainWindow::RegisterWindowClass());
+    static_cast<void>(TextEditor::RegisterWindowClass());
 
     // create window (the hwnd is stored in the create event)
-    CreateWindow(L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT,
+    CreateWindowExW(0L, L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT,
                  CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
-    if (!hwnd_)
+    if (!this->pHwnd)
       hr = HRESULT_FROM_WIN32(GetLastError());
   }
 
@@ -96,8 +95,8 @@ HRESULT MainWindow::Initialize()
 
   if (SUCCEEDED(hr))
   {
-    ShowWindow(hwnd_, SW_SHOWNORMAL);
-    UpdateWindow(hwnd_);
+    static_cast<void>(ShowWindow(this->pHwnd, SW_SHOWNORMAL));
+    static_cast<void>(UpdateWindow(this->pHwnd));
   }
 
   // Need a text format to base the layout on.
@@ -111,7 +110,7 @@ HRESULT MainWindow::Initialize()
   // Set initial text and assign to the text editor.
   if (SUCCEEDED(hr))
   {
-    hr = TextEditor::Create(hwnd_, g_sampleText, textFormat, dwriteFactory_.Get(),
+    hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat, dwriteFactory_.Get(),
                             this->pTextEditor.ReleaseAndGetAddressOf());
   }
 
@@ -134,7 +133,7 @@ HRESULT MainWindow::Initialize()
     OnSize();
 
     // Put focus on editor to begin typing.
-    SetFocus(this->pTextEditor->GetHwnd());
+    static_cast<void>(SetFocus(this->pTextEditor->GetHwnd()));
   }
 
   SafeRelease(&textFormat);
@@ -214,8 +213,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     // Associate the data structure with this window handle.
     CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
     window            = reinterpret_cast<MainWindow*>(pcs->lpCreateParams);
-    window->hwnd_     = hwnd;
-    window->AddRef(); // implicit reference via HWND
+    window->pHwnd     = hwnd;
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window);
   }
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -230,13 +228,9 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_DESTROY:
     PostQuitMessage(0);
-    window->OnDestroy();
     break;
 
   case WM_NCDESTROY:
-    // Remove implicit reference via HWND.
-    // After this, the window and data structure no longer exist.
-    window->Release();
     break;
 
   case WM_SETFOCUS:
@@ -330,7 +324,7 @@ void MainWindow::OnCommand(UINT commandId)
     break;
 
   case ID_FILE_EXIT:
-    PostMessage(hwnd_, WM_CLOSE, 0, 0);
+    PostMessageW(this->pHwnd, WM_CLOSE, 0, 0);
     break;
   }
 
@@ -345,7 +339,7 @@ void MainWindow::OnSize()
     return;
 
   RECT clientRect = {};
-  static_cast<void>(GetClientRect(hwnd_, &clientRect));
+  static_cast<void>(GetClientRect(this->pHwnd, &clientRect));
 
   static_cast<void>(SetWindowPos(this->pTextEditor->GetHwnd(),       //
                                  nullptr,                            //
@@ -354,10 +348,6 @@ void MainWindow::OnSize()
                                  clientRect.right - clientRect.left, //
                                  clientRect.bottom - clientRect.top, //
                                  SWP_NOACTIVATE | SWP_NOZORDER));
-}
-
-void MainWindow::OnDestroy()
-{
 }
 
 void MainWindow::RedrawTextEditor()
@@ -376,8 +366,9 @@ void MainWindow::UpdateMenuToCaret()
   DWRITE_WORD_WRAPPING wordWrapping = this->pTextEditor->GetLayout()->GetWordWrapping();
 
   // Set checkbox/radio to true on certain menu items
-  CheckMenuItem(GetMenu(hwnd_), ID_FORMAT_WRAP,
-                MF_BYCOMMAND | (wordWrapping != DWRITE_WORD_WRAPPING_NO_WRAP ? MF_CHECKED : MF_UNCHECKED));
+  static_cast<void>(
+      CheckMenuItem(GetMenu(this->pHwnd), ID_FORMAT_WRAP,
+                    MF_BYCOMMAND | (wordWrapping != DWRITE_WORD_WRAPPING_NO_WRAP ? MF_CHECKED : MF_UNCHECKED)));
 }
 
 HRESULT MainWindow::OnChooseFont()
@@ -415,7 +406,7 @@ HRESULT MainWindow::OnChooseFont()
 
   CHOOSEFONT chooseFont  = {};
   chooseFont.lStructSize = sizeof(chooseFont);
-  chooseFont.hwndOwner   = hwnd_;
+  chooseFont.hwndOwner   = this->pHwnd;
   chooseFont.lpLogFont   = &logFont;
   chooseFont.iPointSize  = 120; // Note that LOGFONT initialization takes precedence anyway.
   chooseFont.rgbColors   = DrawingEffect::GetColorRef(caretFormat.color);
@@ -466,7 +457,7 @@ HRESULT MainWindow::OnChooseFont()
       textLayout->SetFontFamilyName(caretFormat.fontFamilyName, textRange);
 
       DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(caretFormat.color));
-      textLayout->SetDrawingEffect(drawingEffect, textRange);
+      static_cast<void>(textLayout->SetDrawingEffect(drawingEffect, textRange));
       SafeRelease(&drawingEffect);
 
       RedrawTextEditor();
@@ -540,7 +531,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
   DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(0xFF000000)); // TODO MJ: Untracked memory allocation
   if (SUCCEEDED(hr))
   {
-    textLayout->SetDrawingEffect(drawingEffect, MakeDWriteTextRange(0));
+    static_cast<void>(textLayout->SetDrawingEffect(drawingEffect, MakeDWriteTextRange(0)));
   }
 
   // Set initial trimming sign, but leave it disabled (granularity is none).
@@ -553,16 +544,16 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 
   if (SUCCEEDED(hr))
   {
-    const static DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
-    textLayout->SetTrimming(&trimming, inlineObject.Get());
+    static const DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
+
+    static_cast<void>(textLayout->SetTrimming(&trimming, inlineObject.Get()));
   }
 
   if (SUCCEEDED(hr))
   {
-    textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
-
-    textLayout->SetFontFamilyName(L"Segoe UI", MakeDWriteTextRange(0));
-    textLayout->SetFontSize(18, MakeDWriteTextRange(0));
+    static_cast<void>(textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT));
+    static_cast<void>(textLayout->SetFontFamilyName(L"Segoe UI", MakeDWriteTextRange(0)));
+    static_cast<void>(textLayout->SetFontSize(18, MakeDWriteTextRange(0)));
 
 #if 0
     // Apply a color to the title words.
@@ -623,12 +614,12 @@ void FailApplication(const wchar_t* message, int functionResult)
 {
   // Displays an error message and quits the program.
 
-  wchar_t buffer[1000];
+  MJ_UNINITIALIZED wchar_t buffer[1000];
   buffer[0] = '\0';
 
   // const wchar_t* format = L"%s\r\nError code = %X";
 
   // StringCchPrintf(buffer, ARRAYSIZE(buffer), format, message, functionResult);
-  MessageBoxW(nullptr, buffer, TEXT(APPLICATION_TITLE), MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
+  static_cast<void>(MessageBoxW(nullptr, buffer, TEXT(APPLICATION_TITLE), MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL));
   ExitProcess(functionResult);
 }

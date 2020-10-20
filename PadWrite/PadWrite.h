@@ -1,7 +1,7 @@
 ﻿#include "Common.h"
 #include "mj_win32.h"
 
-class MainWindow : public ComBase<QiList<IUnknown>>
+class MainWindow
 {
 public:
   MainWindow();
@@ -25,7 +25,7 @@ protected:
     RenderTargetTypeTotal
   };
 
-  HWND hwnd_;
+  HWND pHwnd;
   mj::ComPtr<IDWriteFactory> dwriteFactory_;
   mj::ComPtr<ID2D1Factory> d2dFactory_;
 
@@ -40,7 +40,6 @@ protected:
 
   void OnSize();
   void OnCommand(UINT commandId);
-  void OnDestroy();
   HRESULT OnChooseFont();
 
   void UpdateMenuToCaret();
