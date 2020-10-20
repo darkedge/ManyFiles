@@ -12,6 +12,7 @@
     <ClInclude Include="sse_mathfun.h" />
     <ClInclude Include="TextEditor.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="mj_win32.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EditableLayout.cpp" />

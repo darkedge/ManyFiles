@@ -136,6 +136,7 @@
     <ClInclude Include="EditableLayout.h" />
     <ClInclude Include="mj_common.h" />
     <ClInclude Include="mj_math.h" />
+    <ClInclude Include="mj_win32.h" />
     <ClInclude Include="ncrt_memory.h" />
     <ClInclude Include="PadWrite.h" />
     <ClInclude Include="RenderTarget.h" />

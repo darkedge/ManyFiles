@@ -1,29 +1,10 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Main user interface window.
-//
-//----------------------------------------------------------------------------
-#include "Common.h"
+﻿#include "Common.h"
+#include "mj_win32.h"
 
 class MainWindow : public ComBase<QiList<IUnknown>>
 {
 public:
   MainWindow();
-
-  ~MainWindow()
-  {
-    SafeRelease(&dwriteFactory_);
-    // SafeRelease(&wicFactory_);
-    SafeRelease(&d2dFactory_);
-    SafeRelease(&renderTarget_);
-    SafeRelease(&textEditor_);
-    // SafeRelease(&inlineObjectImages_);
-  }
 
   static ATOM RegisterWindowClass();
   static LRESULT CALLBACK WindowProc(HWND parentHwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -45,15 +26,13 @@ protected:
   };
 
   HWND hwnd_;
-  IDWriteFactory* dwriteFactory_;
-  // IWICImagingFactory*                 wicFactory_;
-  ID2D1Factory* d2dFactory_;
+  mj::ComPtr<IDWriteFactory> dwriteFactory_;
+  mj::ComPtr<ID2D1Factory> d2dFactory_;
 
-  RenderTarget* renderTarget_;
+  mj::ComPtr<RenderTarget> renderTarget_;
   RenderTargetType renderTargetType_;
 
-  TextEditor* textEditor_;
-  // IWICBitmapSource*                   inlineObjectImages_;
+  mj::ComPtr<TextEditor> textEditor_;
 
 protected:
   HRESULT CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetType);
@@ -63,7 +42,6 @@ protected:
   void OnCommand(UINT commandId);
   void OnDestroy();
   HRESULT OnChooseFont();
-  // HRESULT OnSetInlineImage();
 
   void UpdateMenuToCaret();
   void RedrawTextEditor();

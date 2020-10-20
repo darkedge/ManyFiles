@@ -47,9 +47,6 @@ void CALLBACK WinMainCRTStartup() noexcept
 MainWindow::MainWindow()
     : renderTargetType_(RenderTargetTypeD2D), //
       hwnd_(nullptr),                         //
-      dwriteFactory_(),                       //
-      d2dFactory_(),                          //
-      renderTarget_(),                        //
       textEditor_()
 {
   // no heavyweight initialization in the constructor.
@@ -68,14 +65,14 @@ HRESULT MainWindow::Initialize()
   if (SUCCEEDED(hr))
   {
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-                             reinterpret_cast<IUnknown**>(&dwriteFactory_));
+                             reinterpret_cast<IUnknown**>(dwriteFactory_.ReleaseAndGetAddressOf()));
   }
 
   // Create D2D factory
   // Failure to create this factory is ok. We can live with GDI alone.
   if (SUCCEEDED(hr))
   {
-    D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2dFactory_);
+    D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2dFactory_.ReleaseAndGetAddressOf());
   }
 
   //////////////////////////////
@@ -114,7 +111,7 @@ HRESULT MainWindow::Initialize()
   // Set initial text and assign to the text editor.
   if (SUCCEEDED(hr))
   {
-    hr = TextEditor::Create(hwnd_, g_sampleText, textFormat, dwriteFactory_, &textEditor_);
+    hr = TextEditor::Create(hwnd_, g_sampleText, textFormat, dwriteFactory_.Get(), textEditor_.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
@@ -127,7 +124,7 @@ HRESULT MainWindow::Initialize()
   if (SUCCEEDED(hr))
   {
     hr = CreateRenderTarget(textEditor_->GetHwnd(), RenderTargetTypeD2D);
-    textEditor_->SetRenderTarget(renderTarget_);
+    textEditor_->SetRenderTarget(renderTarget_.Get());
   }
 
   if (SUCCEEDED(hr))
@@ -170,15 +167,15 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
 
   HRESULT hr = S_OK;
 
-  RenderTarget* renderTarget = nullptr;
+  mj::ComPtr<RenderTarget> renderTarget;
 
   // Create the render target.
   switch (renderTargetType)
   {
   case RenderTargetTypeD2D:
-    if (d2dFactory_ != nullptr)
+    if (d2dFactory_)
     {
-      hr = RenderTargetD2D::Create(d2dFactory_, dwriteFactory_, hwnd, &renderTarget);
+      hr = RenderTargetD2D::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
       break;
     }
   }
@@ -186,10 +183,9 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
   // Set the new target.
   if (SUCCEEDED(hr))
   {
-    SafeSet(&renderTarget_, renderTarget);
+    renderTarget_ = renderTarget;
     renderTargetType_ = renderTargetType;
   }
-  SafeRelease(&renderTarget);
 
   return hr;
 }
@@ -245,7 +241,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_SETFOCUS:
     // Forward focus to the text editor.
-    if (window->textEditor_ != nullptr)
+    if (window->textEditor_)
       SetFocus(window->textEditor_->GetHwnd());
     break;
 
@@ -256,7 +252,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_WINDOWPOSCHANGED:
     // Window moved. Update ClearType settings if changed monitor.
-    if (window->renderTarget_ != nullptr)
+    if (window->renderTarget_)
       window->renderTarget_->UpdateMonitor();
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -345,7 +341,7 @@ void MainWindow::OnSize()
 {
   // Updates the child edit control's size to fill the whole window.
 
-  if (textEditor_ == nullptr)
+  if (!textEditor_)
     return;
 
   RECT clientRect = {};
@@ -357,8 +353,6 @@ void MainWindow::OnSize()
 
 void MainWindow::OnDestroy()
 {
-  SafeRelease(&textEditor_);
-  SafeRelease(&renderTarget_);
 }
 
 void MainWindow::RedrawTextEditor()
