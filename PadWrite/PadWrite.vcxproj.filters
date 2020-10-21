@@ -13,6 +13,8 @@
     <ClInclude Include="TextEditor.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="mj_win32.h" />
+    <ClInclude Include="vld.h" />
+    <ClInclude Include="vld_def.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EditableLayout.cpp" />

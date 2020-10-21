@@ -38,7 +38,7 @@ extern "C"
 // musl libc
 #define WT size_t
 #define WS (sizeof(WT))
-#pragma function(memcmp)
+#pragma function(memmove)
   void* memmove(void* dest, const void* src, size_t n)
   {
     char* d       = (char*)dest;
@@ -98,7 +98,7 @@ void* operator new[](size_t n)
 
 void operator delete(void* p, size_t sz)
 {
-  (void)sz;
+  static_cast<void>(sz);
   HeapFree(GetProcessHeap(), 0, p);
 }
 

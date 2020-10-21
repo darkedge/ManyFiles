@@ -1,4 +1,5 @@
-﻿#include "Common.h"
+﻿#include "vld.h"
+#include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 #include "EditableLayout.h"
@@ -110,8 +111,7 @@ HRESULT MainWindow::Initialize()
   // Set initial text and assign to the text editor.
   if (SUCCEEDED(hr))
   {
-    hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat.Get(), dwriteFactory_.Get(),
-                            &this->pTextEditor);
+    hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat.Get(), dwriteFactory_.Get(), &this->pTextEditor);
   }
 
   if (SUCCEEDED(hr))
@@ -191,8 +191,8 @@ WPARAM MainWindow::RunMessageLoop()
   MSG msg;
   while (GetMessageW(&msg, nullptr, 0, 0) > 0)
   {
-    TranslateMessage(&msg);
-    DispatchMessageW(&msg);
+    static_cast<void>(TranslateMessage(&msg));
+    static_cast<void>(DispatchMessageW(&msg));
   }
   return msg.wParam;
 }
@@ -211,7 +211,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
     window            = reinterpret_cast<MainWindow*>(pcs->lpCreateParams);
     window->pHwnd     = hwnd;
-    SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window);
+    static_cast<void>(SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window));
   }
     return DefWindowProc(hwnd, message, wParam, lParam);
 
@@ -233,7 +233,9 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   case WM_SETFOCUS:
     // Forward focus to the text editor.
     if (window->pTextEditor)
-      SetFocus(window->pTextEditor->GetHwnd());
+    {
+      static_cast<void>(SetFocus(window->pTextEditor->GetHwnd()));
+    }
     break;
 
   case WM_INITMENU:
@@ -246,10 +248,10 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     if (window->renderTarget_)
       window->renderTarget_->UpdateMonitor();
 
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
 
   default:
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
   }
 
   return 0;
@@ -483,7 +485,7 @@ STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontF
 {
   // Get the font family to which this font belongs.
   mj::ComPtr<IDWriteFontFamily> fontFamily;
-  HRESULT hr                               = font->GetFontFamily(fontFamily.GetAddressOf());
+  HRESULT hr = font->GetFontFamily(fontFamily.GetAddressOf());
 
   // Get the family names. This returns an object that encapsulates one or
   // more names with the same meaning but in different languages.
