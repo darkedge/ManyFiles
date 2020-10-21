@@ -1,39 +1,26 @@
-// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Extended TextLayout that permits editing.
-//
-// Remarks:     Internally, a new DirectWrite layout is recreated when the
-//              text is edited, but the caller can safely hold the same
-//              reference, since the adapter forwards all the calls onward.
-//
-//----------------------------------------------------------------------------
 #include "Common.h"
+#include "mj_win32.h"
 #include "EditableLayout.h"
 
-HRESULT EditableLayout::RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout, const mj::ArrayList<wchar_t>& text)
+HRESULT EditableLayout::RecreateLayout(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout,
+                                       const mj::ArrayList<wchar_t>& text)
 {
   // Recreates the internally held layout.
 
   HRESULT hr = S_OK;
 
-  IDWriteTextLayout* newLayout = nullptr;
+  mj::ComPtr<IDWriteTextLayout> newLayout;
 
   // MJ: wide string length
   size_t length;
   (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
 
-  hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout,
-                                  currentLayout->GetMaxWidth(), currentLayout->GetMaxHeight(), &newLayout);
+  hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout.Get(),
+                                  currentLayout->GetMaxWidth(), currentLayout->GetMaxHeight(),
+                                  newLayout.ReleaseAndGetAddressOf());
 
   if (SUCCEEDED(hr))
-    SafeAttach(&currentLayout, SafeDetach(&newLayout));
-
-  SafeRelease(&newLayout);
+    currentLayout = newLayout;
 
   return hr;
 }
@@ -48,10 +35,9 @@ void EditableLayout::CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT3
   DWRITE_TEXT_RANGE range = { startPosForNew, mj_min(length, UINT32_MAX - startPosForNew) };
 
   // font collection
-  IDWriteFontCollection* fontCollection = nullptr;
-  oldLayout->GetFontCollection(startPosForOld, &fontCollection);
-  newLayout->SetFontCollection(fontCollection, range);
-  SafeRelease(&fontCollection);
+  mj::ComPtr<IDWriteFontCollection> fontCollection;
+  oldLayout->GetFontCollection(startPosForOld, fontCollection.GetAddressOf());
+  newLayout->SetFontCollection(fontCollection.Get(), range);
 
   if (caretFormat)
   {
@@ -104,22 +90,19 @@ void EditableLayout::CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT3
   }
 
   // drawing effect
-  IUnknown* drawingEffect = nullptr;
-  oldLayout->GetDrawingEffect(startPosForOld, &drawingEffect);
-  newLayout->SetDrawingEffect(drawingEffect, range);
-  SafeRelease(&drawingEffect);
+  mj::ComPtr<IUnknown> drawingEffect;
+  oldLayout->GetDrawingEffect(startPosForOld, drawingEffect.GetAddressOf());
+  newLayout->SetDrawingEffect(drawingEffect.Get(), range);
 
   // inline object
-  IDWriteInlineObject* inlineObject = nullptr;
-  oldLayout->GetInlineObject(startPosForOld, &inlineObject);
-  newLayout->SetInlineObject(inlineObject, range);
-  SafeRelease(&inlineObject);
+  mj::ComPtr<IDWriteInlineObject> inlineObject;
+  oldLayout->GetInlineObject(startPosForOld, inlineObject.GetAddressOf());
+  newLayout->SetInlineObject(inlineObject.Get(), range);
 
   // typography
-  IDWriteTypography* typography = nullptr;
-  oldLayout->GetTypography(startPosForOld, &typography);
-  newLayout->SetTypography(typography, range);
-  SafeRelease(&typography);
+  mj::ComPtr<IDWriteTypography> typography;
+  oldLayout->GetTypography(startPosForOld, typography.GetAddressOf());
+  newLayout->SetTypography(typography.Get(), range);
 }
 
 UINT32 CalculateRangeLengthAt(IDWriteTextLayout* layout, UINT32 pos)
@@ -160,8 +143,8 @@ void EditableLayout::CopyRangedProperties(IDWriteTextLayout* oldLayout, UINT32 s
   }
 }
 
-STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text,
-                                          UINT32 position,
+STDMETHODIMP EditableLayout::InsertTextAt(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout,
+                                          mj::ArrayList<wchar_t>& text, UINT32 position,
                                           WCHAR const* textToInsert, // [lengthToInsert]
                                           UINT32 textToInsertLength, CaretFormat* caretFormat)
 {
@@ -174,12 +157,12 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
 
   // MJ: wide string length
   MJ_UNINITIALIZED size_t length;
-  (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
+  static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
 
   // Copy all the old formatting.
-  IDWriteTextLayout* oldLayout = SafeAcquire(currentLayout);
-  UINT32 oldTextLength         = static_cast<UINT32>(length);
-  position                     = mj_min(position, static_cast<UINT32>(length));
+  mj::ComPtr<IDWriteTextLayout> oldLayout(currentLayout);
+  UINT32 oldTextLength = static_cast<UINT32>(length);
+  position             = mj_min(position, static_cast<UINT32>(length));
 
   // Insert the new text and recreate the new text layout.
   text.Insert(position, textToInsert, textToInsertLength);
@@ -189,104 +172,106 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT IDWriteTextLayout*& currentLayo
     hr = RecreateLayout(currentLayout, text);
   }
 
-  IDWriteTextLayout* newLayout = currentLayout;
+  auto newLayout = currentLayout;
 
   if (SUCCEEDED(hr))
   {
-    CopyGlobalProperties(oldLayout, newLayout);
+    this->CopyGlobalProperties(oldLayout.Get(), newLayout.Get());
 
     // For each property, get the position range and apply it to the old text.
     if (position == 0)
     {
       // Inserted text
-      CopySinglePropertyRange(oldLayout, 0, newLayout, 0, textToInsertLength);
+      this->CopySinglePropertyRange(oldLayout.Get(), 0, newLayout.Get(), 0, textToInsertLength);
 
       // The rest of the text
-      CopyRangedProperties(oldLayout, 0, oldTextLength, textToInsertLength, newLayout);
+      this->CopyRangedProperties(oldLayout.Get(), 0, oldTextLength, textToInsertLength, newLayout.Get());
     }
     else
     {
       // 1st block
-      CopyRangedProperties(oldLayout, 0, position, 0, newLayout);
+      this->CopyRangedProperties(oldLayout.Get(), 0, position, 0, newLayout.Get());
 
       // Inserted text
-      CopySinglePropertyRange(oldLayout, position - 1, newLayout, position, textToInsertLength, caretFormat);
+      this->CopySinglePropertyRange(oldLayout.Get(), position - 1, newLayout.Get(), position, textToInsertLength,
+                                    caretFormat);
 
       // Last block (if it exists)
-      CopyRangedProperties(oldLayout, position, oldTextLength, textToInsertLength, newLayout);
+      this->CopyRangedProperties(oldLayout.Get(), position, oldTextLength, textToInsertLength, newLayout.Get());
     }
 
     // Copy trailing end.
-    (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
-    CopySinglePropertyRange(oldLayout, oldTextLength, newLayout, static_cast<UINT32>(length), UINT32_MAX);
+    static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
+    this->CopySinglePropertyRange(oldLayout.Get(), oldTextLength, newLayout.Get(), static_cast<UINT32>(length),
+                                  UINT32_MAX);
   }
-
-  SafeRelease(&oldLayout);
 
   return S_OK;
 }
 
-STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text,
-                                          UINT32 position, UINT32 lengthToRemove)
+STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout,
+                                          mj::ArrayList<wchar_t>& text, UINT32 position, UINT32 lengthToRemove)
 {
   // Removes text and shifts all formatting.
 
   HRESULT hr = S_OK;
 
   // MJ: wide string length
-  size_t length;
-  (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
+  MJ_UNINITIALIZED size_t length;
+  static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
 
   // copy all the old formatting.
-  IDWriteTextLayout* oldLayout = SafeAcquire(currentLayout);
-  UINT32 oldTextLength         = static_cast<UINT32>(length);
+  mj::ComPtr<IDWriteTextLayout> oldLayout(currentLayout);
+  UINT32 oldTextLength = static_cast<UINT32>(length);
 
   // Remove the old text and recreate the new text layout.
-  text.Erase(position, lengthToRemove);
+  static_cast<void>(text.Erase(position, lengthToRemove));
 
   if (SUCCEEDED(hr))
   {
-    RecreateLayout(currentLayout, text);
+    static_cast<void>(this->RecreateLayout(currentLayout, text));
   }
 
-  IDWriteTextLayout* newLayout = currentLayout;
+  auto newLayout = currentLayout;
 
   if (SUCCEEDED(hr))
   {
-    CopyGlobalProperties(oldLayout, newLayout);
+    this->CopyGlobalProperties(oldLayout.Get(), newLayout.Get());
 
     if (position == 0)
     {
       // The rest of the text
-      CopyRangedProperties(oldLayout, lengthToRemove, oldTextLength, lengthToRemove, newLayout, true);
+      this->CopyRangedProperties(oldLayout.Get(), lengthToRemove, oldTextLength, lengthToRemove, newLayout.Get(), true);
     }
     else
     {
       // 1st block
-      CopyRangedProperties(oldLayout, 0, position, 0, newLayout, true);
+      this->CopyRangedProperties(oldLayout.Get(), 0, position, 0, newLayout.Get(), true);
 
       // Last block (if it exists, we increment past the deleted text)
-      CopyRangedProperties(oldLayout, position + lengthToRemove, oldTextLength, lengthToRemove, newLayout, true);
+      this->CopyRangedProperties(oldLayout.Get(), position + lengthToRemove, oldTextLength, lengthToRemove,
+                                 newLayout.Get(), true);
     }
-    (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
-    CopySinglePropertyRange(oldLayout, oldTextLength, newLayout, static_cast<UINT32>(length), UINT32_MAX);
-  }
 
-  SafeRelease(&oldLayout);
+    static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
+
+    this->CopySinglePropertyRange(oldLayout.Get(), oldTextLength, newLayout.Get(), static_cast<UINT32>(length),
+                                  UINT32_MAX);
+  }
 
   return S_OK;
 }
 
-STDMETHODIMP EditableLayout::Clear(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text)
+STDMETHODIMP EditableLayout::Clear(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout, mj::ArrayList<wchar_t>& text)
 {
   HRESULT hr = S_OK;
 
   text.Clear();
-  text.Add('\0');
+  static_cast<void>(text.Add('\0'));
 
   if (SUCCEEDED(hr))
   {
-    hr = RecreateLayout(currentLayout, text);
+    hr = this->RecreateLayout(currentLayout, text);
   }
 
   return hr;
@@ -296,22 +281,21 @@ void EditableLayout::CopyGlobalProperties(IDWriteTextLayout* oldLayout, IDWriteT
 {
   // Copies global properties that are not range based.
 
-  newLayout->SetTextAlignment(oldLayout->GetTextAlignment());
-  newLayout->SetParagraphAlignment(oldLayout->GetParagraphAlignment());
-  newLayout->SetWordWrapping(oldLayout->GetWordWrapping());
-  newLayout->SetReadingDirection(oldLayout->GetReadingDirection());
-  newLayout->SetFlowDirection(oldLayout->GetFlowDirection());
-  newLayout->SetIncrementalTabStop(oldLayout->GetIncrementalTabStop());
+  static_cast<void>(newLayout->SetTextAlignment(oldLayout->GetTextAlignment()));
+  static_cast<void>(newLayout->SetParagraphAlignment(oldLayout->GetParagraphAlignment()));
+  static_cast<void>(newLayout->SetWordWrapping(oldLayout->GetWordWrapping()));
+  static_cast<void>(newLayout->SetReadingDirection(oldLayout->GetReadingDirection()));
+  static_cast<void>(newLayout->SetFlowDirection(oldLayout->GetFlowDirection()));
+  static_cast<void>(newLayout->SetIncrementalTabStop(oldLayout->GetIncrementalTabStop()));
 
-  DWRITE_TRIMMING trimmingOptions   = {};
-  IDWriteInlineObject* inlineObject = nullptr;
-  oldLayout->GetTrimming(&trimmingOptions, &inlineObject);
-  newLayout->SetTrimming(&trimmingOptions, inlineObject);
-  SafeRelease(&inlineObject);
+  DWRITE_TRIMMING trimmingOptions = {};
+  mj::ComPtr<IDWriteInlineObject> inlineObject;
+  static_cast<void>(oldLayout->GetTrimming(&trimmingOptions, inlineObject.ReleaseAndGetAddressOf()));
+  static_cast<void>(newLayout->SetTrimming(&trimmingOptions, inlineObject.Get()));
 
   DWRITE_LINE_SPACING_METHOD lineSpacingMethod = DWRITE_LINE_SPACING_METHOD_DEFAULT;
   FLOAT lineSpacing                            = 0;
   FLOAT baseline                               = 0;
-  oldLayout->GetLineSpacing(&lineSpacingMethod, &lineSpacing, &baseline);
-  newLayout->SetLineSpacing(lineSpacingMethod, lineSpacing, baseline);
+  static_cast<void>(oldLayout->GetLineSpacing(&lineSpacingMethod, &lineSpacing, &baseline));
+  static_cast<void>(newLayout->SetLineSpacing(lineSpacingMethod, lineSpacing, baseline));
 }

@@ -1,22 +1,6 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    UI formatted text editor.
-//
-// Usage:       Type to edit text.
-//              Arrow keys move, +shift selects, +ctrl moves whole word
-//              Left drag selects.
-//              Middle drag pans.
-//              Scroll wheel scrolls, +shift for horizontal, +ctrl zooms.
-//
-//----------------------------------------------------------------------------
-#pragma once
+﻿#pragma once
 
-class DECLSPEC_UUID("2EF2C6E3-5352-41c1-89D0-1C7F7F99359B") TextEditor : public ComBase<QiList<IUnknown>>
+class TextEditor
 {
 public:
   enum SetSelectionMode
@@ -39,21 +23,8 @@ public:
   };
 
 public:
-  ////////////////////
-  // Creation/destruction
-  TextEditor(IDWriteFactory* factory);
   HRESULT static Create(HWND parentHwnd, const wchar_t* text, IDWriteTextFormat* textFormat, IDWriteFactory* factory,
                         OUT TextEditor** textEditor);
-
-  ~TextEditor()
-  {
-    SafeRelease(&textLayout_);
-    SafeRelease(&renderTarget_);
-    SafeRelease(&pageBackgroundEffect_);
-    SafeRelease(&textSelectionEffect_);
-    SafeRelease(&imageSelectionEffect_);
-    SafeRelease(&caretBackgroundEffect_);
-  }
 
   static ATOM RegisterWindowClass();
   static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -61,7 +32,6 @@ public:
   {
     return hwnd_;
   }
-  void OnDestroy();
 
   ////////////////////
   // Input dispatch
@@ -103,7 +73,7 @@ public:
   UINT32 GetCaretPosition();
   IDWriteTextLayout* GetLayout()
   {
-    return textLayout_;
+    return textLayout_.Get();
   }
   EditableLayout::CaretFormat& GetCaretFormat()
   {
@@ -124,7 +94,7 @@ public:
   void ResetView();
   void RefreshView();
 
-protected:
+private:
   HRESULT Initialize(HWND parentHwnd, const wchar_t* text, IDWriteTextFormat* textFormat);
   void InitDefaults();
   void InitViewDefaults();
@@ -139,16 +109,20 @@ protected:
   void GetLineFromPosition(const DWRITE_LINE_METRICS* lineMetrics, // [lineCount]
                            UINT32 lineCount, UINT32 textPosition, OUT UINT32* lineOut, OUT UINT32* linePositionOut);
 
-protected:
+private:
+  ////////////////////
+  // Creation/destruction
+  TextEditor(IDWriteFactory* factory);
+
   HWND hwnd_;
 
-  RenderTarget* renderTarget_;
-  DrawingEffect* pageBackgroundEffect_;
-  DrawingEffect* textSelectionEffect_;
-  DrawingEffect* imageSelectionEffect_;
-  DrawingEffect* caretBackgroundEffect_;
-  IDWriteTextLayout* textLayout_;
-  EditableLayout layoutEditor_;
+  RenderTarget* renderTarget_;                      // Not owned
+  mj::ComPtr<DrawingEffect> pageBackgroundEffect_;  // Owned
+  mj::ComPtr<DrawingEffect> textSelectionEffect_;   // Owned
+  mj::ComPtr<DrawingEffect> imageSelectionEffect_;  // Owned
+  mj::ComPtr<DrawingEffect> caretBackgroundEffect_; // Owned
+  mj::ComPtr<IDWriteTextLayout> textLayout_;        // Owned
+  EditableLayout layoutEditor_;                     // Owned
 
   mj::ArrayList<wchar_t> text_;
 

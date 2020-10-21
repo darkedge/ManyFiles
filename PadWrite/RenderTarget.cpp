@@ -1,42 +1,14 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Adapter render target draws using D2D or DirectWrite.
-//              This demonstrates how to implement your own render target
-//              for layout drawing callbacks.
-//
-//----------------------------------------------------------------------------
-#include "Common.h"
+﻿#include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 
-#if 0
-inline bool operator== (const RenderTargetD2D::ImageCacheEntry& entry, const IWICBitmapSource* original)
-{
-    return entry.original == original;
-}
-
-inline bool operator== (const RenderTargetDW::ImageCacheEntry& entry, const IWICBitmapSource* original)
-{
-    return entry.original == original;
-}
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
-// Direct2D render target.
-
-HRESULT RenderTargetD2D::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd,
+HRESULT RenderTarget::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd,
                                 OUT RenderTarget** renderTarget)
 {
   *renderTarget = nullptr;
   HRESULT hr    = S_OK;
 
-  RenderTargetD2D* newRenderTarget =
-      SafeAcquire(new RenderTargetD2D(d2dFactory, dwriteFactory, hwnd)); // TODO MJ: Untracked memory allocation
+  RenderTarget* newRenderTarget = new RenderTarget(d2dFactory, dwriteFactory, hwnd); // TODO MJ: Untracked memory allocation
   if (!newRenderTarget)
   {
     return E_OUTOFMEMORY;
@@ -44,28 +16,24 @@ HRESULT RenderTargetD2D::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwrite
 
   hr = newRenderTarget->CreateTarget();
   if (FAILED(hr))
-    SafeRelease(&newRenderTarget);
+    delete newRenderTarget;
 
-  *renderTarget = SafeDetach(&newRenderTarget);
+  *renderTarget = newRenderTarget;
 
   return hr;
 }
 
-RenderTargetD2D::RenderTargetD2D(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd)
-    : hwnd_(hwnd), hmonitor_(nullptr), d2dFactory_(SafeAcquire(d2dFactory)), dwriteFactory_(SafeAcquire(dwriteFactory)),
+RenderTarget::RenderTarget(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd)
+    : hwnd_(hwnd), hmonitor_(nullptr), d2dFactory_(d2dFactory), dwriteFactory_(dwriteFactory),
       target_(), brush_()
 {
 }
 
-RenderTargetD2D::~RenderTargetD2D()
+RenderTarget::~RenderTarget()
 {
-  SafeRelease(&brush_);
-  SafeRelease(&target_);
-  SafeRelease(&d2dFactory_);
-  SafeRelease(&dwriteFactory_);
 }
 
-HRESULT RenderTargetD2D::CreateTarget()
+HRESULT RenderTarget::CreateTarget()
 {
   // Creates a D2D render target set on the HWND.
 
@@ -84,7 +52,7 @@ HRESULT RenderTargetD2D::CreateTarget()
 
   if (SUCCEEDED(hr))
   {
-    SafeSet(&target_, target);
+    target_= target;
 
     // Any scaling will be combined into matrix transforms rather than an
     // additional DPI scaling. This simplifies the logic for rendering
@@ -94,8 +62,7 @@ HRESULT RenderTargetD2D::CreateTarget()
 
     // Create a reusable scratch brush, rather than allocating one for
     // each new color.
-    SafeRelease(&brush_);
-    hr = target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &brush_);
+    hr = target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), brush_.ReleaseAndGetAddressOf());
   }
 
   if (SUCCEEDED(hr))
@@ -104,12 +71,10 @@ HRESULT RenderTargetD2D::CreateTarget()
     UpdateMonitor();
   }
 
-  SafeRelease(&target);
-
   return hr;
 }
 
-void RenderTargetD2D::Resize(UINT width, UINT height)
+void RenderTarget::Resize(UINT width, UINT height)
 {
   D2D1_SIZE_U size;
   size.width  = width;
@@ -117,7 +82,7 @@ void RenderTargetD2D::Resize(UINT width, UINT height)
   target_->Resize(size);
 }
 
-void RenderTargetD2D::UpdateMonitor()
+void RenderTarget::UpdateMonitor()
 {
   // Updates rendering parameters according to current monitor.
 
@@ -127,25 +92,23 @@ void RenderTargetD2D::UpdateMonitor()
     // Create based on monitor settings, rather than the defaults of
     // gamma=1.8, contrast=.5, and clearTypeLevel=.5
 
-    IDWriteRenderingParams* renderingParams = nullptr;
+    mj::ComPtr<IDWriteRenderingParams> renderingParams;
 
-    dwriteFactory_->CreateMonitorRenderingParams(monitor, &renderingParams);
-    target_->SetTextRenderingParams(renderingParams);
+    dwriteFactory_->CreateMonitorRenderingParams(monitor, renderingParams.GetAddressOf());
+    target_->SetTextRenderingParams(renderingParams.Get());
 
     hmonitor_ = monitor;
     InvalidateRect(hwnd_, nullptr, FALSE);
-
-    SafeRelease(&renderingParams);
   }
 }
 
-void RenderTargetD2D::BeginDraw()
+void RenderTarget::BeginDraw()
 {
   target_->BeginDraw();
   target_->SetTransform(D2D1::Matrix3x2F::Identity());
 }
 
-void RenderTargetD2D::EndDraw()
+void RenderTarget::EndDraw()
 {
   HRESULT hr = target_->EndDraw();
 
@@ -162,12 +125,12 @@ void RenderTargetD2D::EndDraw()
   }
 }
 
-void RenderTargetD2D::Clear(UINT32 color)
+void RenderTarget::Clear(UINT32 color)
 {
   target_->Clear(D2D1::ColorF(color));
 }
 
-void RenderTargetD2D::FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect)
+void RenderTarget::FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect)
 {
   ID2D1Brush* brush = GetCachedBrush(&drawingEffect);
   if (!brush)
@@ -178,7 +141,7 @@ void RenderTargetD2D::FillRectangle(const RectF& destRect, const DrawingEffect& 
   target_->FillRectangle(destRect, brush);
 }
 
-void RenderTargetD2D::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect)
+void RenderTarget::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect)
 {
   if (!textLayout)
     return;
@@ -187,7 +150,7 @@ void RenderTargetD2D::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF&
   textLayout->Draw(&context, this, rect.left, rect.top);
 }
 
-ID2D1Brush* RenderTargetD2D::GetCachedBrush(const DrawingEffect* effect)
+ID2D1Brush* RenderTarget::GetCachedBrush(const DrawingEffect* effect)
 {
   if (!effect || !brush_)
     return nullptr;
@@ -197,25 +160,25 @@ ID2D1Brush* RenderTargetD2D::GetCachedBrush(const DrawingEffect* effect)
   float alpha = (bgra >> 24) / 255.0f;
   brush_->SetColor(D2D1::ColorF(bgra, alpha));
 
-  return brush_;
+  return brush_.Get();
 }
 
-void RenderTargetD2D::SetTransform(DWRITE_MATRIX const& transform)
+void RenderTarget::SetTransform(DWRITE_MATRIX const& transform)
 {
   target_->SetTransform(reinterpret_cast<const D2D1_MATRIX_3X2_F*>(&transform));
 }
 
-void RenderTargetD2D::GetTransform(DWRITE_MATRIX& transform)
+void RenderTarget::GetTransform(DWRITE_MATRIX& transform)
 {
   target_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&transform));
 }
 
-void RenderTargetD2D::SetAntialiasing(bool isEnabled)
+void RenderTarget::SetAntialiasing(bool isEnabled)
 {
   target_->SetAntialiasMode(isEnabled ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawGlyphRun(void* clientDrawingContext, FLOAT baselineOriginX,
+HRESULT STDMETHODCALLTYPE RenderTarget::DrawGlyphRun(void* clientDrawingContext, FLOAT baselineOriginX,
                                                         FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode,
                                                         const DWRITE_GLYPH_RUN* glyphRun,
                                                         const DWRITE_GLYPH_RUN_DESCRIPTION* glyphRunDescription,
@@ -239,7 +202,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawGlyphRun(void* clientDrawingConte
   return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawUnderline(void* clientDrawingContext, FLOAT baselineOriginX,
+HRESULT STDMETHODCALLTYPE RenderTarget::DrawUnderline(void* clientDrawingContext, FLOAT baselineOriginX,
                                                          FLOAT baselineOriginY, const DWRITE_UNDERLINE* underline,
                                                          IUnknown* clientDrawingEffect)
 {
@@ -261,7 +224,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawUnderline(void* clientDrawingCont
   return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawStrikethrough(void* clientDrawingContext, FLOAT baselineOriginX,
+HRESULT STDMETHODCALLTYPE RenderTarget::DrawStrikethrough(void* clientDrawingContext, FLOAT baselineOriginX,
                                                              FLOAT baselineOriginY,
                                                              const DWRITE_STRIKETHROUGH* strikethrough,
                                                              IUnknown* clientDrawingEffect)
@@ -285,7 +248,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawStrikethrough(void* clientDrawing
   return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawInlineObject(void* clientDrawingContext, FLOAT originX, FLOAT originY,
+HRESULT STDMETHODCALLTYPE RenderTarget::DrawInlineObject(void* clientDrawingContext, FLOAT originX, FLOAT originY,
                                                             IDWriteInlineObject* inlineObject, BOOL isSideways,
                                                             BOOL isRightToLeft, IUnknown* clientDrawingEffect)
 {
@@ -302,7 +265,7 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::DrawInlineObject(void* clientDrawingC
   return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::IsPixelSnappingDisabled(void* clientDrawingContext, OUT BOOL* isDisabled)
+HRESULT STDMETHODCALLTYPE RenderTarget::IsPixelSnappingDisabled(void* clientDrawingContext, OUT BOOL* isDisabled)
 {
   // Enable pixel snapping of the text baselines,
   // since we're not animating and don't want blurry text.
@@ -310,14 +273,14 @@ HRESULT STDMETHODCALLTYPE RenderTargetD2D::IsPixelSnappingDisabled(void* clientD
   return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::GetCurrentTransform(void* clientDrawingContext, OUT DWRITE_MATRIX* transform)
+HRESULT STDMETHODCALLTYPE RenderTarget::GetCurrentTransform(void* clientDrawingContext, OUT DWRITE_MATRIX* transform)
 {
   // Simply forward what the real renderer holds onto.
   target_->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(transform));
   return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE RenderTargetD2D::GetPixelsPerDip(void* clientDrawingContext, OUT FLOAT* pixelsPerDip)
+HRESULT STDMETHODCALLTYPE RenderTarget::GetPixelsPerDip(void* clientDrawingContext, OUT FLOAT* pixelsPerDip)
 {
   // Any scaling will be combined into matrix transforms rather than an
   // additional DPI scaling. This simplifies the logic for rendering

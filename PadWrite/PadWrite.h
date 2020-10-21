@@ -17,7 +17,7 @@ public:
 
   STDMETHODIMP GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontFamilyName, UINT32 fontFamilyNameLength);
 
-protected:
+private:
   enum RenderTargetType
   {
     RenderTargetTypeD2D,
@@ -32,9 +32,9 @@ protected:
   mj::ComPtr<RenderTarget> renderTarget_;
   RenderTargetType renderTargetType_;
 
-  mj::ComPtr<TextEditor> pTextEditor;
+  TextEditor* pTextEditor;
 
-protected:
+private:
   HRESULT CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetType);
   HRESULT FormatSampleLayout(IDWriteTextLayout* textLayout);
 

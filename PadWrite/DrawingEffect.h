@@ -1,16 +1,6 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Drawing effect that holds a single color.
-//
-//----------------------------------------------------------------------------
-#pragma once
+﻿#pragma once
 
-class DECLSPEC_UUID("1CD7C44F-526B-492a-B780-EF9C4159B653") DrawingEffect : public ComBase<QiList<IUnknown>>
+class DrawingEffect : public IUnknown
 {
 public:
   DrawingEffect(UINT32 color) : color_(color)
@@ -43,7 +33,25 @@ public:
     return RGB(GetBValue(rgb), GetGValue(rgb), GetRValue(rgb)) | 0xFF000000;
   }
 
-protected:
+  // IUnknown interface implementation
+  virtual HRESULT STDMETHODCALLTYPE QueryInterface(
+      /* [in] */ REFIID riid,
+      /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override
+  {
+    return E_NOTIMPL;
+  }
+
+  virtual ULONG STDMETHODCALLTYPE AddRef(void) override
+  {
+    return 0;
+  }
+
+  virtual ULONG STDMETHODCALLTYPE Release(void) override
+  {
+    return 0;
+  }
+
+private:
   // The color is stored as BGRA, with blue in the lowest byte,
   // then green, red, alpha; which is what D2D, GDI+, and GDI DIBs use.
   // GDI's COLORREF stores red as the lowest byte.

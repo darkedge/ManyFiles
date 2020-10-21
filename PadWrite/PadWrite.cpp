@@ -83,8 +83,8 @@ HRESULT MainWindow::Initialize()
     static_cast<void>(TextEditor::RegisterWindowClass());
 
     // create window (the hwnd is stored in the create event)
-    CreateWindowExW(0L, L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT,
-                 CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
+    CreateWindowExW(0L, L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+                    CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
     if (!this->pHwnd)
       hr = HRESULT_FROM_WIN32(GetLastError());
@@ -100,18 +100,18 @@ HRESULT MainWindow::Initialize()
   }
 
   // Need a text format to base the layout on.
-  IDWriteTextFormat* textFormat = nullptr;
+  mj::ComPtr<IDWriteTextFormat> textFormat;
   if (SUCCEEDED(hr))
   {
     hr = dwriteFactory_->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
-                                          DWRITE_FONT_STRETCH_NORMAL, 16, L"", &textFormat);
+                                          DWRITE_FONT_STRETCH_NORMAL, 16, L"", textFormat.GetAddressOf());
   }
 
   // Set initial text and assign to the text editor.
   if (SUCCEEDED(hr))
   {
-    hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat, dwriteFactory_.Get(),
-                            this->pTextEditor.ReleaseAndGetAddressOf());
+    hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat.Get(), dwriteFactory_.Get(),
+                            &this->pTextEditor);
   }
 
   if (SUCCEEDED(hr))
@@ -135,8 +135,6 @@ HRESULT MainWindow::Initialize()
     // Put focus on editor to begin typing.
     static_cast<void>(SetFocus(this->pTextEditor->GetHwnd()));
   }
-
-  SafeRelease(&textFormat);
 
   return hr;
 }
@@ -173,8 +171,7 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetT
   case RenderTargetTypeD2D:
     if (d2dFactory_)
     {
-      hr =
-          RenderTargetD2D::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
+      hr = RenderTarget::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
       break;
     }
   }
@@ -301,15 +298,14 @@ void MainWindow::OnCommand(UINT commandId)
   {
     // Retrieve existing trimming sign and settings
     // and modify them according to button state.
-    IDWriteInlineObject* inlineObject = nullptr;
-    DWRITE_TRIMMING trimming          = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
+    mj::ComPtr<IDWriteInlineObject> inlineObject;
+    DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
 
-    textLayout->GetTrimming(&trimming, &inlineObject);
+    textLayout->GetTrimming(&trimming, inlineObject.GetAddressOf());
     trimming.granularity = (trimming.granularity == DWRITE_TRIMMING_GRANULARITY_NONE)
                                ? DWRITE_TRIMMING_GRANULARITY_CHARACTER
                                : DWRITE_TRIMMING_GRANULARITY_NONE;
-    textLayout->SetTrimming(&trimming, inlineObject);
-    SafeRelease(&inlineObject);
+    textLayout->SetTrimming(&trimming, inlineObject.Get());
 
     RedrawTextEditor();
   }
@@ -426,12 +422,12 @@ HRESULT MainWindow::OnChooseFont()
   if (logFont.lfFaceName[0] == L'\0')
     return hr;
 
-  IDWriteFont* font = nullptr;
-  hr                = CreateFontFromLOGFONT(logFont, &font);
+  mj::ComPtr<IDWriteFont> font;
+  hr = CreateFontFromLOGFONT(logFont, font.GetAddressOf());
 
   if (SUCCEEDED(hr))
   {
-    hr = GetFontFamilyName(font, caretFormat.fontFamilyName, ARRAYSIZE(caretFormat.fontFamilyName));
+    hr = GetFontFamilyName(font.Get(), caretFormat.fontFamilyName, ARRAYSIZE(caretFormat.fontFamilyName));
   }
 
   if (SUCCEEDED(hr))
@@ -456,15 +452,12 @@ HRESULT MainWindow::OnChooseFont()
       textLayout->SetFontSize(caretFormat.fontSize, textRange);
       textLayout->SetFontFamilyName(caretFormat.fontFamilyName, textRange);
 
-      DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(caretFormat.color));
+      DrawingEffect* drawingEffect = new DrawingEffect(caretFormat.color); // TODO MJ: Untracked memory allocation
       static_cast<void>(textLayout->SetDrawingEffect(drawingEffect, textRange));
-      SafeRelease(&drawingEffect);
 
       RedrawTextEditor();
     }
   }
-
-  SafeRelease(&font);
 
   return hr;
 }
@@ -473,11 +466,9 @@ STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWri
 {
   *font = nullptr;
 
-  HRESULT hr = S_OK;
-
   // Conversion to and from LOGFONT uses the IDWriteGdiInterop interface.
-  IDWriteGdiInterop* gdiInterop = nullptr;
-  hr                            = dwriteFactory_->GetGdiInterop(&gdiInterop);
+  mj::ComPtr<IDWriteGdiInterop> gdiInterop;
+  HRESULT hr = dwriteFactory_->GetGdiInterop(gdiInterop.GetAddressOf());
 
   // Find the font object that best matches the specified LOGFONT.
   if (SUCCEEDED(hr))
@@ -485,25 +476,21 @@ STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWri
     hr = gdiInterop->CreateFontFromLOGFONT(&logFont, font);
   }
 
-  SafeRelease(&gdiInterop);
-
   return hr;
 }
 
 STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontFamilyName, UINT32 fontFamilyNameLength)
 {
-  HRESULT hr = S_OK;
-
   // Get the font family to which this font belongs.
-  IDWriteFontFamily* fontFamily = nullptr;
-  hr                            = font->GetFontFamily(&fontFamily);
+  mj::ComPtr<IDWriteFontFamily> fontFamily;
+  HRESULT hr                               = font->GetFontFamily(fontFamily.GetAddressOf());
 
   // Get the family names. This returns an object that encapsulates one or
   // more names with the same meaning but in different languages.
-  IDWriteLocalizedStrings* localizedFamilyNames = nullptr;
+  mj::ComPtr<IDWriteLocalizedStrings> localizedFamilyNames;
   if (SUCCEEDED(hr))
   {
-    hr = fontFamily->GetFamilyNames(&localizedFamilyNames);
+    hr = fontFamily->GetFamilyNames(localizedFamilyNames.GetAddressOf());
   }
 
   // Get the family name at index zero. If we were going to display the name
@@ -513,9 +500,6 @@ STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontF
   {
     hr = localizedFamilyNames->GetString(0, &fontFamilyName[0], fontFamilyNameLength);
   }
-
-  SafeRelease(&localizedFamilyNames);
-  SafeRelease(&fontFamily);
 
   return S_OK;
 }
@@ -528,7 +512,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
   HRESULT hr = S_OK;
 
   // Set default color of black on entire range.
-  DrawingEffect* drawingEffect = SafeAcquire(new DrawingEffect(0xFF000000)); // TODO MJ: Untracked memory allocation
+  DrawingEffect* drawingEffect = new DrawingEffect(0xFF000000); // TODO MJ: Untracked memory allocation
   if (SUCCEEDED(hr))
   {
     static_cast<void>(textLayout->SetDrawingEffect(drawingEffect, MakeDWriteTextRange(0)));
@@ -554,58 +538,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
     static_cast<void>(textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT));
     static_cast<void>(textLayout->SetFontFamilyName(L"Segoe UI", MakeDWriteTextRange(0)));
     static_cast<void>(textLayout->SetFontSize(18, MakeDWriteTextRange(0)));
-
-#if 0
-    // Apply a color to the title words.
-    {
-      DrawingEffect* drawingEffect1 = SafeAcquire(new DrawingEffect(0xFF1010D0));
-      DrawingEffect* drawingEffect2 = SafeAcquire(new DrawingEffect(0xFF10D010));
-      textLayout->SetDrawingEffect(drawingEffect1, MakeDWriteTextRange(0, 7));
-      textLayout->SetDrawingEffect(drawingEffect2, MakeDWriteTextRange(7, 5));
-      SafeRelease(&drawingEffect2);
-      SafeRelease(&drawingEffect1);
-    }
-
-    // Set title font style.
-    textLayout->SetFontSize(30, MakeDWriteTextRange(0, 25)); // first line of text
-    textLayout->SetFontSize(60, MakeDWriteTextRange(1, 11)); // DirectWrite
-    textLayout->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, MakeDWriteTextRange(0, 25));
-    textLayout->SetFontFamilyName(L"Gabriola", MakeDWriteTextRange(1, 11));
-
-    // Add fancy swashes.
-    {
-      IDWriteTypography* typoFeature = nullptr;
-      dwriteFactory_->CreateTypography(&typoFeature);
-      DWRITE_FONT_FEATURE feature = { DWRITE_FONT_FEATURE_TAG_STYLISTIC_SET_7, 1 };
-      typoFeature->AddFontFeature(feature);
-      textLayout->SetTypography(typoFeature, MakeDWriteTextRange(1, 11));
-      SafeRelease(&typoFeature);
-    }
-
-    // Apply decorations on demonstrated features.
-    textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, MakeDWriteTextRange(277, 4));
-    textLayout->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, MakeDWriteTextRange(282, 6));
-    textLayout->SetUnderline(TRUE, MakeDWriteTextRange(289, 9));
-    textLayout->SetStrikethrough(TRUE, MakeDWriteTextRange(299, 13));
-    textLayout->SetFontFamilyName(L"Arial", MakeDWriteTextRange(313, 6));
-    textLayout->SetFontStretch(DWRITE_FONT_STRETCH_CONDENSED, MakeDWriteTextRange(313, 6));
-    textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_LIGHT, MakeDWriteTextRange(320, 5));
-
-    // Localized S with comma below.
-    textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(507, 3));
-    textLayout->SetFontSize(16, MakeDWriteTextRange(507, 3));
-    textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(514, 3));
-    textLayout->SetFontSize(16, MakeDWriteTextRange(514, 3));
-    textLayout->SetLocaleName(L"ro-ro", MakeDWriteTextRange(514, 3));
-
-    // Localized forms of extended Arabic-Indic numbers 4 & 6, Pakistan Urdu.
-    textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(519, 2));
-    textLayout->SetFontFamilyName(L"Tahoma", MakeDWriteTextRange(525, 2));
-    textLayout->SetLocaleName(L"ur-PK", MakeDWriteTextRange(525, 2));
-#endif
   }
-
-  SafeRelease(&drawingEffect);
 
   return hr;
 }

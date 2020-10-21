@@ -16,7 +16,7 @@ namespace mj
   class ComPtr
   {
   public:
-  protected:
+  private:
     T* ptr;
     template <class U>
     friend class ComPtr;

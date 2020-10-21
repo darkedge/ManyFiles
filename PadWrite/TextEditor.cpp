@@ -93,9 +93,16 @@ ATOM TextEditor::RegisterWindowClass()
 }
 
 TextEditor::TextEditor(IDWriteFactory* factory)
-    : renderTarget_(), pageBackgroundEffect_(), textSelectionEffect_(), imageSelectionEffect_(),
-      caretBackgroundEffect_(), textLayout_(), layoutEditor_(factory)
+    : renderTarget_(), //
+      textLayout_(),   //
+      layoutEditor_(factory)
 {
+  // TODO MJ: Untracked memory allocations
+  pageBackgroundEffect_  = new DrawingEffect(0xFF000000 | D2D1::ColorF::White);
+  textSelectionEffect_   = new DrawingEffect(0xFF000000 | D2D1::ColorF::LightSkyBlue);
+  imageSelectionEffect_  = new DrawingEffect(0x80000000 | D2D1::ColorF::LightSkyBlue);
+  caretBackgroundEffect_ = new DrawingEffect(0xFF000000 | D2D1::ColorF::Black);
+
   // Creates editor window.
 
   InitDefaults();
@@ -109,7 +116,7 @@ HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextForm
   HRESULT hr  = S_OK;
 
   // Create and initialize.
-  TextEditor* newTextEditor = SafeAcquire(new TextEditor(factory)); // TODO MJ: Untracked memory allocation
+  TextEditor* newTextEditor = new TextEditor(factory); // TODO MJ: Untracked memory allocation
   if (!newTextEditor)
   {
     return E_OUTOFMEMORY;
@@ -117,9 +124,9 @@ HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextForm
 
   hr = newTextEditor->Initialize(parentHwnd, text, textFormat);
   if (FAILED(hr))
-    SafeRelease(&newTextEditor);
+    delete newTextEditor;
 
-  *textEditor = SafeDetach(&newTextEditor);
+  *textEditor = newTextEditor;
 
   return hr;
 }
@@ -143,7 +150,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   hr = layoutEditor_.GetFactory()->CreateTextLayout(text_.begin(), static_cast<UINT32>(length), textFormat,
                                                     580, // TODO MJ: maximum width
                                                     420, // TODO MJ: maximum height
-                                                    &textLayout_);
+                                                    textLayout_.ReleaseAndGetAddressOf());
 
   if (FAILED(hr))
     return hr;
@@ -157,21 +164,9 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   // Set the initial text layout and update caret properties accordingly.
   UpdateCaretFormatting();
 
-  // Set main two colors for drawing.
-  // TODO MJ: Untracked memory allocations
-  pageBackgroundEffect_  = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::White));
-  textSelectionEffect_   = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::LightSkyBlue));
-  imageSelectionEffect_  = SafeAcquire(new DrawingEffect(0x80000000 | D2D1::ColorF::LightSkyBlue));
-  caretBackgroundEffect_ = SafeAcquire(new DrawingEffect(0xFF000000 | D2D1::ColorF::Black));
-
-  if (!pageBackgroundEffect_ || !textSelectionEffect_ || !imageSelectionEffect_ || !caretBackgroundEffect_)
-  {
-    return E_OUTOFMEMORY;
-  }
-
   // Create text editor window (hwnd is stored in the create event)
-  CreateWindowEx(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
-                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
+  CreateWindowExW(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
+                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
   if (!hwnd_)
     return HRESULT_FROM_WIN32(GetLastError());
 
@@ -203,13 +198,8 @@ inline void TextEditor::InitViewDefaults()
 
 void TextEditor::SetRenderTarget(RenderTarget* target)
 {
-  SafeSet(&renderTarget_, target);
+  this->renderTarget_ = target;
   PostRedraw();
-}
-
-void TextEditor::OnDestroy()
-{
-  SafeRelease(&renderTarget_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,7 +219,6 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
     window            = reinterpret_cast<TextEditor*>(pcs->lpCreateParams);
     window->hwnd_     = hwnd;
-    window->AddRef(); // implicit reference via HWND
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window);
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -242,16 +231,6 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_ERASEBKGND: // don't want flicker
     return true;
-
-  case WM_DESTROY:
-    window->OnDestroy();
-    break;
-
-  case WM_NCDESTROY:
-    // Remove implicit reference via HWND.
-    // After this, the window and data structure no longer exist.
-    window->Release();
-    break;
 
   case WM_KEYDOWN:
     window->OnKeyPress(static_cast<UINT>(wParam));
@@ -378,10 +357,10 @@ void TextEditor::DrawPage(RenderTarget& target)
   target.SetTransform(Cast(pageTransform));
 
   // Draw the page
-  D2D1_POINT_2F pageSize = GetPageSize(textLayout_);
+  D2D1_POINT_2F pageSize = GetPageSize(textLayout_.Get());
   RectF pageRect         = { 0, 0, pageSize.x, pageSize.y };
 
-  target.FillRectangle(pageRect, *pageBackgroundEffect_);
+  target.FillRectangle(pageRect, *pageBackgroundEffect_.Get());
 
   // Determine actual number of hit-test ranges
   DWRITE_TEXT_RANGE caretRange = GetSelectionRange();
@@ -424,7 +403,7 @@ void TextEditor::DrawPage(RenderTarget& target)
       const DWRITE_HIT_TEST_METRICS& htm = hitTestMetrics[i];
       RectF highlightRect                = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
 
-      target.FillRectangle(highlightRect, *textSelectionEffect_);
+      target.FillRectangle(highlightRect, *textSelectionEffect_.Get());
     }
 
     target.SetAntialiasing(true);
@@ -434,11 +413,11 @@ void TextEditor::DrawPage(RenderTarget& target)
   RectF caretRect;
   GetCaretRect(caretRect);
   target.SetAntialiasing(false);
-  target.FillRectangle(caretRect, *caretBackgroundEffect_);
+  target.FillRectangle(caretRect, *caretBackgroundEffect_.Get());
   target.SetAntialiasing(true);
 
   // Draw text
-  target.DrawTextLayout(textLayout_, pageRect);
+  target.DrawTextLayout(textLayout_.Get(), pageRect);
 
   // Draw the selection ranges in front of images.
   // This shades otherwise opaque images so they are visibly selected,
@@ -459,7 +438,7 @@ void TextEditor::DrawPage(RenderTarget& target)
 
       RectF highlightRect = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
 
-      target.FillRectangle(highlightRect, *imageSelectionEffect_);
+      target.FillRectangle(highlightRect, *imageSelectionEffect_.Get());
     }
 
     target.SetAntialiasing(true);
@@ -574,7 +553,7 @@ void TextEditor::UpdateScrollInfo()
 
   float x                = originX_;
   float y                = originY_;
-  D2D1_POINT_2F pageSize = GetPageSize(textLayout_);
+  D2D1_POINT_2F pageSize = GetPageSize(textLayout_.Get());
 
   SCROLLINFO scrollInfo = { sizeof(scrollInfo) };
   scrollInfo.fMask      = SIF_PAGE | SIF_POS | SIF_RANGE;
@@ -733,7 +712,7 @@ void TextEditor::ConstrainViewOrigin()
   // Keep the page on-screen by not allowing the origin
   // to go outside the page bounds.
 
-  D2D1_POINT_2F pageSize = GetPageSize(textLayout_);
+  D2D1_POINT_2F pageSize = GetPageSize(textLayout_.Get());
 
   if (originX_ > pageSize.x)
     originX_ = pageSize.x;
@@ -1409,16 +1388,14 @@ void TextEditor::UpdateCaretFormatting()
   textLayout_->GetStrikethrough(currentPos, &caretFormat_.hasStrikethrough);
 
   // Get the current color.
-  IUnknown* drawingEffect = nullptr;
-  textLayout_->GetDrawingEffect(currentPos, &drawingEffect);
+  mj::ComPtr<IUnknown> drawingEffect;
+  textLayout_->GetDrawingEffect(currentPos, drawingEffect.GetAddressOf());
   caretFormat_.color = 0;
   if (drawingEffect)
   {
-    DrawingEffect& effect = *reinterpret_cast<DrawingEffect*>(drawingEffect);
+    DrawingEffect& effect = *reinterpret_cast<DrawingEffect*>(drawingEffect.Get());
     caretFormat_.color    = effect.GetColor();
   }
-
-  SafeRelease(&drawingEffect);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

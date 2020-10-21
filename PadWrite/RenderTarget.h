@@ -1,16 +1,5 @@
-﻿// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved
-//
-// Contents:    Adapter render target draws using D2D or DirectWrite.
-//              This demonstrates how to implement your own render target
-//              for layout drawing callbacks.
-//
-//----------------------------------------------------------------------------
-#pragma once
+﻿#pragma once
+#include "mj_win32.h"
 
 struct ID2D1HwndRenderTarget;
 struct ID2D1Bitmap;
@@ -18,32 +7,76 @@ class InlineImage;
 class DrawingEffect;
 typedef D2D1_RECT_F RectF;
 
-////////////////////////////////////////////////////////////////////////////////
-
-class RenderTarget;
-
-// Intermediate render target for UI to draw to either a D2D or GDI surface.
-class DECLSPEC_UUID("4327AC14-3172-4807-BF40-02C7475A2520") RenderTarget
-    : public ComBase<QiListSelf<RenderTarget, QiList<IDWriteTextRenderer>>>
+class RenderTarget : public IDWriteTextRenderer
 {
 public:
-  virtual ~RenderTarget(){};
+  RenderTarget(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd);
+  HRESULT static Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd,
+                        OUT RenderTarget** renderTarget);
 
-  virtual void BeginDraw()                     = 0;
-  virtual void EndDraw()                       = 0;
-  virtual void Clear(UINT32 color)             = 0;
-  virtual void Resize(UINT width, UINT height) = 0;
-  virtual void UpdateMonitor()                 = 0;
+  ~RenderTarget();
 
-  virtual void SetTransform(DWRITE_MATRIX const& transform) = 0;
-  virtual void GetTransform(DWRITE_MATRIX& transform)       = 0;
-  virtual void SetAntialiasing(bool isEnabled)              = 0;
+  void BeginDraw();
+  void EndDraw();
+  void Clear(UINT32 color);
+  void Resize(UINT width, UINT height);
+  void UpdateMonitor();
 
-  virtual void DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect) = 0;
+  void SetTransform(DWRITE_MATRIX const& transform);
+  void GetTransform(DWRITE_MATRIX& transform);
+  void SetAntialiasing(bool isEnabled);
 
-  virtual void FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect) = 0;
+  void DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect);
 
-protected:
+  void FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect);
+
+  // IDWriteTextRenderer interface implementation
+  IFACEMETHOD(DrawGlyphRun)
+  (void* clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode,
+   const DWRITE_GLYPH_RUN* glyphRun, const DWRITE_GLYPH_RUN_DESCRIPTION* glyphRunDescription,
+   IUnknown* clientDrawingEffect) override;
+
+  IFACEMETHOD(DrawUnderline)
+  (void* clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, const DWRITE_UNDERLINE* underline,
+   IUnknown* clientDrawingEffect) override;
+
+  IFACEMETHOD(DrawStrikethrough)
+  (void* clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, const DWRITE_STRIKETHROUGH* strikethrough,
+   IUnknown* clientDrawingEffect) override;
+
+  IFACEMETHOD(DrawInlineObject)
+  (void* clientDrawingContext, FLOAT originX, FLOAT originY, IDWriteInlineObject* inlineObject, BOOL isSideways,
+   BOOL isRightToLeft, IUnknown* clientDrawingEffect) override;
+
+  // IDWriteTextRenderer -> IDWritePixelSnapping interface implementation
+  IFACEMETHOD(IsPixelSnappingDisabled)(void* clientDrawingContext, OUT BOOL* isDisabled);
+
+  IFACEMETHOD(GetCurrentTransform)(void* clientDrawingContext, OUT DWRITE_MATRIX* transform);
+
+  IFACEMETHOD(GetPixelsPerDip)(void* clientDrawingContext, OUT FLOAT* pixelsPerDip);
+
+  // IDWriteTextRenderer -> IDWritePixelSnapping -> IUnknown interface implementation
+  virtual HRESULT STDMETHODCALLTYPE QueryInterface(
+      /* [in] */ REFIID riid,
+      /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override
+  {
+    return E_NOTIMPL;
+  }
+
+  virtual ULONG STDMETHODCALLTYPE AddRef(void) override
+  {
+    return 0;
+  }
+
+  virtual ULONG STDMETHODCALLTYPE Release(void) override
+  {
+    return 0;
+  }
+
+private:
+  HRESULT CreateTarget();
+  ID2D1Brush* GetCachedBrush(const DrawingEffect* effect);
+
   // This context is not persisted, only existing on the stack as it
   // is passed down through. This is mainly needed to handle cases
   // where runs where no drawing effect set, like those of an inline
@@ -69,67 +102,12 @@ protected:
 
     return (reinterpret_cast<Context*>(clientDrawingContext))->drawingEffect;
   }
-};
 
-////////////////////////////////////////////////////////////////////////////////
-
-class RenderTargetD2D : public RenderTarget
-{
-public:
-  RenderTargetD2D(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd);
-  HRESULT static Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd,
-                        OUT RenderTarget** renderTarget);
-
-  virtual ~RenderTargetD2D();
-
-  virtual void BeginDraw();
-  virtual void EndDraw();
-  virtual void Clear(UINT32 color);
-  virtual void Resize(UINT width, UINT height);
-  virtual void UpdateMonitor();
-
-  virtual void SetTransform(DWRITE_MATRIX const& transform);
-  virtual void GetTransform(DWRITE_MATRIX& transform);
-  virtual void SetAntialiasing(bool isEnabled);
-
-  virtual void DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect);
-
-  void FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect);
-
-  // IDWriteTextRenderer implementation
-
-  IFACEMETHOD(DrawGlyphRun)
-  (void* clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode,
-   const DWRITE_GLYPH_RUN* glyphRun, const DWRITE_GLYPH_RUN_DESCRIPTION* glyphRunDescription,
-   IUnknown* clientDrawingEffect);
-
-  IFACEMETHOD(DrawUnderline)
-  (void* clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, const DWRITE_UNDERLINE* underline,
-   IUnknown* clientDrawingEffect);
-
-  IFACEMETHOD(DrawStrikethrough)
-  (void* clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, const DWRITE_STRIKETHROUGH* strikethrough,
-   IUnknown* clientDrawingEffect);
-
-  IFACEMETHOD(DrawInlineObject)
-  (void* clientDrawingContext, FLOAT originX, FLOAT originY, IDWriteInlineObject* inlineObject, BOOL isSideways,
-   BOOL isRightToLeft, IUnknown* clientDrawingEffect);
-
-  IFACEMETHOD(IsPixelSnappingDisabled)(void* clientDrawingContext, OUT BOOL* isDisabled);
-
-  IFACEMETHOD(GetCurrentTransform)(void* clientDrawingContext, OUT DWRITE_MATRIX* transform);
-
-  IFACEMETHOD(GetPixelsPerDip)(void* clientDrawingContext, OUT FLOAT* pixelsPerDip);
-
-protected:
-  HRESULT CreateTarget();
-  ID2D1Brush* GetCachedBrush(const DrawingEffect* effect);
-
-protected:
-  IDWriteFactory* dwriteFactory_;
-  ID2D1Factory* d2dFactory_;
-  ID2D1HwndRenderTarget* target_; // D2D render target
-  ID2D1SolidColorBrush* brush_;   // reusable scratch brush for current color
+private:
+  mj::ComPtr<IDWriteFactory> dwriteFactory_;
+  mj::ComPtr<ID2D1Factory> d2dFactory_;
+  mj::ComPtr<ID2D1HwndRenderTarget> target_; // D2D render target
+  mj::ComPtr<ID2D1SolidColorBrush> brush_;   // reusable scratch brush for current color
 
   HWND hwnd_;
   HMONITOR hmonitor_;

@@ -1,5 +1,6 @@
 #pragma once
 #include "mj_common.h"
+#include "mj_win32.h"
 
 ////////////////////////////////////////
 // Helper to construct text ranges when calling setters.
@@ -48,13 +49,12 @@ public:
   };
 
 public:
-  EditableLayout(IDWriteFactory* factory) : factory_(SafeAcquire(factory))
+  EditableLayout(IDWriteFactory* factory) : factory_(factory)
   {
   }
 
   ~EditableLayout()
   {
-    SafeRelease(&factory_);
   }
 
 public:
@@ -64,18 +64,18 @@ public:
   }
 
   /// Inserts a given string in the text layout's stored string at a certain text postion;
-  HRESULT STDMETHODCALLTYPE InsertTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
+  HRESULT STDMETHODCALLTYPE InsertTextAt(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
                                          WCHAR const* textToInsert, // [lengthToInsert]
                                          UINT32 textToInsertLength, CaretFormat* caretFormat = nullptr);
 
   /// Deletes a specified amount characters from the layout's stored string.
-  HRESULT STDMETHODCALLTYPE RemoveTextAt(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
+  HRESULT STDMETHODCALLTYPE RemoveTextAt(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout, mj::ArrayList<wchar_t>& text, UINT32 position,
                                          UINT32 lengthToRemove);
 
-  HRESULT STDMETHODCALLTYPE Clear(IN OUT IDWriteTextLayout*& currentLayout, mj::ArrayList<wchar_t>& text);
+  HRESULT STDMETHODCALLTYPE Clear(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout, mj::ArrayList<wchar_t>& text);
 
 private:
-  HRESULT STDMETHODCALLTYPE RecreateLayout(IN OUT IDWriteTextLayout*& currentLayout, const mj::ArrayList<wchar_t>& text);
+  HRESULT STDMETHODCALLTYPE RecreateLayout(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout, const mj::ArrayList<wchar_t>& text);
 
   static void CopyGlobalProperties(IDWriteTextLayout* oldLayout, IDWriteTextLayout* newLayout);
 
