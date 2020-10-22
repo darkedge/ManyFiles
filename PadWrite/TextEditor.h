@@ -108,9 +108,9 @@ private:
   // Creation/destruction
   TextEditor(IDWriteFactory* factory);
 
-  HWND hwnd_;
+  HWND hwnd_ = nullptr;
 
-  RenderTarget* renderTarget_;                      // Not owned
+  RenderTarget* renderTarget_ = nullptr;            // Not owned
   mj::ComPtr<DrawingEffect> pageBackgroundEffect_;  // Owned
   mj::ComPtr<DrawingEffect> textSelectionEffect_;   // Owned
   mj::ComPtr<DrawingEffect> imageSelectionEffect_;  // Owned
@@ -140,15 +140,12 @@ private:
   EditableLayout::CaretFormat caretFormat_;
 
   // Mouse manipulation
-  bool currentlySelecting_ : 1;
-  bool currentlyPanning_ : 1;
+  bool currentlySelecting_;
+  bool currentlyPanning_;
   float previousMouseX;
   float previousMouseY;
 
-  enum
-  {
-    MouseScrollFactor = 10
-  };
+  static constexpr auto MouseScrollFactor = 10;
 
   // Current view
   float scaleX_;  // horizontal scaling

@@ -92,15 +92,13 @@ ATOM TextEditor::RegisterWindowClass()
 }
 
 TextEditor::TextEditor(IDWriteFactory* factory)
-    : renderTarget_(), //
-      textLayout_(),   //
-      layoutEditor_(factory)
+    : layoutEditor_(factory)
 {
   // TODO MJ: Untracked memory allocations
-  pageBackgroundEffect_  = new DrawingEffect(0xFF000000 | D2D1::ColorF::White);
-  textSelectionEffect_   = new DrawingEffect(0xFF000000 | D2D1::ColorF::LightSkyBlue);
-  imageSelectionEffect_  = new DrawingEffect(0x80000000 | D2D1::ColorF::LightSkyBlue);
-  caretBackgroundEffect_ = new DrawingEffect(0xFF000000 | D2D1::ColorF::Black);
+  pageBackgroundEffect_        = new DrawingEffect(0xFF000000 | D2D1::ColorF::White);
+  textSelectionEffect_         = new DrawingEffect(0xFF000000 | D2D1::ColorF::LightSkyBlue);
+  imageSelectionEffect_        = new DrawingEffect(0x80000000 | D2D1::ColorF::LightSkyBlue);
+  this->caretBackgroundEffect_ = new DrawingEffect(0xFF000000 | D2D1::ColorF::Black);
 
   // Creates editor window.
 
@@ -145,16 +143,16 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   hr = layoutEditor_.GetFactory()->CreateTextLayout(text_.begin(), static_cast<UINT32>(length), textFormat,
                                                     580, // TODO MJ: maximum width
                                                     420, // TODO MJ: maximum height
-                                                    textLayout_.ReleaseAndGetAddressOf());
+                                                    this->textLayout_.ReleaseAndGetAddressOf());
 
   if (FAILED(hr))
     return hr;
 
   // Get size of text layout; needed for setting the view origin.
-  float layoutWidth  = textLayout_->GetMaxWidth();
-  float layoutHeight = textLayout_->GetMaxHeight();
-  originX_           = layoutWidth / 2;
-  originY_           = layoutHeight / 2;
+  float layoutWidth  = this->textLayout_->GetMaxWidth();
+  float layoutHeight = this->textLayout_->GetMaxHeight();
+  this->originX_     = layoutWidth / 2;
+  this->originY_     = layoutHeight / 2;
 
   // Set the initial text layout and update caret properties accordingly.
   UpdateCaretFormatting();
@@ -162,7 +160,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   // Create text editor window (hwnd is stored in the create event)
   CreateWindowExW(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
                   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
-  if (!hwnd_)
+  if (!this->hwnd_)
     return HRESULT_FROM_WIN32(GetLastError());
 
   return S_OK;
@@ -170,25 +168,25 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 
 inline void TextEditor::InitDefaults()
 {
-  hwnd_ = nullptr;
+  this->hwnd_ = nullptr;
 
-  caretPosition_       = 0;
-  caretAnchor_         = 0;
-  caretPositionOffset_ = 0;
+  this->caretPosition_       = 0;
+  this->caretAnchor_         = 0;
+  this->caretPositionOffset_ = 0;
 
-  currentlySelecting_ = false;
-  currentlyPanning_   = false;
-  previousMouseX      = 0;
-  previousMouseY      = 0;
+  this->currentlySelecting_ = false;
+  this->currentlyPanning_   = false;
+  this->previousMouseX      = 0;
+  this->previousMouseY      = 0;
 }
 
 inline void TextEditor::InitViewDefaults()
 {
-  scaleX_  = 1;
-  scaleY_  = 1;
-  angle_   = 0;
-  originX_ = 0;
-  originY_ = 0;
+  this->scaleX_  = 1.0f;
+  this->scaleY_  = 1.0f;
+  this->angle_   = 0.0f;
+  this->originX_ = 0.0f;
+  this->originY_ = 0.0f;
 }
 
 void TextEditor::SetRenderTarget(RenderTarget* target)
@@ -323,16 +321,16 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 void TextEditor::OnDraw()
 {
   PAINTSTRUCT ps;
-  BeginPaint(hwnd_, &ps);
+  BeginPaint(this->hwnd_, &ps);
 
-  if (renderTarget_) // in case event received before we have a target
+  if (this->renderTarget_) // in case event received before we have a target
   {
-    renderTarget_->BeginDraw();
-    renderTarget_->Clear(D2D1::ColorF::LightGray);
-    DrawPage(*renderTarget_);
-    renderTarget_->EndDraw();
+    this->renderTarget_->BeginDraw();
+    this->renderTarget_->Clear(D2D1::ColorF::LightGray);
+    DrawPage(*this->renderTarget_);
+    this->renderTarget_->EndDraw();
   }
-  EndPaint(hwnd_, &ps);
+  EndPaint(this->hwnd_, &ps);
 }
 
 void TextEditor::DrawPage(RenderTarget& target)
@@ -350,7 +348,7 @@ void TextEditor::DrawPage(RenderTarget& target)
   target.SetTransform(Cast(pageTransform));
 
   // Draw the page
-  D2D1_POINT_2F pageSize = GetPageSize(textLayout_.Get());
+  D2D1_POINT_2F pageSize = GetPageSize(this->textLayout_.Get());
   RectF pageRect         = { 0, 0, pageSize.x, pageSize.y };
 
   target.FillRectangle(pageRect, *pageBackgroundEffect_.Get());
@@ -361,12 +359,12 @@ void TextEditor::DrawPage(RenderTarget& target)
 
   if (caretRange.length > 0)
   {
-    textLayout_->HitTestTextRange(caretRange.startPosition, caretRange.length,
-                                  0, // x
-                                  0, // y
-                                  nullptr,
-                                  0, // metrics count
-                                  &actualHitTestCount);
+    this->textLayout_->HitTestTextRange(caretRange.startPosition, caretRange.length,
+                                        0, // x
+                                        0, // y
+                                        nullptr,
+                                        0, // metrics count
+                                        &actualHitTestCount);
   }
 
   // Allocate enough room to return all hit-test metrics.
@@ -376,10 +374,11 @@ void TextEditor::DrawPage(RenderTarget& target)
 
   if (caretRange.length > 0)
   {
-    textLayout_->HitTestTextRange(caretRange.startPosition, caretRange.length,
-                                  0, // x
-                                  0, // y
-                                  &hitTestMetrics[0], static_cast<UINT32>(hitTestMetrics.Size()), &actualHitTestCount);
+    this->textLayout_->HitTestTextRange(caretRange.startPosition, caretRange.length,
+                                        0, // x
+                                        0, // y
+                                        &hitTestMetrics[0], static_cast<UINT32>(hitTestMetrics.Size()),
+                                        &actualHitTestCount);
   }
 
   // Draw the selection ranges behind the text.
@@ -403,14 +402,14 @@ void TextEditor::DrawPage(RenderTarget& target)
   }
 
   // Draw our caret onto the render target.
-  RectF caretRect;
-  GetCaretRect(caretRect);
+  MJ_UNINITIALIZED RectF caretRect;
+  this->GetCaretRect(caretRect);
   target.SetAntialiasing(false);
-  target.FillRectangle(caretRect, *caretBackgroundEffect_.Get());
+  target.FillRectangle(caretRect, *this->caretBackgroundEffect_.Get());
   target.SetAntialiasing(true);
 
   // Draw text
-  target.DrawTextLayout(textLayout_.Get(), pageRect);
+  target.DrawTextLayout(this->textLayout_.Get(), pageRect);
 
   // Draw the selection ranges in front of images.
   // This shades otherwise opaque images so they are visibly selected,
@@ -458,7 +457,7 @@ void TextEditor::OnScroll(UINT message, UINT request)
 
   int barOrientation = (message == WM_VSCROLL) ? SB_VERT : SB_HORZ;
 
-  if (!GetScrollInfo(hwnd_, barOrientation, &scrollInfo))
+  if (!GetScrollInfo(this->hwnd_, barOrientation, &scrollInfo))
     return;
 
   // Save the position for comparison later on
@@ -497,7 +496,7 @@ void TextEditor::OnScroll(UINT message, UINT request)
     scrollInfo.nPos = scrollInfo.nMax - scrollInfo.nPage;
 
   scrollInfo.fMask = SIF_POS;
-  SetScrollInfo(hwnd_, barOrientation, &scrollInfo, TRUE);
+  SetScrollInfo(this->hwnd_, barOrientation, &scrollInfo, TRUE);
 
   // If the position has changed, scroll the window
   if (scrollInfo.nPos != oldPosition)
@@ -511,13 +510,13 @@ void TextEditor::OnScroll(UINT message, UINT request)
     D2D1_POINT_2F scaledSize = { pageTransform._11 + pageTransform._21, pageTransform._12 + pageTransform._22 };
 
     // Adjust the correct origin.
-    if ((barOrientation == SB_VERT) ^ IsLandscapeAngle(angle_))
+    if ((barOrientation == SB_VERT) ^ IsLandscapeAngle(this->angle_))
     {
-      originY_ = float(scaledSize.y >= 0 ? scrollInfo.nPos : inversePos);
+      this->originY_ = float(scaledSize.y >= 0 ? scrollInfo.nPos : inversePos);
     }
     else
     {
-      originX_ = float(scaledSize.x >= 0 ? scrollInfo.nPos : inversePos);
+      this->originX_ = float(scaledSize.x >= 0 ? scrollInfo.nPos : inversePos);
     }
 
     ConstrainViewOrigin();
@@ -529,12 +528,12 @@ void TextEditor::UpdateScrollInfo()
 {
   // Updates scroll bars.
 
-  if (!textLayout_)
+  if (!this->textLayout_)
     return;
 
   // Determine scroll bar's step size in pixels by multiplying client rect by current view.
   RECT clientRect;
-  GetClientRect(hwnd_, &clientRect);
+  GetClientRect(this->hwnd_, &clientRect);
 
   D2D1::Matrix3x2F pageTransform;
   GetInverseViewMatrix(&Cast(pageTransform));
@@ -544,14 +543,14 @@ void TextEditor::UpdateScrollInfo()
   D2D1_POINT_2F scaledSize = { clientSize.x * pageTransform._11 + clientSize.y * pageTransform._21,
                                clientSize.x * pageTransform._12 + clientSize.y * pageTransform._22 };
 
-  float x                = originX_;
-  float y                = originY_;
-  D2D1_POINT_2F pageSize = GetPageSize(textLayout_.Get());
+  float x                = this->originX_;
+  float y                = this->originY_;
+  D2D1_POINT_2F pageSize = GetPageSize(this->textLayout_.Get());
 
   SCROLLINFO scrollInfo = { sizeof(scrollInfo) };
   scrollInfo.fMask      = SIF_PAGE | SIF_POS | SIF_RANGE;
 
-  if (IsLandscapeAngle(angle_))
+  if (IsLandscapeAngle(this->angle_))
   {
     mj::swap(x, y);
     mj::swap(pageSize.x, pageSize.y);
@@ -563,23 +562,23 @@ void TextEditor::UpdateScrollInfo()
   scrollInfo.nPos  = int(scaledSize.y >= 0 ? y : pageSize.y - y);
   scrollInfo.nMin  = 0;
   scrollInfo.nMax  = int(pageSize.y) + scrollInfo.nPage;
-  SetScrollInfo(hwnd_, SB_VERT, &scrollInfo, TRUE);
+  SetScrollInfo(this->hwnd_, SB_VERT, &scrollInfo, TRUE);
   scrollInfo.nPos = 0;
   scrollInfo.nMax = 0;
-  GetScrollInfo(hwnd_, SB_VERT, &scrollInfo);
+  GetScrollInfo(this->hwnd_, SB_VERT, &scrollInfo);
 
   // Set horizontal scroll bar.
   scrollInfo.nPage = int(mj::abs(scaledSize.x));
   scrollInfo.nPos  = int(scaledSize.x >= 0 ? x : pageSize.x - x);
   scrollInfo.nMin  = 0;
   scrollInfo.nMax  = int(pageSize.x) + scrollInfo.nPage;
-  SetScrollInfo(hwnd_, SB_HORZ, &scrollInfo, TRUE);
+  SetScrollInfo(this->hwnd_, SB_HORZ, &scrollInfo, TRUE);
 }
 
 void TextEditor::OnSize(UINT width, UINT height)
 {
-  if (renderTarget_)
-    renderTarget_->Resize(width, height);
+  if (this->renderTarget_)
+    this->renderTarget_->Resize(width, height);
 
   RefreshView();
 }
@@ -593,16 +592,16 @@ void TextEditor::OnMousePress(UINT message, float x, float y)
   if (message == WM_LBUTTONDOWN)
   {
     // Start dragging selection.
-    currentlySelecting_ = true;
+    this->currentlySelecting_ = true;
 
     bool heldShift = (GetKeyState(VK_SHIFT) & 0x80) != 0;
     SetSelectionFromPoint(x, y, heldShift);
   }
   else if (message == WM_MBUTTONDOWN)
   {
-    previousMouseX    = x;
-    previousMouseY    = y;
-    currentlyPanning_ = true;
+    this->previousMouseX    = x;
+    this->previousMouseY    = y;
+    this->currentlyPanning_ = true;
   }
 }
 
@@ -612,11 +611,11 @@ void TextEditor::OnMouseRelease(UINT message, float x, float y)
 
   if (message == WM_LBUTTONUP)
   {
-    currentlySelecting_ = false;
+    this->currentlySelecting_ = false;
   }
   else if (message == WM_MBUTTONUP)
   {
-    currentlyPanning_ = false;
+    this->currentlyPanning_ = false;
   }
 }
 
@@ -626,23 +625,23 @@ void TextEditor::OnMouseMove(float x, float y)
 
   MirrorXCoordinate(x);
 
-  if (currentlySelecting_)
+  if (this->currentlySelecting_)
   {
     // Drag current selection.
     SetSelectionFromPoint(x, y, true);
   }
-  else if (currentlyPanning_)
+  else if (this->currentlyPanning_)
   {
     DWRITE_MATRIX matrix;
     GetInverseViewMatrix(&matrix);
 
-    float xDif     = x - previousMouseX;
-    float yDif     = y - previousMouseY;
-    previousMouseX = x;
-    previousMouseY = y;
+    float xDif           = x - this->previousMouseX;
+    float yDif           = y - this->previousMouseY;
+    this->previousMouseX = x;
+    this->previousMouseY = y;
 
-    originX_ -= (xDif * matrix.m11 + yDif * matrix.m21);
-    originY_ -= (xDif * matrix.m12 + yDif * matrix.m22);
+    this->originX_ -= (xDif * matrix.m11 + yDif * matrix.m21);
+    this->originY_ -= (xDif * matrix.m12 + yDif * matrix.m22);
     ConstrainViewOrigin();
 
     RefreshView();
@@ -673,8 +672,8 @@ void TextEditor::OnMouseScroll(float xScroll, float yScroll)
     if (heldShift)
       mj::swap(xScroll, yScroll);
 
-    originX_ -= (xScroll * matrix.m11 + yScroll * matrix.m21);
-    originY_ -= (xScroll * matrix.m12 + yScroll * matrix.m22);
+    this->originX_ -= (xScroll * matrix.m11 + yScroll * matrix.m21);
+    this->originY_ -= (xScroll * matrix.m12 + yScroll * matrix.m22);
     ConstrainViewOrigin();
 
     RefreshView();
@@ -683,18 +682,18 @@ void TextEditor::OnMouseScroll(float xScroll, float yScroll)
 
 void TextEditor::OnMouseExit()
 {
-  currentlySelecting_ = false;
-  currentlyPanning_   = false;
+  this->currentlySelecting_ = false;
+  this->currentlyPanning_   = false;
 }
 
 void TextEditor::MirrorXCoordinate(IN OUT float& x)
 {
   // On RTL builds, coordinates may need to be restored to or converted
   // from Cartesian coordinates, where x increases positively to the right.
-  if (GetWindowLong(hwnd_, GWL_EXSTYLE) & WS_EX_LAYOUTRTL)
+  if (GetWindowLong(this->hwnd_, GWL_EXSTYLE) & WS_EX_LAYOUTRTL)
   {
     RECT rect;
-    GetClientRect(hwnd_, &rect);
+    GetClientRect(this->hwnd_, &rect);
     x = float(rect.right) - x - 1;
   }
 }
@@ -704,17 +703,17 @@ void TextEditor::ConstrainViewOrigin()
   // Keep the page on-screen by not allowing the origin
   // to go outside the page bounds.
 
-  D2D1_POINT_2F pageSize = GetPageSize(textLayout_.Get());
+  D2D1_POINT_2F pageSize = GetPageSize(this->textLayout_.Get());
 
-  if (originX_ > pageSize.x)
-    originX_ = pageSize.x;
-  if (originX_ < 0)
-    originX_ = 0;
+  if (this->originX_ > pageSize.x)
+    this->originX_ = pageSize.x;
+  if (this->originX_ < 0)
+    this->originX_ = 0;
 
-  if (originY_ > pageSize.y)
-    originY_ = pageSize.y;
-  if (originY_ < 0)
-    originY_ = 0;
+  if (this->originY_ > pageSize.y)
+    this->originY_ = pageSize.y;
+  if (this->originY_ < 0)
+    this->originY_ = 0;
 }
 
 void TextEditor::OnKeyPress(UINT32 keyCode)
@@ -725,14 +724,14 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
   bool heldShift   = (GetKeyState(VK_SHIFT) & 0x80) != 0;
   bool heldControl = (GetKeyState(VK_CONTROL) & 0x80) != 0;
 
-  UINT32 absolutePosition = caretPosition_ + caretPositionOffset_;
+  UINT32 absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
 
   switch (keyCode)
   {
   case VK_RETURN:
     // Insert CR/LF pair
     DeleteSelection();
-    layoutEditor_.InsertTextAt(textLayout_, text_, absolutePosition, L"\r\n", 2, &caretFormat_);
+    layoutEditor_.InsertTextAt(this->textLayout_, text_, absolutePosition, L"\r\n", 2, &caretFormat_);
     SetSelection(SetSelectionModeAbsoluteLeading, absolutePosition + 2, false, false);
     RefreshView();
     break;
@@ -744,7 +743,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     // there would be no way to delete just the diacritic following
     // a base character.
 
-    if (absolutePosition != caretAnchor_)
+    if (absolutePosition != this->caretAnchor_)
     {
       // delete the selected text
       DeleteSelection();
@@ -767,7 +766,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
         }
       }
       SetSelection(SetSelectionModeLeftChar, count, false);
-      layoutEditor_.RemoveTextAt(textLayout_, text_, caretPosition_, count);
+      layoutEditor_.RemoveTextAt(this->textLayout_, text_, this->caretPosition_, count);
       RefreshView();
     }
     break;
@@ -775,7 +774,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
   case VK_DELETE:
     // Delete following cluster.
 
-    if (absolutePosition != caretAnchor_)
+    if (absolutePosition != this->caretAnchor_)
     {
       // Delete all the selected text.
       DeleteSelection();
@@ -786,9 +785,9 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
       float caretX, caretY;
 
       // Get the size of the following cluster.
-      textLayout_->HitTestTextPosition(absolutePosition, false, &caretX, &caretY, &hitTestMetrics);
+      this->textLayout_->HitTestTextPosition(absolutePosition, false, &caretX, &caretY, &hitTestMetrics);
 
-      layoutEditor_.RemoveTextAt(textLayout_, text_, hitTestMetrics.textPosition, hitTestMetrics.length);
+      layoutEditor_.RemoveTextAt(this->textLayout_, text_, hitTestMetrics.textPosition, hitTestMetrics.length);
 
       SetSelection(SetSelectionModeAbsoluteLeading, hitTestMetrics.textPosition, false);
       RefreshView();
@@ -880,8 +879,8 @@ void TextEditor::OnKeyCharacter(UINT32 charCode)
       chars[1] = wchar_t(0xDC00 + (charCode & 0x3FF));
       charsLength++;
     }
-    layoutEditor_.InsertTextAt(textLayout_, text_, caretPosition_ + caretPositionOffset_, chars, charsLength,
-                               &caretFormat_);
+    layoutEditor_.InsertTextAt(this->textLayout_, text_, this->caretPosition_ + this->caretPositionOffset_, chars,
+                               charsLength, &caretFormat_);
     SetSelection(SetSelectionModeRight, charsLength, false, false);
 
     RefreshView();
@@ -892,7 +891,7 @@ void TextEditor::OnKeyCharacter(UINT32 charCode)
 
 UINT32 TextEditor::GetCaretPosition()
 {
-  return caretPosition_ + caretPositionOffset_;
+  return this->caretPosition_ + this->caretPositionOffset_;
 }
 
 DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
@@ -900,8 +899,8 @@ DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
   // Returns a valid range of the current selection,
   // regardless of whether the caret or anchor is first.
 
-  UINT32 caretBegin = caretAnchor_;
-  UINT32 caretEnd   = caretPosition_ + caretPositionOffset_;
+  UINT32 caretBegin = this->caretAnchor_;
+  UINT32 caretEnd   = this->caretPosition_ + this->caretPositionOffset_;
   if (caretBegin > caretEnd)
     mj::swap(caretBegin, caretEnd);
 
@@ -922,10 +921,10 @@ void TextEditor::GetLineMetrics(OUT mj::ArrayList<DWRITE_LINE_METRICS>& lineMetr
   // Retrieves the line metrics, used for caret navigation, up/down and home/end.
 
   MJ_UNINITIALIZED DWRITE_TEXT_METRICS textMetrics;
-  textLayout_->GetMetrics(&textMetrics);
+  this->textLayout_->GetMetrics(&textMetrics);
 
   lineMetrics.Reserve(textMetrics.lineCount);
-  textLayout_->GetLineMetrics(&lineMetrics[0], textMetrics.lineCount, &textMetrics.lineCount);
+  this->textLayout_->GetLineMetrics(&lineMetrics[0], textMetrics.lineCount, &textMetrics.lineCount);
 }
 
 void TextEditor::GetLineFromPosition(const DWRITE_LINE_METRICS* lineMetrics, // [lineCount]
@@ -965,22 +964,22 @@ void TextEditor::AlignCaretToNearestCluster(bool isTrailingHit, bool skipZeroWid
   MJ_UNINITIALIZED float caretX, caretY;
 
   // Align the caret to the nearest whole cluster.
-  textLayout_->HitTestTextPosition(caretPosition_, false, &caretX, &caretY, &hitTestMetrics);
+  this->textLayout_->HitTestTextPosition(this->caretPosition_, false, &caretX, &caretY, &hitTestMetrics);
 
   // The caret position itself is always the leading edge.
   // An additional offset indicates a trailing edge when non-zero.
   // This offset comes from the number of code-units in the
   // selected cluster or surrogate pair.
-  caretPosition_       = hitTestMetrics.textPosition;
-  caretPositionOffset_ = (isTrailingHit) ? hitTestMetrics.length : 0;
+  this->caretPosition_       = hitTestMetrics.textPosition;
+  this->caretPositionOffset_ = (isTrailingHit) ? hitTestMetrics.length : 0;
 
   // For invisible, zero-width characters (like line breaks
   // and formatting characters), force leading edge of the
   // next position.
   if (skipZeroWidth && hitTestMetrics.width == 0)
   {
-    caretPosition_ += caretPositionOffset_;
-    caretPositionOffset_ = 0;
+    this->caretPosition_ += this->caretPositionOffset_;
+    this->caretPositionOffset_ = 0;
   }
 }
 
@@ -1001,7 +1000,7 @@ bool TextEditor::SetSelectionFromPoint(float x, float y, bool extendSelection)
   float transformedX = (x * matrix.m11 + y * matrix.m21 + matrix.dx);
   float transformedY = (x * matrix.m12 + y * matrix.m22 + matrix.dy);
 
-  textLayout_->HitTestPoint(transformedX, transformedY, &isTrailingHit, &isInside, &caretMetrics);
+  this->textLayout_->HitTestPoint(transformedX, transformedY, &isTrailingHit, &isInside, &caretMetrics);
 
   // Update current selection according to click or mouse drag.
   SetSelection(isTrailingHit ? SetSelectionModeAbsoluteTrailing : SetSelectionModeAbsoluteLeading,
@@ -1016,9 +1015,9 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   // selection range (for example, when shift is held).
 
   UINT32 line                = UINT32_MAX; // current line number, needed by a few modes
-  UINT32 absolutePosition    = caretPosition_ + caretPositionOffset_;
+  UINT32 absolutePosition    = this->caretPosition_ + this->caretPositionOffset_;
   UINT32 oldAbsolutePosition = absolutePosition;
-  UINT32 oldCaretAnchor      = caretAnchor_;
+  UINT32 oldCaretAnchor      = this->caretAnchor_;
 
   MJ_UNINITIALIZED size_t length;
   static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
@@ -1026,53 +1025,53 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   switch (moveMode)
   {
   case SetSelectionModeLeft:
-    caretPosition_ += caretPositionOffset_;
-    if (caretPosition_ > 0)
+    this->caretPosition_ += this->caretPositionOffset_;
+    if (this->caretPosition_ > 0)
     {
-      --caretPosition_;
+      --this->caretPosition_;
       AlignCaretToNearestCluster(false, true);
 
       // special check for CR/LF pair
-      absolutePosition = caretPosition_ + caretPositionOffset_;
+      absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
       if (absolutePosition >= 1 && absolutePosition < length && text_[absolutePosition - 1] == '\r' &&
           text_[absolutePosition] == '\n')
       {
-        caretPosition_ = absolutePosition - 1;
+        this->caretPosition_ = absolutePosition - 1;
         AlignCaretToNearestCluster(false, true);
       }
     }
     break;
 
   case SetSelectionModeRight:
-    caretPosition_ = absolutePosition;
+    this->caretPosition_ = absolutePosition;
     AlignCaretToNearestCluster(true, true);
 
     // special check for CR/LF pair
-    absolutePosition = caretPosition_ + caretPositionOffset_;
+    absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
     if (absolutePosition >= 1 && absolutePosition < length && text_[absolutePosition - 1] == '\r' &&
         text_[absolutePosition] == '\n')
     {
-      caretPosition_ = absolutePosition + 1;
+      this->caretPosition_ = absolutePosition + 1;
       AlignCaretToNearestCluster(false, true);
     }
     break;
 
   case SetSelectionModeLeftChar:
-    caretPosition_ = absolutePosition;
-    caretPosition_ -= mj_min(advance, absolutePosition);
-    caretPositionOffset_ = 0;
+    this->caretPosition_ = absolutePosition;
+    this->caretPosition_ -= mj_min(advance, absolutePosition);
+    this->caretPositionOffset_ = 0;
     break;
 
   case SetSelectionModeRightChar:
-    caretPosition_       = absolutePosition + advance;
-    caretPositionOffset_ = 0;
+    this->caretPosition_       = absolutePosition + advance;
+    this->caretPositionOffset_ = 0;
     {
       // Use hit-testing to limit text position.
       MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
       MJ_UNINITIALIZED float caretX, caretY;
 
-      textLayout_->HitTestTextPosition(caretPosition_, false, &caretX, &caretY, &hitTestMetrics);
-      caretPosition_ = mj_min(caretPosition_, hitTestMetrics.textPosition + hitTestMetrics.length);
+      this->textLayout_->HitTestTextPosition(this->caretPosition_, false, &caretX, &caretY, &hitTestMetrics);
+      this->caretPosition_ = mj_min(this->caretPosition_, hitTestMetrics.textPosition + hitTestMetrics.length);
     }
     break;
 
@@ -1084,7 +1083,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     GetLineMetrics(lineMetrics);
 
     MJ_UNINITIALIZED UINT32 linePosition;
-    GetLineFromPosition(&lineMetrics[0], static_cast<UINT32>(lineMetrics.Size()), caretPosition_, &line, &linePosition);
+    GetLineFromPosition(&lineMetrics[0], static_cast<UINT32>(lineMetrics.Size()), this->caretPosition_, &line,
+                        &linePosition);
 
     // Move up a line or down
     if (moveMode == SetSelectionModeUp)
@@ -1112,21 +1112,21 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     MJ_UNINITIALIZED float caretX, caretY, dummyX;
 
     // Get x of current text position
-    textLayout_->HitTestTextPosition(caretPosition_,
-                                     caretPositionOffset_ > 0, // trailing if nonzero, else leading edge
-                                     &caretX, &caretY, &hitTestMetrics);
+    this->textLayout_->HitTestTextPosition(this->caretPosition_,
+                                           this->caretPositionOffset_ > 0, // trailing if nonzero, else leading edge
+                                           &caretX, &caretY, &hitTestMetrics);
 
     // Get y of new position
-    textLayout_->HitTestTextPosition(linePosition,
-                                     false, // leading edge
-                                     &dummyX, &caretY, &hitTestMetrics);
+    this->textLayout_->HitTestTextPosition(linePosition,
+                                           false, // leading edge
+                                           &dummyX, &caretY, &hitTestMetrics);
 
     // Now get text position of new x,y.
     BOOL isInside, isTrailingHit;
-    textLayout_->HitTestPoint(caretX, caretY, &isTrailingHit, &isInside, &hitTestMetrics);
+    this->textLayout_->HitTestPoint(caretX, caretY, &isTrailingHit, &isInside, &hitTestMetrics);
 
-    caretPosition_       = hitTestMetrics.textPosition;
-    caretPositionOffset_ = isTrailingHit ? (hitTestMetrics.length > 0) : 0;
+    this->caretPosition_       = hitTestMetrics.textPosition;
+    this->caretPositionOffset_ = isTrailingHit ? (hitTestMetrics.length > 0) : 0;
   }
   break;
 
@@ -1139,26 +1139,26 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     // First need to know how many clusters there are.
     mj::ArrayList<DWRITE_CLUSTER_METRICS> clusterMetrics;
     MJ_UNINITIALIZED UINT32 clusterCount;
-    textLayout_->GetClusterMetrics(nullptr, 0, &clusterCount);
+    this->textLayout_->GetClusterMetrics(nullptr, 0, &clusterCount);
 
     if (clusterCount == 0)
       break;
 
     // Now we actually read them.
     clusterMetrics.Reserve(clusterCount);
-    textLayout_->GetClusterMetrics(&clusterMetrics[0], clusterCount, &clusterCount);
+    this->textLayout_->GetClusterMetrics(&clusterMetrics[0], clusterCount, &clusterCount);
 
-    caretPosition_ = absolutePosition;
+    this->caretPosition_ = absolutePosition;
 
     UINT32 clusterPosition  = 0;
-    UINT32 oldCaretPosition = caretPosition_;
+    UINT32 oldCaretPosition = this->caretPosition_;
 
     if (moveMode == SetSelectionModeLeftWord)
     {
       // Read through the clusters, keeping track of the farthest valid
       // stopping point just before the old position.
-      caretPosition_       = 0;
-      caretPositionOffset_ = 0; // leading edge
+      this->caretPosition_       = 0;
+      this->caretPositionOffset_ = 0; // leading edge
       for (UINT32 cluster = 0; cluster < clusterCount; ++cluster)
       {
         clusterPosition += clusterMetrics[cluster].length;
@@ -1168,7 +1168,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
             break;
 
           // Update in case we pass this point next loop.
-          caretPosition_ = clusterPosition;
+          this->caretPosition_ = clusterPosition;
         }
       }
     }
@@ -1178,9 +1178,9 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
       // after the old position.
       for (UINT32 cluster = 0; cluster < clusterCount; ++cluster)
       {
-        UINT32 clusterLength = clusterMetrics[cluster].length;
-        caretPosition_       = clusterPosition;
-        caretPositionOffset_ = clusterLength; // trailing edge
+        UINT32 clusterLength       = clusterMetrics[cluster].length;
+        this->caretPosition_       = clusterPosition;
+        this->caretPositionOffset_ = clusterLength; // trailing edge
         if (clusterPosition >= oldCaretPosition && clusterMetrics[cluster].canWrapLineAfter)
           break; // first stopping point after old position.
 
@@ -1198,55 +1198,55 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics;
     GetLineMetrics(lineMetrics);
 
-    GetLineFromPosition(&lineMetrics[0], static_cast<UINT32>(lineMetrics.Size()), caretPosition_, &line,
-                        &caretPosition_);
+    GetLineFromPosition(&lineMetrics[0], static_cast<UINT32>(lineMetrics.Size()), this->caretPosition_, &line,
+                        &this->caretPosition_);
 
-    caretPositionOffset_ = 0;
+    this->caretPositionOffset_ = 0;
     if (moveMode == SetSelectionModeEnd)
     {
       // Place the caret at the last character on the line,
       // excluding line breaks. In the case of wrapped lines,
       // newlineLength will be 0.
-      UINT32 lineLength    = lineMetrics[line].length - lineMetrics[line].newlineLength;
-      caretPositionOffset_ = mj_min(lineLength, 1u);
-      caretPosition_ += lineLength - caretPositionOffset_;
+      UINT32 lineLength          = lineMetrics[line].length - lineMetrics[line].newlineLength;
+      this->caretPositionOffset_ = mj_min(lineLength, 1u);
+      this->caretPosition_ += lineLength - this->caretPositionOffset_;
       AlignCaretToNearestCluster(true);
     }
   }
   break;
 
   case SetSelectionModeFirst:
-    caretPosition_       = 0;
-    caretPositionOffset_ = 0;
+    this->caretPosition_       = 0;
+    this->caretPositionOffset_ = 0;
     break;
 
   case SetSelectionModeAll:
-    caretAnchor_    = 0;
-    extendSelection = true;
+    this->caretAnchor_ = 0;
+    extendSelection    = true;
 
   case SetSelectionModeLast: // Fall-through
-    caretPosition_       = UINT32_MAX;
-    caretPositionOffset_ = 0;
+    this->caretPosition_       = UINT32_MAX;
+    this->caretPositionOffset_ = 0;
     AlignCaretToNearestCluster(true);
     break;
 
   case SetSelectionModeAbsoluteLeading:
-    caretPosition_       = advance;
-    caretPositionOffset_ = 0;
+    this->caretPosition_       = advance;
+    this->caretPositionOffset_ = 0;
     break;
 
   case SetSelectionModeAbsoluteTrailing:
-    caretPosition_ = advance;
+    this->caretPosition_ = advance;
     AlignCaretToNearestCluster(true);
     break;
   }
 
-  absolutePosition = caretPosition_ + caretPositionOffset_;
+  absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
 
   if (!extendSelection)
-    caretAnchor_ = absolutePosition;
+    this->caretAnchor_ = absolutePosition;
 
-  bool caretMoved = (absolutePosition != oldAbsolutePosition) || (caretAnchor_ != oldCaretAnchor);
+  bool caretMoved = (absolutePosition != oldAbsolutePosition) || (this->caretAnchor_ != oldCaretAnchor);
 
   if (caretMoved)
   {
@@ -1271,16 +1271,16 @@ void TextEditor::GetCaretRect(OUT RectF& rect)
   RectF zeroRect = {};
   rect           = zeroRect;
 
-  if (!textLayout_)
+  if (!this->textLayout_)
     return;
 
   // Translate text character offset to point x,y.
   DWRITE_HIT_TEST_METRICS caretMetrics;
   float caretX, caretY;
 
-  textLayout_->HitTestTextPosition(caretPosition_,
-                                   caretPositionOffset_ > 0, // trailing if nonzero, else leading edge
-                                   &caretX, &caretY, &caretMetrics);
+  this->textLayout_->HitTestTextPosition(this->caretPosition_,
+                                         this->caretPositionOffset_ > 0, // trailing if nonzero, else leading edge
+                                         &caretX, &caretY, &caretMetrics);
 
   // If a selection exists, draw the caret using the
   // line size rather than the font size.
@@ -1288,11 +1288,11 @@ void TextEditor::GetCaretRect(OUT RectF& rect)
   if (selectionRange.length > 0)
   {
     UINT32 actualHitTestCount = 1;
-    textLayout_->HitTestTextRange(caretPosition_,
-                                  0, // length
-                                  0, // x
-                                  0, // y
-                                  &caretMetrics, 1, &actualHitTestCount);
+    this->textLayout_->HitTestTextRange(this->caretPosition_,
+                                        0, // length
+                                        0, // x
+                                        0, // y
+                                        &caretMetrics, 1, &actualHitTestCount);
 
     caretY = caretMetrics.top;
   }
@@ -1322,7 +1322,7 @@ void TextEditor::UpdateSystemCaret(const RectF& rect)
 
   // Gets the current caret position (in untransformed space).
 
-  if (GetFocus() != hwnd_) // Only update if we have focus.
+  if (GetFocus() != this->hwnd_) // Only update if we have focus.
     return;
 
   D2D1::Matrix3x2F pageTransform;
@@ -1344,7 +1344,7 @@ void TextEditor::UpdateSystemCaret(const RectF& rect)
   int intWidth  = RoundToInt(transformedWidth);
   int intHeight = RoundToInt(caretPoint.y + transformedHeight) - intY;
 
-  CreateCaret(hwnd_, nullptr, intWidth, intHeight);
+  CreateCaret(this->hwnd_, nullptr, intWidth, intHeight);
   SetCaretPos(intX, intY);
 
   // Don't actually call ShowCaret. It's enough to just set its position.
@@ -1352,7 +1352,7 @@ void TextEditor::UpdateSystemCaret(const RectF& rect)
 
 void TextEditor::UpdateCaretFormatting()
 {
-  UINT32 currentPos = caretPosition_ + caretPositionOffset_;
+  UINT32 currentPos = this->caretPosition_ + this->caretPositionOffset_;
 
   if (currentPos > 0)
   {
@@ -1361,23 +1361,24 @@ void TextEditor::UpdateCaretFormatting()
 
   // Get the family name
   caretFormat_.fontFamilyName[0] = '\0';
-  textLayout_->GetFontFamilyName(currentPos, &caretFormat_.fontFamilyName[0], ARRAYSIZE(caretFormat_.fontFamilyName));
+  this->textLayout_->GetFontFamilyName(currentPos, &caretFormat_.fontFamilyName[0],
+                                       ARRAYSIZE(caretFormat_.fontFamilyName));
 
   // Get the locale
   caretFormat_.localeName[0] = '\0';
-  textLayout_->GetLocaleName(currentPos, &caretFormat_.localeName[0], ARRAYSIZE(caretFormat_.localeName));
+  this->textLayout_->GetLocaleName(currentPos, &caretFormat_.localeName[0], ARRAYSIZE(caretFormat_.localeName));
 
   // Get the remaining attributes...
-  textLayout_->GetFontWeight(currentPos, &caretFormat_.fontWeight);
-  textLayout_->GetFontStyle(currentPos, &caretFormat_.fontStyle);
-  textLayout_->GetFontStretch(currentPos, &caretFormat_.fontStretch);
-  textLayout_->GetFontSize(currentPos, &caretFormat_.fontSize);
-  textLayout_->GetUnderline(currentPos, &caretFormat_.hasUnderline);
-  textLayout_->GetStrikethrough(currentPos, &caretFormat_.hasStrikethrough);
+  this->textLayout_->GetFontWeight(currentPos, &caretFormat_.fontWeight);
+  this->textLayout_->GetFontStyle(currentPos, &caretFormat_.fontStyle);
+  this->textLayout_->GetFontStretch(currentPos, &caretFormat_.fontStretch);
+  this->textLayout_->GetFontSize(currentPos, &caretFormat_.fontSize);
+  this->textLayout_->GetUnderline(currentPos, &caretFormat_.hasUnderline);
+  this->textLayout_->GetStrikethrough(currentPos, &caretFormat_.hasStrikethrough);
 
   // Get the current color.
   mj::ComPtr<IUnknown> drawingEffect;
-  textLayout_->GetDrawingEffect(currentPos, drawingEffect.GetAddressOf());
+  this->textLayout_->GetDrawingEffect(currentPos, drawingEffect.GetAddressOf());
   caretFormat_.color = 0;
   if (drawingEffect)
   {
@@ -1397,7 +1398,7 @@ void TextEditor::CopyToClipboard()
     return;
 
   // Open and empty existing contents.
-  if (OpenClipboard(hwnd_))
+  if (OpenClipboard(this->hwnd_))
   {
     if (EmptyClipboard())
     {
@@ -1436,7 +1437,7 @@ void TextEditor::DeleteSelection()
   if (selectionRange.length <= 0)
     return;
 
-  layoutEditor_.RemoveTextAt(textLayout_, text_, selectionRange.startPosition, selectionRange.length);
+  layoutEditor_.RemoveTextAt(this->textLayout_, text_, selectionRange.startPosition, selectionRange.length);
 
   SetSelection(SetSelectionModeAbsoluteLeading, selectionRange.startPosition, false);
   RefreshView();
@@ -1452,7 +1453,7 @@ void TextEditor::PasteFromClipboard()
 
   // Copy Unicode text from clipboard.
 
-  if (OpenClipboard(hwnd_))
+  if (OpenClipboard(this->hwnd_))
   {
     HGLOBAL hClipboardData = GetClipboardData(CF_UNICODETEXT);
 
@@ -1469,7 +1470,8 @@ void TextEditor::PasteFromClipboard()
       if (pMemory)
       {
         // Insert the text at the current position.
-        layoutEditor_.InsertTextAt(textLayout_, text_, caretPosition_ + caretPositionOffset_, text, characterCount);
+        layoutEditor_.InsertTextAt(this->textLayout_, text_, this->caretPosition_ + this->caretPositionOffset_, text,
+                                   characterCount);
         GlobalUnlock(hClipboardData);
       }
     }
@@ -1482,12 +1484,12 @@ void TextEditor::PasteFromClipboard()
 
 HRESULT TextEditor::InsertText(const wchar_t* text)
 {
-  UINT32 absolutePosition = caretPosition_ + caretPositionOffset_;
+  UINT32 absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
 
   MJ_UNINITIALIZED size_t length;
   static_cast<void>(StringCchLengthW(text, 1024, &length));
 
-  return layoutEditor_.InsertTextAt(textLayout_, text_, absolutePosition, text, static_cast<UINT32>(length),
+  return layoutEditor_.InsertTextAt(this->textLayout_, text_, absolutePosition, text, static_cast<UINT32>(length),
                                     &caretFormat_);
 }
 
@@ -1500,10 +1502,10 @@ void TextEditor::ResetView()
   InitViewDefaults();
 
   // Center document
-  float layoutWidth  = textLayout_->GetMaxWidth();
-  float layoutHeight = textLayout_->GetMaxHeight();
-  originX_           = layoutWidth / 2;
-  originY_           = layoutHeight / 2;
+  float layoutWidth  = this->textLayout_->GetMaxWidth();
+  float layoutHeight = this->textLayout_->GetMaxHeight();
+  this->originX_     = layoutWidth / 2;
+  this->originY_     = layoutHeight / 2;
 
   RefreshView();
 }
@@ -1511,34 +1513,34 @@ void TextEditor::ResetView()
 float TextEditor::SetAngle(float angle, bool relativeAdjustement)
 {
   if (relativeAdjustement)
-    angle_ += angle;
+    this->angle_ += angle;
   else
-    angle_ = angle;
+    this->angle_ = angle;
 
   RefreshView();
 
-  return angle_;
+  return this->angle_;
 }
 
 void TextEditor::SetScale(float scaleX, float scaleY, bool relativeAdjustement)
 {
   if (relativeAdjustement)
   {
-    scaleX_ *= scaleX;
-    scaleY_ *= scaleY;
+    this->scaleX_ *= scaleX;
+    this->scaleY_ *= scaleY;
   }
   else
   {
-    scaleX_ = scaleX;
-    scaleY_ = scaleY;
+    this->scaleX_ = scaleX;
+    this->scaleY_ = scaleY;
   }
   RefreshView();
 }
 
 void TextEditor::GetScale(OUT float* scaleX, OUT float* scaleY)
 {
-  *scaleX = scaleX_;
-  *scaleY = scaleY_;
+  *scaleX = this->scaleX_;
+  *scaleY = this->scaleY_;
 }
 
 void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
@@ -1546,27 +1548,35 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
   // Generates a view matrix from the current origin, angle, and scale.
 
   // Need the editor size for centering.
-  RECT rect;
-  GetClientRect(hwnd_, &rect);
+  MJ_UNINITIALIZED RECT rect;
+  GetClientRect(this->hwnd_, &rect);
 
   // Translate the origin to 0,0
-  DWRITE_MATRIX translationMatrix = { 1, 0, 0, 1, -originX_, -originY_ };
+  DWRITE_MATRIX translationMatrix = { 1.0f,
+                                      0.0f, //
+                                      0.0f,
+                                      1.0f, //
+                                      -this->originX_,
+                                      -this->originY_ };
 
   // Scale and rotate
-  float radians  = DegreesToRadians(mj::fmodf(angle_, 360.0f));
+  float radians  = DegreesToRadians(mj::fmodf(this->angle_, 360.0f));
   float cosValue = mj::cos(radians);
   float sinValue = mj::sin(radians);
 
   // If rotation is a quarter multiple, ensure sin and cos are exactly one of {-1,0,1}
-  if (mj::fmodf(angle_, 90.0f) == 0)
+  if (mj::fmodf(this->angle_, 90.0f) == 0.0f)
   {
     cosValue = mj::floorf(cosValue + 0.5f);
     sinValue = mj::floorf(sinValue + 0.5f);
   }
 
-  DWRITE_MATRIX rotationMatrix = {
-    float(cosValue * scaleX_), float(sinValue * scaleX_), float(-sinValue * scaleY_), float(cosValue * scaleY_), 0, 0
-  };
+  DWRITE_MATRIX rotationMatrix = { float(cosValue * this->scaleX_),
+                                   float(sinValue * this->scaleX_),
+                                   float(-sinValue * this->scaleY_),
+                                   float(cosValue * this->scaleY_),
+                                   0.0f,
+                                   0.0f };
 
   // Set the origin in the center of the window
   float centeringFactor      = 0.5f;
@@ -1575,7 +1585,7 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
     0.0f, 1.0f, mj::floorf(float(rect.right * centeringFactor)), mj::floorf(float(rect.bottom * centeringFactor))
   };
 
-  D2D1::Matrix3x2F resultA, resultB;
+  MJ_UNINITIALIZED D2D1::Matrix3x2F resultA, resultB;
 
   resultB.SetProduct(Cast(translationMatrix), Cast(rotationMatrix));
   resultA.SetProduct(resultB, Cast(centerMatrix));
@@ -1590,8 +1600,7 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
 void TextEditor::GetInverseViewMatrix(OUT DWRITE_MATRIX* matrix) const
 {
   // Inverts the view matrix for hit-testing and scrolling.
-
-  DWRITE_MATRIX viewMatrix;
+  MJ_UNINITIALIZED DWRITE_MATRIX viewMatrix;
   GetViewMatrix(&viewMatrix);
   ComputeInverseMatrix(viewMatrix, *matrix);
 }
