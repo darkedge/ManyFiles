@@ -61,6 +61,7 @@ public:
   void DeleteSelection();
   void PasteFromClipboard();
   HRESULT InsertText(const wchar_t* text);
+  HRESULT SetText(const wchar_t* text);
 
   // Layout/editing/caret navigation
   void UpdateCaretFormatting();

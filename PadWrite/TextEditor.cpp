@@ -88,7 +88,7 @@ ATOM TextEditor::RegisterWindowClass()
   wcex.lpszClassName = TEXT("DirectWriteEdit");
   wcex.hIconSm       = nullptr;
 
-  return RegisterClassEx(&wcex);
+  return RegisterClassExW(&wcex);
 }
 
 TextEditor::TextEditor(IDWriteFactory* factory)
@@ -134,13 +134,13 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 
   // Set the initial text.
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(text, 1024, &length));
+  static_cast<void>(StringCchLengthW(text, 1024, &length)); // TODO MJ: Fixed buffer size
   this->text_.Assign(text, static_cast<uint32_t>(length));
   this->text_.Add('\0');
 
   // Create an ideal layout for the text editor based on the text and format,
   // favoring document layout over pixel alignment.
-  hr = layoutEditor_.GetFactory()->CreateTextLayout(text_.begin(), static_cast<UINT32>(length), textFormat,
+  hr = layoutEditor_.GetFactory()->CreateTextLayout(this->text_.begin(), static_cast<UINT32>(length), textFormat,
                                                     580, // TODO MJ: maximum width
                                                     420, // TODO MJ: maximum height
                                                     this->textLayout_.ReleaseAndGetAddressOf());
@@ -731,7 +731,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
   case VK_RETURN:
     // Insert CR/LF pair
     DeleteSelection();
-    layoutEditor_.InsertTextAt(this->textLayout_, text_, absolutePosition, L"\r\n", 2, &caretFormat_);
+    layoutEditor_.InsertTextAt(this->textLayout_, this->text_, absolutePosition, L"\r\n", 2, &caretFormat_);
     SetSelection(SetSelectionModeAbsoluteLeading, absolutePosition + 2, false, false);
     RefreshView();
     break;
@@ -751,14 +751,14 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     else if (absolutePosition > 0)
     {
       MJ_UNINITIALIZED size_t length;
-      static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
+      static_cast<void>(StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length));
 
       UINT32 count = 1;
       // Need special case for surrogate pairs and CR/LF pair.
       if (absolutePosition >= 2 && absolutePosition <= length)
       {
-        wchar_t charBackOne = text_[absolutePosition - 1];
-        wchar_t charBackTwo = text_[absolutePosition - 2];
+        wchar_t charBackOne = this->text_[absolutePosition - 1];
+        wchar_t charBackTwo = this->text_[absolutePosition - 2];
         if ((IsLowSurrogate(charBackOne) && IsHighSurrogate(charBackTwo)) ||
             (charBackOne == '\n' && charBackTwo == '\r'))
         {
@@ -766,7 +766,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
         }
       }
       SetSelection(SetSelectionModeLeftChar, count, false);
-      layoutEditor_.RemoveTextAt(this->textLayout_, text_, this->caretPosition_, count);
+      layoutEditor_.RemoveTextAt(this->textLayout_, this->text_, this->caretPosition_, count);
       RefreshView();
     }
     break;
@@ -787,7 +787,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
       // Get the size of the following cluster.
       this->textLayout_->HitTestTextPosition(absolutePosition, false, &caretX, &caretY, &hitTestMetrics);
 
-      layoutEditor_.RemoveTextAt(this->textLayout_, text_, hitTestMetrics.textPosition, hitTestMetrics.length);
+      layoutEditor_.RemoveTextAt(this->textLayout_, this->text_, hitTestMetrics.textPosition, hitTestMetrics.length);
 
       SetSelection(SetSelectionModeAbsoluteLeading, hitTestMetrics.textPosition, false);
       RefreshView();
@@ -879,7 +879,7 @@ void TextEditor::OnKeyCharacter(UINT32 charCode)
       chars[1] = wchar_t(0xDC00 + (charCode & 0x3FF));
       charsLength++;
     }
-    layoutEditor_.InsertTextAt(this->textLayout_, text_, this->caretPosition_ + this->caretPositionOffset_, chars,
+    layoutEditor_.InsertTextAt(this->textLayout_, this->text_, this->caretPosition_ + this->caretPositionOffset_, chars,
                                charsLength, &caretFormat_);
     SetSelection(SetSelectionModeRight, charsLength, false, false);
 
@@ -905,7 +905,7 @@ DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
     mj::swap(caretBegin, caretEnd);
 
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
+  static_cast<void>(StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length));
 
   // Limit to actual text length.
   UINT32 textLength = static_cast<UINT32>(length);
@@ -1020,7 +1020,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   UINT32 oldCaretAnchor      = this->caretAnchor_;
 
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
+  static_cast<void>(StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length));
 
   switch (moveMode)
   {
@@ -1033,8 +1033,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
 
       // special check for CR/LF pair
       absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
-      if (absolutePosition >= 1 && absolutePosition < length && text_[absolutePosition - 1] == '\r' &&
-          text_[absolutePosition] == '\n')
+      if (absolutePosition >= 1 && absolutePosition < length && this->text_[absolutePosition - 1] == '\r' &&
+          this->text_[absolutePosition] == '\n')
       {
         this->caretPosition_ = absolutePosition - 1;
         AlignCaretToNearestCluster(false, true);
@@ -1048,8 +1048,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
 
     // special check for CR/LF pair
     absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
-    if (absolutePosition >= 1 && absolutePosition < length && text_[absolutePosition - 1] == '\r' &&
-        text_[absolutePosition] == '\n')
+    if (absolutePosition >= 1 && absolutePosition < length && this->text_[absolutePosition - 1] == '\r' &&
+        this->text_[absolutePosition] == '\n')
     {
       this->caretPosition_ = absolutePosition + 1;
       AlignCaretToNearestCluster(false, true);
@@ -1413,7 +1413,7 @@ void TextEditor::CopyToClipboard()
         if (memory)
         {
           // Copy text to memory block.
-          const wchar_t* text = text_.begin();
+          const wchar_t* text = this->text_.begin();
           memcpy(memory, &text[selectionRange.startPosition], byteSize);
           GlobalUnlock(hClipboardData);
 
@@ -1437,7 +1437,7 @@ void TextEditor::DeleteSelection()
   if (selectionRange.length <= 0)
     return;
 
-  layoutEditor_.RemoveTextAt(this->textLayout_, text_, selectionRange.startPosition, selectionRange.length);
+  layoutEditor_.RemoveTextAt(this->textLayout_, this->text_, selectionRange.startPosition, selectionRange.length);
 
   SetSelection(SetSelectionModeAbsoluteLeading, selectionRange.startPosition, false);
   RefreshView();
@@ -1464,13 +1464,13 @@ void TextEditor::PasteFromClipboard()
       void* pMemory       = GlobalLock(hClipboardData); // [byteSize] in bytes
       const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
       MJ_UNINITIALIZED size_t length;
-      static_cast<void>(StringCchLengthW(text, 1024, &length));
+      static_cast<void>(StringCchLengthW(text, 1024, &length)); // TODO MJ: Fixed buffer size
       characterCount = static_cast<UINT32>(length);
 
       if (pMemory)
       {
         // Insert the text at the current position.
-        layoutEditor_.InsertTextAt(this->textLayout_, text_, this->caretPosition_ + this->caretPositionOffset_, text,
+        layoutEditor_.InsertTextAt(this->textLayout_, this->text_, this->caretPosition_ + this->caretPositionOffset_, text,
                                    characterCount);
         GlobalUnlock(hClipboardData);
       }
@@ -1487,10 +1487,16 @@ HRESULT TextEditor::InsertText(const wchar_t* text)
   UINT32 absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
 
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(text, 1024, &length));
+  static_cast<void>(StringCchLengthW(text, 1024, &length)); // TODO MJ: Fixed buffer size
 
-  return layoutEditor_.InsertTextAt(this->textLayout_, text_, absolutePosition, text, static_cast<UINT32>(length),
+  return layoutEditor_.InsertTextAt(this->textLayout_, this->text_, absolutePosition, text, static_cast<UINT32>(length),
                                     &caretFormat_);
+}
+
+HRESULT TextEditor::SetText(const wchar_t* text)
+{
+  this->layoutEditor_.Clear(this->textLayout_, this->text_);
+  return this->InsertText(text);
 }
 
 // Current view.

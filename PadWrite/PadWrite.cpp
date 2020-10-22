@@ -7,6 +7,9 @@
 #include "PadWrite.h"
 #include "resource.h"
 
+#include <shobjidl.h> // Save/Load dialogs
+#include <shlobj.h>   // Save/Load dialogs
+
 static void FailApplication(const wchar_t* message, int functionResult);
 
 const static wchar_t g_sampleText[] = L"Hello, world!\r\n";
@@ -146,15 +149,15 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
   mj::ComPtr<RenderTarget> renderTarget;
 
   // Create the render target.
-    if (d2dFactory_)
-    {
-      hr = RenderTarget::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
-    }
+  if (d2dFactory_)
+  {
+    hr = RenderTarget::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
+  }
 
   // Set the new target.
   if (SUCCEEDED(hr))
   {
-    renderTarget_     = renderTarget;
+    renderTarget_ = renderTarget;
   }
 
   return hr;
@@ -231,6 +234,86 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   return 0;
 }
 
+void MainWindow::OpenFileDialog()
+{
+  mj::ComPtr<IFileOpenDialog> pFileOpen;
+
+  // Create the FileOpenDialog object.
+  // TODO MJ: Create once?
+  HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                                reinterpret_cast<LPVOID*>(pFileOpen.GetAddressOf()));
+
+  if (SUCCEEDED(hr))
+  {
+    hr = pFileOpen->Show(nullptr);
+  }
+
+  // Get the file name from the dialog box.
+  mj::ComPtr<IShellItem> pItem;
+  if (SUCCEEDED(hr))
+  {
+    hr = pFileOpen->GetResult(pItem.GetAddressOf());
+  }
+
+  MJ_UNINITIALIZED PWSTR pszFilePath;
+  if (SUCCEEDED(hr))
+  {
+    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+  }
+
+  if (SUCCEEDED(hr))
+  {
+    HANDLE hFile = CreateFileW(pszFilePath,           // file to open
+                               GENERIC_READ,          // open for reading
+                               FILE_SHARE_READ,       // share for reading
+                               nullptr,               // default security
+                               OPEN_EXISTING,         // existing file only
+                               FILE_ATTRIBUTE_NORMAL, // normal file
+                               nullptr);              // no attr. template
+
+    if (hFile != INVALID_HANDLE_VALUE)
+    {
+      MJ_UNINITIALIZED DWORD dwBytesRead;
+      constexpr DWORD BUFFERSIZE = 1024; // TODO MJ: Fixed buffer size
+      char ReadBuffer[BUFFERSIZE];
+
+      if (ReadFile(hFile, ReadBuffer, BUFFERSIZE - 1, &dwBytesRead, nullptr))
+      {
+        ReadBuffer[dwBytesRead] = '\0';
+
+        // TODO MJ: Assuming default Windows ANSI code page
+        int cchWideChar = MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, ReadBuffer, dwBytesRead + 1, nullptr, 0);
+        LPWSTR wide     = reinterpret_cast<LPWSTR>(LocalAlloc(LMEM_FIXED, cchWideChar * sizeof(wchar_t)));
+        if (MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, ReadBuffer, dwBytesRead + 1, wide, cchWideChar))
+        {
+          this->pTextEditor->SetText(wide);
+        }
+        else
+        {
+          // TODO: GetLastError
+        }
+      }
+      else
+      {
+        MJ_UNINITIALIZED LPWSTR lpMsgBuf;
+        DWORD dw = GetLastError();
+
+        // Allocation: FORMAT_MESSAGE_ALLOCATE_BUFFER (LocalAlloc) --> LocalFree
+        // Note: LCID/LANGID/SORTID concept is deprecated, use Locale Names instead
+        static_cast<void>(
+            FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                           NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&lpMsgBuf, 0, NULL));
+        static_cast<void>(MessageBoxW(NULL, lpMsgBuf, TEXT("Error"), MB_OK));
+        static_cast<void>(LocalFree(lpMsgBuf));
+      }
+
+      static_cast<void>(CloseHandle(hFile));
+    }
+
+    CoTaskMemFree(pszFilePath);
+  }
+}
+
 void MainWindow::OnCommand(UINT commandId)
 {
   // Handles menu commands.
@@ -297,6 +380,11 @@ void MainWindow::OnCommand(UINT commandId)
 
   case ID_FILE_EXIT:
     PostMessageW(this->pHwnd, WM_CLOSE, 0, 0);
+    break;
+
+  case ID_FILE_OPEN:
+    OpenFileDialog();
+    RedrawTextEditor();
     break;
   }
 

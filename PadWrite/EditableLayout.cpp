@@ -9,17 +9,18 @@ HRESULT EditableLayout::RecreateLayout(IN OUT mj::ComPtr<IDWriteTextLayout>& cur
 
   HRESULT hr = S_OK;
 
-  mj::ComPtr<IDWriteTextLayout> newLayout;
-
   MJ_UNINITIALIZED size_t length;
   static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
 
+  mj::ComPtr<IDWriteTextLayout> newLayout;
   hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout.Get(),
                                   currentLayout->GetMaxWidth(), currentLayout->GetMaxHeight(),
-                                  newLayout.ReleaseAndGetAddressOf());
+                                  newLayout.GetAddressOf());
 
   if (SUCCEEDED(hr))
+  {
     currentLayout = newLayout;
+  }
 
   return hr;
 }

@@ -30,6 +30,7 @@ private:
   void OnCommand(UINT commandId);
   HRESULT OnChooseFont();
 
+  void OpenFileDialog();
   void UpdateMenuToCaret();
   void RedrawTextEditor();
 };
