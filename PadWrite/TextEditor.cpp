@@ -136,12 +136,8 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   HRESULT hr = S_OK;
 
   // Set the initial text.
-  // MJ
-  //(void)StringCchCopyW(text_, 1024, text);
-
-  // MJ: wide string length
-  size_t length;
-  (void)StringCchLengthW(text, 1024, &length);
+  MJ_UNINITIALIZED size_t length;
+  static_cast<void>(StringCchLengthW(text, 1024, &length));
   this->text_.Assign(text, static_cast<uint32_t>(length));
   this->text_.Add('\0');
 
@@ -759,9 +755,8 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     }
     else if (absolutePosition > 0)
     {
-      // MJ
-      size_t length;
-      (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
+      MJ_UNINITIALIZED size_t length;
+      static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
 
       UINT32 count = 1;
       // Need special case for surrogate pairs and CR/LF pair.
@@ -915,9 +910,8 @@ DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
   if (caretBegin > caretEnd)
     mj::swap(caretBegin, caretEnd);
 
-  // MJ: wide string length
-  size_t length;
-  (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
+  MJ_UNINITIALIZED size_t length;
+  static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
 
   // Limit to actual text length.
   UINT32 textLength = static_cast<UINT32>(length);
@@ -1031,9 +1025,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   UINT32 oldAbsolutePosition = absolutePosition;
   UINT32 oldCaretAnchor      = caretAnchor_;
 
-  // MJ
   MJ_UNINITIALIZED size_t length;
-  (void)StringCchLengthW(text_.begin(), text_.Capacity(), &length);
+  static_cast<void>(StringCchLengthW(text_.begin(), text_.Capacity(), &length));
 
   switch (moveMode)
   {
@@ -1475,9 +1468,8 @@ void TextEditor::PasteFromClipboard()
       // size_t byteSize     = GlobalSize(hClipboardData);
       void* pMemory       = GlobalLock(hClipboardData); // [byteSize] in bytes
       const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
-      // MJ
-      size_t length;
-      (void)StringCchLengthW(text, 1024, &length);
+      MJ_UNINITIALIZED size_t length;
+      static_cast<void>(StringCchLengthW(text, 1024, &length));
       characterCount = static_cast<UINT32>(length);
 
       if (pMemory)
@@ -1498,9 +1490,8 @@ HRESULT TextEditor::InsertText(const wchar_t* text)
 {
   UINT32 absolutePosition = caretPosition_ + caretPositionOffset_;
 
-  // MJ
-  size_t length;
-  (void)StringCchLengthW(text, 1024, &length);
+  MJ_UNINITIALIZED size_t length;
+  static_cast<void>(StringCchLengthW(text, 1024, &length));
 
   return layoutEditor_.InsertTextAt(textLayout_, text_, absolutePosition, text, static_cast<UINT32>(length),
                                     &caretFormat_);

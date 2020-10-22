@@ -41,12 +41,12 @@ public:
     return E_NOTIMPL;
   }
 
-  virtual ULONG STDMETHODCALLTYPE AddRef(void) override
+  virtual ULONG STDMETHODCALLTYPE AddRef() override
   {
     return 0;
   }
 
-  virtual ULONG STDMETHODCALLTYPE Release(void) override
+  virtual ULONG STDMETHODCALLTYPE Release() override
   {
     return 0;
   }

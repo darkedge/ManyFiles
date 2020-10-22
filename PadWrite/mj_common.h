@@ -260,7 +260,7 @@ namespace mj
       if (this->Expand(length))
       {
         // TODO MJ: Using memcpy skips copy constructors!
-        (void)memcpy(this->pData, pT, length * TSize);
+        static_cast<void>(memcpy(this->pData, pT, length * TSize));
         this->numElements = length;
         return true;
       }

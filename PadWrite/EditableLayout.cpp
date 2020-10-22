@@ -11,9 +11,8 @@ HRESULT EditableLayout::RecreateLayout(IN OUT mj::ComPtr<IDWriteTextLayout>& cur
 
   mj::ComPtr<IDWriteTextLayout> newLayout;
 
-  // MJ: wide string length
-  size_t length;
-  (void)StringCchLengthW(text.begin(), text.Capacity(), &length);
+  MJ_UNINITIALIZED size_t length;
+  static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
 
   hr = factory_->CreateTextLayout(text.begin(), static_cast<UINT32>(length), currentLayout.Get(),
                                   currentLayout->GetMaxWidth(), currentLayout->GetMaxHeight(),
@@ -155,7 +154,6 @@ STDMETHODIMP EditableLayout::InsertTextAt(IN OUT mj::ComPtr<IDWriteTextLayout>& 
   // The inserted string gets all the properties of the character right before position.
   // If there is no text right before position, so use the properties of the character right after position.
 
-  // MJ: wide string length
   MJ_UNINITIALIZED size_t length;
   static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
 
@@ -216,7 +214,6 @@ STDMETHODIMP EditableLayout::RemoveTextAt(IN OUT mj::ComPtr<IDWriteTextLayout>& 
 
   HRESULT hr = S_OK;
 
-  // MJ: wide string length
   MJ_UNINITIALIZED size_t length;
   static_cast<void>(StringCchLengthW(text.begin(), text.Capacity(), &length));
 
