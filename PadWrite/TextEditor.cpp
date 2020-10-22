@@ -69,7 +69,6 @@ namespace
   }
 } // namespace
 
-////////////////////////////////////////////////////////////////////////////////
 // Initialization.
 
 ATOM TextEditor::RegisterWindowClass()
@@ -198,7 +197,6 @@ void TextEditor::SetRenderTarget(RenderTarget* target)
   PostRedraw();
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Message dispatch.
 
 LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -320,7 +318,6 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Drawing/scrolling/sizing.
 
 void TextEditor::OnDraw()
@@ -587,7 +584,6 @@ void TextEditor::OnSize(UINT width, UINT height)
   RefreshView();
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Input handling.
 
 void TextEditor::OnMousePress(UINT message, float x, float y)
@@ -892,7 +888,6 @@ void TextEditor::OnKeyCharacter(UINT32 charCode)
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Caret navigation and selection.
 
 UINT32 TextEditor::GetCaretPosition()
@@ -1391,7 +1386,6 @@ void TextEditor::UpdateCaretFormatting()
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Selection/clipboard actions.
 
 void TextEditor::CopyToClipboard()
@@ -1497,7 +1491,6 @@ HRESULT TextEditor::InsertText(const wchar_t* text)
                                     &caretFormat_);
 }
 
-////////////////////////////////////////////////////////////////////////////////
 // Current view.
 
 void TextEditor::ResetView()

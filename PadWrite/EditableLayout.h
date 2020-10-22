@@ -2,11 +2,6 @@
 #include "mj_common.h"
 #include "mj_win32.h"
 
-////////////////////////////////////////
-// Helper to construct text ranges when calling setters.
-//
-// Example: textLayout_->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, MakeDWriteTextRange(20, 10));
-
 struct MakeDWriteTextRange : public DWRITE_TEXT_RANGE
 {
   inline MakeDWriteTextRange(UINT32 startPosition, UINT32 length)
@@ -22,12 +17,6 @@ struct MakeDWriteTextRange : public DWRITE_TEXT_RANGE
     this->length        = UINT32_MAX - startPosition;
   }
 };
-
-////////////////////////////////////////
-// Layouts were optimized for mostly static UI text, so a layout's text is
-// immutable upon creation. This means that when we modify the text, we must
-// create a new layout, copying the old properties over to the new one. This
-// class assists with that.
 
 class EditableLayout
 {

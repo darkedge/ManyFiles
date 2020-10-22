@@ -11,9 +11,6 @@ static void FailApplication(const wchar_t* message, int functionResult);
 
 const static wchar_t g_sampleText[] = L"Hello, world!\r\n";
 
-////////////////////////////////////////
-// Main entry.
-
 void CALLBACK WinMainCRTStartup() noexcept
 {
   // The Microsoft Security Development Lifecycle recommends that all
@@ -44,14 +41,6 @@ void CALLBACK WinMainCRTStartup() noexcept
   ExitProcess(0);
 }
 
-MainWindow::MainWindow()
-    : renderTargetType_(RenderTargetTypeD2D), //
-      pHwnd(nullptr),                         //
-      pTextEditor()
-{
-  // no heavyweight initialization in the constructor.
-}
-
 HRESULT MainWindow::Initialize()
 {
   // Initializes the factories and creates the main window,
@@ -59,25 +48,18 @@ HRESULT MainWindow::Initialize()
 
   HRESULT hr = S_OK;
 
-  //////////////////////////////
-  // Create the factories for D2D, DWrite, and WIC.
-
   if (SUCCEEDED(hr))
   {
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                              reinterpret_cast<IUnknown**>(dwriteFactory_.ReleaseAndGetAddressOf()));
   }
 
-  // Create D2D factory
-  // Failure to create this factory is ok. We can live with GDI alone.
   if (SUCCEEDED(hr))
   {
     static_cast<void>(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2dFactory_.ReleaseAndGetAddressOf()));
   }
 
-  //////////////////////////////
   // Create the main window
-
   if (SUCCEEDED(hr))
   {
     static_cast<void>(MainWindow::RegisterWindowClass());
@@ -91,9 +73,7 @@ HRESULT MainWindow::Initialize()
       hr = HRESULT_FROM_WIN32(GetLastError());
   }
 
-  //////////////////////////////
   // Initialize the controls
-
   if (SUCCEEDED(hr))
   {
     static_cast<void>(ShowWindow(this->pHwnd, SW_SHOWNORMAL));
@@ -123,7 +103,7 @@ HRESULT MainWindow::Initialize()
   // and tell it to draw onto it.
   if (SUCCEEDED(hr))
   {
-    hr = CreateRenderTarget(this->pTextEditor->GetHwnd(), RenderTargetTypeD2D);
+    hr = CreateRenderTarget(this->pTextEditor->GetHwnd());
     this->pTextEditor->SetRenderTarget(renderTarget_.Get());
   }
 
@@ -159,28 +139,22 @@ ATOM MainWindow::RegisterWindowClass()
   return RegisterClassExW(&wcex);
 }
 
-HRESULT MainWindow::CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetType)
+HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
 {
   HRESULT hr = S_OK;
 
   mj::ComPtr<RenderTarget> renderTarget;
 
   // Create the render target.
-  switch (renderTargetType)
-  {
-  case RenderTargetTypeD2D:
     if (d2dFactory_)
     {
       hr = RenderTarget::Create(d2dFactory_.Get(), dwriteFactory_.Get(), hwnd, renderTarget.ReleaseAndGetAddressOf());
-      break;
     }
-  }
 
   // Set the new target.
   if (SUCCEEDED(hr))
   {
     renderTarget_     = renderTarget;
-    renderTargetType_ = renderTargetType;
   }
 
   return hr;
@@ -377,11 +351,9 @@ HRESULT MainWindow::OnChooseFont()
 
   HRESULT hr = S_OK;
 
-  //////////////////////////////
   // Read the caret format.
   EditableLayout::CaretFormat& caretFormat = this->pTextEditor->GetCaretFormat();
 
-  //////////////////////////////
   // Initialize the LOGFONT from the caret format.
   LOGFONT logFont          = {};
   logFont.lfHeight         = -static_cast<LONG>(caretFormat.fontSize);
@@ -399,7 +371,6 @@ HRESULT MainWindow::OnChooseFont()
   logFont.lfPitchAndFamily = DEFAULT_PITCH;
   static_cast<void>(StringCchCopyW(logFont.lfFaceName, ARRAYSIZE(logFont.lfFaceName), caretFormat.fontFamilyName));
 
-  //////////////////////////////
   // Initialize CHOOSEFONT for the dialog.
 
   CHOOSEFONT chooseFont  = {};
@@ -417,7 +388,6 @@ HRESULT MainWindow::OnChooseFont()
   if (!ChooseFontW(&chooseFont))
     return hr; // user canceled.
 
-  //////////////////////////////
   // Update the layout accordingly to what the user selected.
 
   // Abort if the user didn't select a face name.

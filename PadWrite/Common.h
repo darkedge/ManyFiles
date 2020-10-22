@@ -32,8 +32,6 @@
 #define _USE_MATH_DEFINES
 #endif
 
-////////////////////////////////////////
-
 #include "mj_common.h"
 #include "mj_math.h"
 #define mj_min(a, b) (a < b ? a : b)
@@ -53,7 +51,6 @@
 #include <strsafe.h>
 #include <commdlg.h>
 
-////////////////////////////////////////
 // Common macro definitions:
 
 #if !defined(NDEBUG) && !defined(DEBUG)
@@ -75,7 +72,6 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 // when implementing callbacks.
 #pragma warning(disable : 4100)
 
-////////////////////////////////////////
 // Application specific headers/functions:
 
 #define APPLICATION_TITLE "FloatMagic"

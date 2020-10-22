@@ -4,8 +4,6 @@
 class MainWindow
 {
 public:
-  MainWindow();
-
   static ATOM RegisterWindowClass();
   static LRESULT CALLBACK WindowProc(HWND parentHwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -14,28 +12,18 @@ public:
 
 public:
   STDMETHODIMP CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWriteFont** font);
-
   STDMETHODIMP GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontFamilyName, UINT32 fontFamilyNameLength);
 
 private:
-  enum RenderTargetType
-  {
-    RenderTargetTypeD2D,
-    RenderTargetTypeDW,
-    RenderTargetTypeTotal
-  };
-
-  HWND pHwnd;
+  HWND pHwnd = nullptr;
   mj::ComPtr<IDWriteFactory> dwriteFactory_;
   mj::ComPtr<ID2D1Factory> d2dFactory_;
-
   mj::ComPtr<RenderTarget> renderTarget_;
-  RenderTargetType renderTargetType_;
 
-  TextEditor* pTextEditor;
+  TextEditor* pTextEditor = nullptr;
 
 private:
-  HRESULT CreateRenderTarget(HWND hwnd, RenderTargetType renderTargetType);
+  HRESULT CreateRenderTarget(HWND hwnd);
   HRESULT FormatSampleLayout(IDWriteTextLayout* textLayout);
 
   void OnSize();

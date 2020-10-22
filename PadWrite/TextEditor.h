@@ -33,7 +33,6 @@ public:
     return hwnd_;
   }
 
-  ////////////////////
   // Input dispatch
   void OnMousePress(UINT message, float x, float y);
   void OnMouseRelease(UINT message, float x, float y);
@@ -44,7 +43,6 @@ public:
   void OnKeyCharacter(UINT32 charCode);
   void MirrorXCoordinate(IN OUT float& x);
 
-  ////////////////////
   // Drawing/view change
   void OnDraw();
   void DrawPage(RenderTarget& target);
@@ -58,14 +56,12 @@ public:
     InvalidateRect(hwnd_, nullptr, FALSE);
   }
 
-  ////////////////////
   // Used by the main application to respond to button commands.
   void CopyToClipboard();
   void DeleteSelection();
   void PasteFromClipboard();
   HRESULT InsertText(const wchar_t* text);
 
-  ////////////////////
   // Layout/editing/caret navigation
   void UpdateCaretFormatting();
   bool SetSelection(SetSelectionMode moveMode, UINT32 advance, bool extendSelection, bool updateCaretFormat = true);
@@ -80,7 +76,6 @@ public:
     return caretFormat_;
   }
 
-  ////////////////////
   // Current view
   float GetAngle()
   {
@@ -110,7 +105,6 @@ private:
                            UINT32 lineCount, UINT32 textPosition, OUT UINT32* lineOut, OUT UINT32* linePositionOut);
 
 private:
-  ////////////////////
   // Creation/destruction
   TextEditor(IDWriteFactory* factory);
 
@@ -126,7 +120,6 @@ private:
 
   mj::ArrayList<wchar_t> text_;
 
-  ////////////////////
   // Selection/Caret navigation
   ///
   // caretAnchor equals caretPosition when there is no selection.
@@ -146,7 +139,6 @@ private:
   // of the text.
   EditableLayout::CaretFormat caretFormat_;
 
-  ////////////////////
   // Mouse manipulation
   bool currentlySelecting_ : 1;
   bool currentlyPanning_ : 1;
@@ -158,7 +150,6 @@ private:
     MouseScrollFactor = 10
   };
 
-  ////////////////////
   // Current view
   float scaleX_;  // horizontal scaling
   float scaleY_;  // vertical scaling
