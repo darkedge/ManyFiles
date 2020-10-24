@@ -70,7 +70,7 @@ public:
   UINT32 GetCaretPosition();
   IDWriteTextLayout* GetLayout()
   {
-    return textLayout_.Get();
+    return pTextLayout.Get();
   }
   EditableLayout::CaretFormat& GetCaretFormat()
   {
@@ -116,7 +116,7 @@ private:
   mj::ComPtr<DrawingEffect> textSelectionEffect_;   // Owned
   mj::ComPtr<DrawingEffect> imageSelectionEffect_;  // Owned
   mj::ComPtr<DrawingEffect> caretBackgroundEffect_; // Owned
-  mj::ComPtr<IDWriteTextLayout> textLayout_;        // Owned
+  mj::ComPtr<IDWriteTextLayout> pTextLayout;        // Owned
   EditableLayout layoutEditor_;                     // Owned
 
   mj::ArrayList<wchar_t> text_;
