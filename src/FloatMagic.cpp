@@ -7,6 +7,8 @@
 #include "FloatMagic.h"
 #include "resource.h"
 
+#include "..\3rdparty\tracy\Tracy.hpp"
+
 #include <shobjidl.h> // Save/Load dialogs
 #include <shlobj.h>   // Save/Load dialogs
 
@@ -14,7 +16,7 @@ static void FailApplication(const wchar_t* message, int functionResult);
 
 const static wchar_t g_sampleText[] = L"Hello, world!\r\n";
 
-void CALLBACK WinMainCRTStartup() noexcept
+static void Main() noexcept
 {
   // The Microsoft Security Development Lifecycle recommends that all
   // applications include the following call to ensure that heap corruptions
@@ -39,12 +41,26 @@ void CALLBACK WinMainCRTStartup() noexcept
   {
     FailApplication(L"An unexpected error occured in the demo. Ending now...", hr);
   }
+}
+
+#ifdef TRACY_ENABLE
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+{
+  Main();
+
+  return 0;
+}
+#else
+void CALLBACK WinMainCRTStartup() noexcept
+{
+  Main();
 
   // CRT-less exit
   ExitProcess(0);
 }
+#endif
 
-HRESULT MainWindow::Initialize()
+HRESULT MainWindow::Initialize() noexcept
 {
   // Initializes the factories and creates the main window,
   // render target, and text editor.
