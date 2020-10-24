@@ -12,24 +12,18 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 namespace mj
 {
-  namespace win32
-  {
-    int Narrow(char* dst, const wchar_t* src, int srcLength, int bufferSize) noexcept;
-    int Widen(wchar_t* dst, const char* src, int srcLength, int bufferSize) noexcept;
-  } // namespace win32
-
   template <typename T>
   class ComPtr
   {
   public:
-  protected:
+  private:
     T* ptr;
     template <class U>
     friend class ComPtr;
 
     void InternalAddRef() const noexcept
     {
-      if (this->ptr != nullptr)
+      if (this->ptr)
       {
         this->ptr->AddRef();
       }
@@ -40,7 +34,7 @@ namespace mj
       unsigned long ref = 0;
       T* temp           = this->ptr;
 
-      if (temp != nullptr)
+      if (temp)
       {
         this->ptr = nullptr;
         ref       = temp->Release();
@@ -187,7 +181,7 @@ namespace mj
 
     void Attach(T* other) noexcept
     {
-      if (this->ptr != nullptr)
+      if (this->ptr)
       {
         auto ref = this->ptr->Release();
         MJ_DISCARD(ref);
