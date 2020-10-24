@@ -77,19 +77,19 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define APPLICATION_TITLE "FloatMagic"
 
 // Needed text editor backspace deletion.
-inline bool IsSurrogate(UINT32 ch) noexcept
+inline bool IsSurrogate(UINT32 ch)
 {
   // 0xD800 <= ch <= 0xDFFF
   return (ch & 0xF800) == 0xD800;
 }
 
-inline bool IsHighSurrogate(UINT32 ch) noexcept
+inline bool IsHighSurrogate(UINT32 ch)
 {
   // 0xD800 <= ch <= 0xDBFF
   return (ch & 0xFC00) == 0xD800;
 }
 
-inline bool IsLowSurrogate(UINT32 ch) noexcept
+inline bool IsLowSurrogate(UINT32 ch)
 {
   // 0xDC00 <= ch <= 0xDFFF
   return (ch & 0xFC00) == 0xDC00;

@@ -21,7 +21,7 @@ namespace mj
     template <class U>
     friend class ComPtr;
 
-    void InternalAddRef() const noexcept
+    void InternalAddRef() const
     {
       if (this->ptr)
       {
@@ -29,7 +29,7 @@ namespace mj
       }
     }
 
-    unsigned long InternalRelease() noexcept
+    unsigned long InternalRelease()
     {
       unsigned long ref = 0;
       T* temp           = this->ptr;
@@ -44,26 +44,26 @@ namespace mj
     }
 
   public:
-    ComPtr() noexcept : ptr(nullptr)
+    ComPtr() : ptr(nullptr)
     {
     }
 
-    ComPtr(decltype(__nullptr)) noexcept : ptr(nullptr)
+    ComPtr(decltype(__nullptr)) : ptr(nullptr)
     {
     }
 
     template <class U>
-    ComPtr(U* other) noexcept : ptr(other)
+    ComPtr(U* other) : ptr(other)
     {
       InternalAddRef();
     }
 
-    ComPtr(const ComPtr& other) noexcept : ptr(other.ptr)
+    ComPtr(const ComPtr& other) : ptr(other.ptr)
     {
       InternalAddRef();
     }
 
-    ComPtr(ComPtr&& other) noexcept : ptr(nullptr)
+    ComPtr(ComPtr&& other) : ptr(nullptr)
     {
       if (this != reinterpret_cast<ComPtr*>(&reinterpret_cast<unsigned char&>(other)))
       {
@@ -71,18 +71,18 @@ namespace mj
       }
     }
 
-    ~ComPtr() noexcept
+    ~ComPtr()
     {
       InternalRelease();
     }
 
-    ComPtr& operator=(decltype(nullptr)) noexcept
+    ComPtr& operator=(decltype(nullptr))
     {
       InternalRelease();
       return *this;
     }
 
-    ComPtr& operator=(T* other) noexcept
+    ComPtr& operator=(T* other)
     {
       if (this->ptr != other)
       {
@@ -92,13 +92,13 @@ namespace mj
     }
 
     template <typename U>
-    ComPtr& operator=(U* other) noexcept
+    ComPtr& operator=(U* other)
     {
       ComPtr(other).Swap(*this);
       return *this;
     }
 
-    ComPtr& operator=(const ComPtr& other) noexcept
+    ComPtr& operator=(const ComPtr& other)
     {
       if (this->ptr != other.ptr)
       {
@@ -108,78 +108,78 @@ namespace mj
     }
 
     template <class U>
-    ComPtr& operator=(const ComPtr<U>& other) noexcept
+    ComPtr& operator=(const ComPtr<U>& other)
     {
       ComPtr(other).Swap(*this);
       return *this;
     }
 
-    ComPtr& operator=(ComPtr&& other) noexcept
+    ComPtr& operator=(ComPtr&& other)
     {
       ComPtr(static_cast<ComPtr&&>(other)).Swap(*this);
       return *this;
     }
 
     template <class U>
-    ComPtr& operator=(ComPtr<U>&& other) noexcept
+    ComPtr& operator=(ComPtr<U>&& other)
     {
       ComPtr(static_cast<ComPtr<U>&&>(other)).Swap(*this);
       return *this;
     }
 
-    void Swap(ComPtr&& r) noexcept
+    void Swap(ComPtr&& r)
     {
       T* tmp    = this->ptr;
       this->ptr = r.ptr;
       r.ptr     = tmp;
     }
 
-    void Swap(ComPtr& r) noexcept
+    void Swap(ComPtr& r)
     {
       T* tmp    = this->ptr;
       this->ptr = r.ptr;
       r.ptr     = tmp;
     }
 
-    operator bool() const noexcept
+    operator bool() const
     {
       return this->ptr;
     }
 
-    T* Get() const noexcept
+    T* Get() const
     {
       return this->ptr;
     }
 
-    T* operator->() const noexcept
+    T* operator->() const
     {
       return this->ptr;
     }
 
-    T* const* GetAddressOf() const noexcept
+    T* const* GetAddressOf() const
     {
       return &this->ptr;
     }
 
-    T** GetAddressOf() noexcept
+    T** GetAddressOf()
     {
       return &this->ptr;
     }
 
-    T** ReleaseAndGetAddressOf() noexcept
+    T** ReleaseAndGetAddressOf()
     {
       InternalRelease();
       return &this->ptr;
     }
 
-    T* Detach() noexcept
+    T* Detach()
     {
       T* ptr    = this->ptr;
       this->ptr = nullptr;
       return ptr;
     }
 
-    void Attach(T* other) noexcept
+    void Attach(T* other)
     {
       if (this->ptr)
       {
@@ -193,38 +193,38 @@ namespace mj
       this->ptr = other;
     }
 
-    unsigned long Reset() noexcept
+    unsigned long Reset()
     {
       return InternalRelease();
     }
 
-    HRESULT CopyTo(T** ptr) const noexcept
+    HRESULT CopyTo(T** ptr) const
     {
       InternalAddRef();
       *ptr = this->ptr;
       return S_OK;
     }
 
-    HRESULT CopyTo(REFIID riid, void** ptr) const noexcept
+    HRESULT CopyTo(REFIID riid, void** ptr) const
     {
       return this->ptr->QueryInterface(riid, ptr);
     }
 
     template <typename U>
-    HRESULT CopyTo(U** ptr) const noexcept
+    HRESULT CopyTo(U** ptr) const
     {
       return this->ptr->QueryInterface(__uuidof(U), reinterpret_cast<void**>(ptr));
     }
 
     // query for U interface
     template <typename U>
-    HRESULT As(ComPtr<U>* p) const noexcept
+    HRESULT As(ComPtr<U>* p) const
     {
       return this->ptr->QueryInterface(__uuidof(U), reinterpret_cast<void**>(p->ReleaseAndGetAddressOf()));
     }
 
     // query for riid interface and return as IUnknown
-    HRESULT AsIID(REFIID riid, ComPtr<IUnknown>* p) const noexcept
+    HRESULT AsIID(REFIID riid, ComPtr<IUnknown>* p) const
     {
       return this->ptr->QueryInterface(riid, reinterpret_cast<void**>(p->ReleaseAndGetAddressOf()));
     }

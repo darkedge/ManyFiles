@@ -7,7 +7,7 @@ public:
   static ATOM RegisterWindowClass();
   static LRESULT CALLBACK WindowProc(HWND parentHwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-  HRESULT Initialize() noexcept;
+  HRESULT Initialize();
   WPARAM RunMessageLoop();
 
 public:

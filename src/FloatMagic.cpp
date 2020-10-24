@@ -15,7 +15,7 @@ static void FailApplication(const wchar_t* message, int functionResult);
 
 const static wchar_t g_sampleText[] = L"Hello, world!\r\n";
 
-static void Main() noexcept
+static void Main()
 {
   // The Microsoft Security Development Lifecycle recommends that all
   // applications include the following call to ensure that heap corruptions
@@ -50,7 +50,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
   return 0;
 }
 #else
-void CALLBACK WinMainCRTStartup() noexcept
+void CALLBACK WinMainCRTStartup()
 {
   Main();
 
@@ -59,7 +59,7 @@ void CALLBACK WinMainCRTStartup() noexcept
 }
 #endif
 
-HRESULT MainWindow::Initialize() noexcept
+HRESULT MainWindow::Initialize()
 {
   // Initializes the factories and creates the main window,
   // render target, and text editor.
