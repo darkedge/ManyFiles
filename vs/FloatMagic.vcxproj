@@ -70,7 +70,7 @@
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName).intermediate\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
-    <CodeAnalysisRuleSet>..\floatmagic.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>FloatMagic.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
