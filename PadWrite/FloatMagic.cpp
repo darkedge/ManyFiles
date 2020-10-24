@@ -4,7 +4,7 @@
 #include "RenderTarget.h"
 #include "EditableLayout.h"
 #include "TextEditor.h"
-#include "PadWrite.h"
+#include "FloatMagic.h"
 #include "resource.h"
 
 #include <shobjidl.h> // Save/Load dialogs

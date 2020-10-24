@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="PadWrite"
+	Name="FloatMagic"
 	ProjectGUID="{F574E9C8-0FE2-463B-A230-08EB87F3C03C}"
-	RootNamespace="PadWrite"
+	RootNamespace="FloatMagic"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="0"
 	>
@@ -375,7 +375,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\PadWrite.h"
+				RelativePath=".\FloatMagic.h"
 				>
 			</File>
 			<File
@@ -401,7 +401,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\PadWrite.manifest"
+				RelativePath=".\FloatMagic.manifest"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -437,7 +437,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\PadWrite.rc"
+				RelativePath=".\FloatMagic.rc"
 				>
 			</File>
 		</Filter>
@@ -455,7 +455,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\PadWrite.cpp"
+				RelativePath=".\FloatMagic.cpp"
 				>
 			</File>
 			<File

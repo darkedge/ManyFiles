@@ -7,7 +7,7 @@
     <ClInclude Include="mj_common.h" />
     <ClInclude Include="mj_math.h" />
     <ClInclude Include="ncrt_memory.h" />
-    <ClInclude Include="PadWrite.h" />
+    <ClInclude Include="FloatMagic.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="sse_mathfun.h" />
     <ClInclude Include="TextEditor.h" />
@@ -21,12 +21,12 @@
     <ClCompile Include="mj_math.cpp" />
     <ClCompile Include="ncrt_math_float.cpp" />
     <ClCompile Include="ncrt_memory.cpp" />
-    <ClCompile Include="PadWrite.cpp" />
+    <ClCompile Include="FloatMagic.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
     <ClCompile Include="TextEditor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="PadWrite.manifest" />
+    <CustomBuild Include="FloatMagic.manifest" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
