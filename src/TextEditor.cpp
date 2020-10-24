@@ -1,4 +1,5 @@
-﻿#include "Common.h"
+﻿#include "..\3rdparty\tracy\Tracy.hpp"
+#include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 #include "EditableLayout.h"
@@ -91,8 +92,7 @@ ATOM TextEditor::RegisterWindowClass()
   return RegisterClassExW(&wcex);
 }
 
-TextEditor::TextEditor(IDWriteFactory* factory)
-    : layoutEditor_(factory)
+TextEditor::TextEditor(IDWriteFactory* factory) : layoutEditor_(factory)
 {
   // TODO MJ: Untracked memory allocations
   pageBackgroundEffect_        = new DrawingEffect(0xFF000000 | D2D1::ColorF::White);
@@ -201,7 +201,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 {
   // Relays messages for the text editor to the internal class.
 
-  TextEditor* window = reinterpret_cast<TextEditor*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+  TextEditor* pWindow = reinterpret_cast<TextEditor*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
   switch (message)
   {
@@ -209,27 +209,27 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   {
     // Associate the data structure with this window handle.
     CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
-    window            = reinterpret_cast<TextEditor*>(pcs->lpCreateParams);
-    window->hwnd_     = hwnd;
-    SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window);
+    pWindow           = reinterpret_cast<TextEditor*>(pcs->lpCreateParams);
+    pWindow->hwnd_    = hwnd;
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)pWindow);
 
     return DefWindowProc(hwnd, message, wParam, lParam);
   }
 
   case WM_PAINT:
   case WM_DISPLAYCHANGE:
-    window->OnDraw();
+    pWindow->OnDraw();
     break;
 
   case WM_ERASEBKGND: // don't want flicker
     return true;
 
   case WM_KEYDOWN:
-    window->OnKeyPress(static_cast<UINT>(wParam));
+    pWindow->OnKeyPress(static_cast<UINT>(wParam));
     break;
 
   case WM_CHAR:
-    window->OnKeyCharacter(static_cast<UINT>(wParam));
+    pWindow->OnKeyCharacter(static_cast<UINT>(wParam));
     break;
 
   case WM_LBUTTONDOWN:
@@ -240,26 +240,26 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   case WM_RBUTTONDBLCLK:
     SetFocus(hwnd);
     SetCapture(hwnd);
-    window->OnMousePress(message, float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
+    pWindow->OnMousePress(message, float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
     break;
 
   case WM_MOUSELEAVE:
   case WM_CAPTURECHANGED:
-    window->OnMouseExit();
+    pWindow->OnMouseExit();
     break;
 
   case WM_LBUTTONUP:
   case WM_RBUTTONUP:
   case WM_MBUTTONUP:
     ReleaseCapture();
-    window->OnMouseRelease(message, float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
+    pWindow->OnMouseRelease(message, float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
     break;
 
   case WM_SETFOCUS:
   {
     RectF rect;
-    window->GetCaretRect(rect);
-    window->UpdateSystemCaret(rect);
+    pWindow->GetCaretRect(rect);
+    pWindow->UpdateSystemCaret(rect);
   }
   break;
 
@@ -268,7 +268,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     break;
 
   case WM_MOUSEMOVE:
-    window->OnMouseMove(float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
+    pWindow->OnMouseMove(float(GET_X_LPARAM(lParam)), float(GET_Y_LPARAM(lParam)));
     break;
 
   case WM_MOUSEWHEEL:
@@ -292,20 +292,20 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
       yScroll = 0;
     }
 
-    window->OnMouseScroll(xScroll, yScroll);
+    pWindow->OnMouseScroll(xScroll, yScroll);
   }
   break;
 
   case WM_VSCROLL:
   case WM_HSCROLL:
-    window->OnScroll(message, LOWORD(wParam));
+    pWindow->OnScroll(message, LOWORD(wParam));
     break;
 
   case WM_SIZE:
   {
     UINT width  = LOWORD(lParam);
     UINT height = HIWORD(lParam);
-    window->OnSize(width, height);
+    pWindow->OnSize(width, height);
   }
   break;
 
@@ -1470,8 +1470,8 @@ void TextEditor::PasteFromClipboard()
       if (pMemory)
       {
         // Insert the text at the current position.
-        layoutEditor_.InsertTextAt(this->textLayout_, this->text_, this->caretPosition_ + this->caretPositionOffset_, text,
-                                   characterCount);
+        layoutEditor_.InsertTextAt(this->textLayout_, this->text_, this->caretPosition_ + this->caretPositionOffset_,
+                                   text, characterCount);
         GlobalUnlock(hClipboardData);
       }
     }

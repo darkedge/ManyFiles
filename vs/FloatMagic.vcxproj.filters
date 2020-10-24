@@ -30,4 +30,7 @@
   <ItemGroup>
     <ResourceCompile Include="..\src\Resource.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="FloatMagic.ruleset" />
+  </ItemGroup>
 </Project>

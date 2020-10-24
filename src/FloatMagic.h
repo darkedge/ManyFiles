@@ -18,7 +18,7 @@ private:
   HWND pHwnd = nullptr;
   mj::ComPtr<IDWriteFactory> dwriteFactory_;
   mj::ComPtr<ID2D1Factory> d2dFactory_;
-  mj::ComPtr<RenderTarget> renderTarget_;
+  mj::ComPtr<RenderTarget> pRenderTarget;
 
   TextEditor* pTextEditor = nullptr;
 

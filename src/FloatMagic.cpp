@@ -127,7 +127,7 @@ HRESULT MainWindow::Initialize()
   {
     ZoneScoped("CreateRenderTarget");
     hr = CreateRenderTarget(this->pTextEditor->GetHwnd());
-    this->pTextEditor->SetRenderTarget(renderTarget_.Get());
+    this->pTextEditor->SetRenderTarget(this->pRenderTarget.Get());
   }
 
   if (SUCCEEDED(hr))
@@ -178,7 +178,7 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
   // Set the new target.
   if (SUCCEEDED(hr))
   {
-    renderTarget_ = renderTarget;
+    this->pRenderTarget = renderTarget;
   }
 
   return hr;
@@ -199,26 +199,26 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 {
   // Relays messages for the main window to the internal class.
 
-  MainWindow* window = reinterpret_cast<MainWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+  MainWindow* pMainWindow = reinterpret_cast<MainWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
   switch (message)
   {
   case WM_NCCREATE:
   {
     // Associate the data structure with this window handle.
-    CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
-    window            = reinterpret_cast<MainWindow*>(pcs->lpCreateParams);
-    window->pHwnd     = hwnd;
-    static_cast<void>(SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window));
+    CREATESTRUCT* pcs  = reinterpret_cast<CREATESTRUCT*>(lParam);
+    pMainWindow        = reinterpret_cast<MainWindow*>(pcs->lpCreateParams);
+    pMainWindow->pHwnd = hwnd;
+    static_cast<void>(SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)pMainWindow));
   }
     return DefWindowProc(hwnd, message, wParam, lParam);
 
   case WM_COMMAND:
-    window->OnCommand(static_cast<UINT>(wParam));
+    pMainWindow->OnCommand(static_cast<UINT>(wParam));
     break;
 
   case WM_SIZE:
-    window->OnSize();
+    pMainWindow->OnSize();
     break;
 
   case WM_DESTROY:
@@ -230,21 +230,23 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_SETFOCUS:
     // Forward focus to the text editor.
-    if (window->pTextEditor)
+    if (pMainWindow->pTextEditor)
     {
-      static_cast<void>(SetFocus(window->pTextEditor->GetHwnd()));
+      static_cast<void>(SetFocus(pMainWindow->pTextEditor->GetHwnd()));
     }
     break;
 
   case WM_INITMENU:
     // Menu about to be shown. Set check marks accordingly.
-    window->UpdateMenuToCaret();
+    pMainWindow->UpdateMenuToCaret();
     break;
 
   case WM_WINDOWPOSCHANGED:
     // Window moved. Update ClearType settings if changed monitor.
-    if (window->renderTarget_)
-      window->renderTarget_->UpdateMonitor();
+    if (pMainWindow->pRenderTarget)
+    {
+      pMainWindow->pRenderTarget->UpdateMonitor();
+    }
 
     return DefWindowProcW(hwnd, message, wParam, lParam);
 
@@ -320,7 +322,7 @@ void MainWindow::OpenFileDialog()
         DWORD dw = GetLastError();
 
         // Allocation: FORMAT_MESSAGE_ALLOCATE_BUFFER (LocalAlloc) --> LocalFree
-        // Note: LCID/LANGID/SORTID concept is deprecated, use Locale Names instead
+        // Note (Microsoft): LCID/LANGID/SORTID concept is deprecated, use Locale Names instead
         static_cast<void>(
             FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                            NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&lpMsgBuf, 0, NULL));
@@ -367,7 +369,7 @@ void MainWindow::OnCommand(UINT commandId)
 
   case ID_FORMAT_WRAP:
   {
-    DWRITE_WORD_WRAPPING wordWrapping = textLayout->GetWordWrapping();
+    const DWRITE_WORD_WRAPPING wordWrapping = textLayout->GetWordWrapping();
     textLayout->SetWordWrapping((wordWrapping == DWRITE_WORD_WRAPPING_NO_WRAP) ? DWRITE_WORD_WRAPPING_WRAP
                                                                                : DWRITE_WORD_WRAPPING_NO_WRAP);
     RedrawTextEditor();
@@ -444,7 +446,7 @@ void MainWindow::RedrawTextEditor()
 void MainWindow::UpdateMenuToCaret()
 {
   // Read layout-wide attributes from the layout.
-  DWRITE_WORD_WRAPPING wordWrapping = this->pTextEditor->GetLayout()->GetWordWrapping();
+  const DWRITE_WORD_WRAPPING wordWrapping = this->pTextEditor->GetLayout()->GetWordWrapping();
 
   // Set checkbox/radio to true on certain menu items
   static_cast<void>(
