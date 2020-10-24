@@ -255,7 +255,7 @@ void MainWindow::OpenFileDialog()
     hr = pFileOpen->GetResult(pItem.GetAddressOf());
   }
 
-  MJ_UNINITIALIZED PWSTR pszFilePath;
+  PWSTR pszFilePath = nullptr;
   if (SUCCEEDED(hr))
   {
     hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
