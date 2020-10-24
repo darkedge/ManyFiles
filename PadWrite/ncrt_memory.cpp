@@ -1,7 +1,7 @@
 #include "ncrt_memory.h"
-
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
-#include <intrin.h>
 
 extern "C"
 {
@@ -99,10 +99,10 @@ void* operator new[](size_t n)
 void operator delete(void* p, size_t sz)
 {
   static_cast<void>(sz);
-  HeapFree(GetProcessHeap(), 0, p);
+  static_cast<void>(HeapFree(GetProcessHeap(), 0, p));
 }
 
 void operator delete[](void* p)
 {
-  HeapFree(GetProcessHeap(), 0, p);
+  static_cast<void>(HeapFree(GetProcessHeap(), 0, p));
 }
