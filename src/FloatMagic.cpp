@@ -1,4 +1,5 @@
-﻿#include "vld.h"
+﻿#include "..\3rdparty\tracy\Tracy.hpp"
+#include "vld.h"
 #include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
@@ -6,8 +7,6 @@
 #include "TextEditor.h"
 #include "FloatMagic.h"
 #include "resource.h"
-
-#include "..\3rdparty\tracy\Tracy.hpp"
 
 #include <shobjidl.h> // Save/Load dialogs
 #include <shlobj.h>   // Save/Load dialogs
@@ -95,6 +94,7 @@ HRESULT MainWindow::Initialize() noexcept
   // Initialize the controls
   if (SUCCEEDED(hr))
   {
+    ZoneScoped("ShowWindow");
     static_cast<void>(ShowWindow(this->pHwnd, SW_SHOWNORMAL));
     static_cast<void>(UpdateWindow(this->pHwnd));
   }
@@ -103,6 +103,7 @@ HRESULT MainWindow::Initialize() noexcept
   mj::ComPtr<IDWriteTextFormat> textFormat;
   if (SUCCEEDED(hr))
   {
+    ZoneScoped("CreateTextFormat");
     hr = dwriteFactory_->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
                                           DWRITE_FONT_STRETCH_NORMAL, 16, L"", textFormat.GetAddressOf());
   }
@@ -110,24 +111,28 @@ HRESULT MainWindow::Initialize() noexcept
   // Set initial text and assign to the text editor.
   if (SUCCEEDED(hr))
   {
+    ZoneScoped("TextEditor::Create");
     hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat.Get(), dwriteFactory_.Get(), &this->pTextEditor);
   }
 
   if (SUCCEEDED(hr))
   {
-    hr = FormatSampleLayout(this->pTextEditor->GetLayout());
+    ZoneScoped("FormatSampleLayout");
+    hr = this->FormatSampleLayout(this->pTextEditor->GetLayout());
   }
 
   // Create our target on behalf of text editor control
   // and tell it to draw onto it.
   if (SUCCEEDED(hr))
   {
+    ZoneScoped("CreateRenderTarget");
     hr = CreateRenderTarget(this->pTextEditor->GetHwnd());
     this->pTextEditor->SetRenderTarget(renderTarget_.Get());
   }
 
   if (SUCCEEDED(hr))
   {
+    ZoneScoped("OnSize");
     // Size everything initially.
     OnSize();
 
