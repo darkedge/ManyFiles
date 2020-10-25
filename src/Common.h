@@ -28,10 +28,6 @@
 #define NOMINMAX
 #endif
 
-#ifndef _USE_MATH_DEFINES // We do want PI defined
-#define _USE_MATH_DEFINES
-#endif
-
 #include "mj_common.h"
 #include "mj_math.h"
 #define mj_min(a, b) (a < b ? a : b)
@@ -59,7 +55,7 @@
 
 #ifndef HINST_THISCOMPONENT
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+#define HINST_THISCOMPONENT (reinterpret_cast<HINSTANCE>(&__ImageBase))
 #endif
 
 // Use the double macro technique to stringize the actual value of s

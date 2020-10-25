@@ -12,6 +12,50 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 namespace mj
 {
+  // C-style cast fixes
+  inline LPWSTR MakeIntResourceW(WORD i)
+  {
+    return reinterpret_cast<LPWSTR>(static_cast<ULONG_PTR>(i));
+  }
+  constexpr inline bool Succeeded(HRESULT hr)
+  {
+    return hr >= 0;
+  }
+  constexpr inline bool Failed(HRESULT hr)
+  {
+    return hr < 0;
+  }
+  constexpr inline WORD LoWord(DWORD_PTR l)
+  {
+    return static_cast<WORD>(l & 0xffff);
+  }
+  constexpr inline WORD HiWord(DWORD_PTR l)
+  {
+    return static_cast<WORD>((l >> 16) & 0xffff);
+  }
+  constexpr inline int GetXLParam(LPARAM lp)
+  {
+    return static_cast<int>(static_cast<short>(LoWord(lp)));
+  }
+  constexpr inline int GetYLParam(LPARAM lp)
+  {
+    return static_cast<int>(static_cast<short>(HiWord(lp)));
+  }
+  constexpr inline short GetWheelDeltaParam(WPARAM wParam)
+  {
+    return static_cast<short>(HiWord(wParam));
+  }
+  inline LPWSTR IdcArrow()
+  {
+    return MakeIntResourceW(32512);
+  }
+  inline LPWSTR IdcIBeam()
+  {
+    return MakeIntResourceW(32513);
+  }
+  constexpr int CwUseDefault = static_cast<int>(0x80000000);
+  constexpr HRESULT kOK      = 0;
+
   template <typename T>
   class ComPtr
   {

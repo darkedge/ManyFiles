@@ -23,20 +23,18 @@ static void Main()
   // for security exploits.
   static_cast<void>(HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
 
-  HRESULT hr = S_OK;
-
-  hr = CoInitialize(nullptr);
-  if (SUCCEEDED(hr))
+  HRESULT hr = CoInitialize(nullptr);
+  if (mj::Succeeded(hr))
   {
     MainWindow app;
 
     hr = app.Initialize();
-    if (SUCCEEDED(hr))
+    if (mj::Succeeded(hr))
       hr = static_cast<HRESULT>(app.RunMessageLoop());
   }
   CoUninitialize();
 
-  if (FAILED(hr))
+  if (mj::Failed(hr))
   {
     FailApplication(L"An unexpected error occured in the demo. Ending now...", hr);
   }
@@ -64,21 +62,21 @@ HRESULT MainWindow::Initialize()
   // Initializes the factories and creates the main window,
   // render target, and text editor.
 
-  HRESULT hr = S_OK;
+  HRESULT hr = mj::kOK;
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                              reinterpret_cast<IUnknown**>(dwriteFactory_.ReleaseAndGetAddressOf()));
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     static_cast<void>(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2dFactory_.ReleaseAndGetAddressOf()));
   }
 
   // Create the main window
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     static_cast<void>(MainWindow::RegisterWindowClass());
     static_cast<void>(TextEditor::RegisterWindowClass());
@@ -92,7 +90,7 @@ HRESULT MainWindow::Initialize()
   }
 
   // Initialize the controls
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     ZoneScoped("ShowWindow");
     static_cast<void>(ShowWindow(this->pHwnd, SW_SHOWNORMAL));
@@ -101,7 +99,7 @@ HRESULT MainWindow::Initialize()
 
   // Need a text format to base the layout on.
   mj::ComPtr<IDWriteTextFormat> textFormat;
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     ZoneScoped("CreateTextFormat");
     hr = dwriteFactory_->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
@@ -109,13 +107,12 @@ HRESULT MainWindow::Initialize()
   }
 
   // Set initial text and assign to the text editor.
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
-    ZoneScoped("TextEditor::Create");
     hr = TextEditor::Create(this->pHwnd, g_sampleText, textFormat.Get(), dwriteFactory_.Get(), &this->pTextEditor);
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     ZoneScoped("FormatSampleLayout");
     hr = this->FormatSampleLayout(this->pTextEditor->GetLayout());
@@ -123,14 +120,14 @@ HRESULT MainWindow::Initialize()
 
   // Create our target on behalf of text editor control
   // and tell it to draw onto it.
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     ZoneScoped("CreateRenderTarget");
     hr = CreateRenderTarget(this->pTextEditor->GetHwnd());
     this->pTextEditor->SetRenderTarget(this->pRenderTarget.Get());
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     ZoneScoped("OnSize");
     // Size everything initially.
@@ -154,9 +151,9 @@ ATOM MainWindow::RegisterWindowClass()
   wcex.cbWndExtra    = sizeof(LONG_PTR);
   wcex.hInstance     = HINST_THISCOMPONENT;
   wcex.hIcon         = nullptr;
-  wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+  wcex.hCursor       = LoadCursorW(nullptr, mj::IdcArrow());
   wcex.hbrBackground = nullptr;
-  wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
+  wcex.lpszMenuName  = mj::MakeIntResourceW(IDR_MENU1);
   wcex.lpszClassName = TEXT("DirectWritePadDemo");
   wcex.hIconSm       = nullptr;
 
@@ -165,7 +162,7 @@ ATOM MainWindow::RegisterWindowClass()
 
 HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
 {
-  HRESULT hr = S_OK;
+  HRESULT hr = mj::kOK;
 
   mj::ComPtr<RenderTarget> renderTarget;
 
@@ -176,7 +173,7 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
   }
 
   // Set the new target.
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     this->pRenderTarget = renderTarget;
   }
@@ -186,12 +183,22 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
 
 WPARAM MainWindow::RunMessageLoop()
 {
-  MSG msg;
-  while (GetMessageW(&msg, nullptr, 0, 0) > 0)
+  MJ_UNINITIALIZED MSG msg;
+  MJ_UNINITIALIZED BOOL bRet;
+
+  while ((bRet = GetMessageW(&msg, nullptr, 0, 0)) != 0)
   {
-    static_cast<void>(TranslateMessage(&msg));
-    static_cast<void>(DispatchMessageW(&msg));
+    if (bRet == -1)
+    {
+      // handle the error and possibly exit
+    }
+    else
+    {
+      static_cast<void>(TranslateMessage(&msg));
+      static_cast<void>(DispatchMessageW(&msg));
+    }
   }
+
   return msg.wParam;
 }
 
@@ -266,25 +273,25 @@ void MainWindow::OpenFileDialog()
   HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
                                 reinterpret_cast<LPVOID*>(pFileOpen.GetAddressOf()));
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = pFileOpen->Show(nullptr);
   }
 
   // Get the file name from the dialog box.
   mj::ComPtr<IShellItem> pItem;
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = pFileOpen->GetResult(pItem.GetAddressOf());
   }
 
   PWSTR pszFilePath = nullptr;
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     HANDLE hFile = CreateFileW(pszFilePath,           // file to open
                                GENERIC_READ,          // open for reading
@@ -460,7 +467,7 @@ HRESULT MainWindow::OnChooseFont()
   // initializing it according to the current selection's format,
   // and updating the current selection with the user's choice.
 
-  HRESULT hr = S_OK;
+  HRESULT hr = mj::kOK;
 
   // Read the caret format.
   EditableLayout::CaretFormat& caretFormat = this->pTextEditor->GetCaretFormat();
@@ -508,12 +515,12 @@ HRESULT MainWindow::OnChooseFont()
   mj::ComPtr<IDWriteFont> font;
   hr = CreateFontFromLOGFONT(logFont, font.GetAddressOf());
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = GetFontFamilyName(font.Get(), caretFormat.fontFamilyName, ARRAYSIZE(caretFormat.fontFamilyName));
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     caretFormat.hasUnderline     = logFont.lfUnderline;
     caretFormat.hasStrikethrough = logFont.lfStrikeOut;
@@ -554,7 +561,7 @@ STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWri
   HRESULT hr = dwriteFactory_->GetGdiInterop(gdiInterop.GetAddressOf());
 
   // Find the font object that best matches the specified LOGFONT.
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = gdiInterop->CreateFontFromLOGFONT(&logFont, font);
   }
@@ -571,7 +578,7 @@ STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontF
   // Get the family names. This returns an object that encapsulates one or
   // more names with the same meaning but in different languages.
   mj::ComPtr<IDWriteLocalizedStrings> localizedFamilyNames;
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = fontFamily->GetFamilyNames(localizedFamilyNames.GetAddressOf());
   }
@@ -579,12 +586,12 @@ STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontF
   // Get the family name at index zero. If we were going to display the name
   // we'd want to try to find one that matched the use locale, but for purposes
   // of setting the current font, any language will do.
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = localizedFamilyNames->GetString(0, &fontFamilyName[0], fontFamilyNameLength);
   }
 
-  return S_OK;
+  return mj::kOK;
 }
 
 HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
@@ -592,11 +599,11 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
   // Formats the initial sample text with styles, drawing effects, and
   // typographic features.
 
-  HRESULT hr = S_OK;
+  HRESULT hr = mj::kOK;
 
   // Set default color of black on entire range.
   DrawingEffect* drawingEffect = new DrawingEffect(0xFF000000); // TODO MJ: Untracked memory allocation
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     static_cast<void>(textLayout->SetDrawingEffect(drawingEffect, MakeDWriteTextRange(0)));
   }
@@ -604,19 +611,19 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
   // Set initial trimming sign, but leave it disabled (granularity is none).
 
   mj::ComPtr<IDWriteInlineObject> inlineObject;
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     hr = dwriteFactory_->CreateEllipsisTrimmingSign(textLayout, inlineObject.ReleaseAndGetAddressOf());
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     static const DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
 
     static_cast<void>(textLayout->SetTrimming(&trimming, inlineObject.Get()));
   }
 
-  if (SUCCEEDED(hr))
+  if (mj::Succeeded(hr))
   {
     static_cast<void>(textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT));
     static_cast<void>(textLayout->SetFontFamilyName(L"Segoe UI", MakeDWriteTextRange(0)));
