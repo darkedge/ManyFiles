@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "mj_win32.h"
 
 class DrawingEffect : public IUnknown
 {
@@ -23,14 +24,15 @@ public:
   {
     // Swaps color order (bgra <-> rgba) from D2D/GDI+'s to a COLORREF.
     // This also leaves the top byte 0, since alpha is ignored anyway.
-    return RGB(GetBValue(bgra), GetGValue(bgra), GetRValue(bgra));
+    return mj::gdi::Rgb(mj::gdi::GetBlueValue(bgra), mj::gdi::GetGreenValue(bgra), mj::gdi::GetRedValue(bgra));
   }
 
   static inline COLORREF GetBgra(COLORREF rgb)
   {
     // Swaps color order (bgra <-> rgba) from COLORREF to D2D/GDI+'s.
     // Sets alpha to full opacity.
-    return RGB(GetBValue(rgb), GetGValue(rgb), GetRValue(rgb)) | 0xFF000000;
+    return mj::gdi::Rgb(mj::gdi::GetBlueValue(rgb), mj::gdi::GetGreenValue(rgb), mj::gdi::GetRedValue(rgb)) |
+           0xFF000000;
   }
 
   // IUnknown interface implementation
@@ -38,7 +40,7 @@ public:
       /* [in] */ REFIID riid,
       /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override
   {
-    return E_NOTIMPL;
+    return mj::ENotImpl;
   }
 
   virtual ULONG STDMETHODCALLTYPE AddRef() override

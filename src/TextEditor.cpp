@@ -122,7 +122,7 @@ HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextForm
   TextEditor* newTextEditor = new TextEditor(factory); // TODO MJ: Untracked memory allocation
   if (!newTextEditor)
   {
-    return E_OUTOFMEMORY;
+    return mj::EOutOfMemory;
   }
 
   hr = newTextEditor->Initialize(parentHwnd, text, textFormat);

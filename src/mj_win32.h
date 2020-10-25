@@ -33,6 +33,14 @@ namespace mj
   {
     return static_cast<WORD>((l >> 16) & 0xffff);
   }
+  constexpr inline BYTE LoByte(DWORD_PTR w)
+  {
+    return static_cast<BYTE>(w & 0xff);
+  }
+  constexpr inline BYTE HiByte(DWORD_PTR w)
+  {
+    return static_cast<BYTE>((w >> 8) & 0xff);
+  }
   constexpr inline int GetXLParam(LPARAM lp)
   {
     return static_cast<int>(static_cast<short>(LoWord(lp)));
@@ -53,8 +61,31 @@ namespace mj
   {
     return MakeIntResourceW(32513);
   }
-  constexpr int CwUseDefault = static_cast<int>(0x80000000);
-  constexpr HRESULT kOK      = 0;
+  constexpr HRESULT ENotImpl     = static_cast<HRESULT>(0x80004001L);
+  constexpr HRESULT EOutOfMemory = static_cast<HRESULT>(0x8007000EL);
+  constexpr int CwUseDefault     = static_cast<int>(0x80000000);
+  constexpr HRESULT kOK          = 0;
+
+  namespace gdi
+  {
+    constexpr COLORREF Rgb(BYTE r, BYTE g, BYTE b)
+    {
+      return static_cast<COLORREF>((r | (static_cast<WORD>(g) << 8)) | ((static_cast<DWORD>(b)) << 16));
+    }
+
+    constexpr inline BYTE GetRedValue(UINT32 rgb)
+    {
+      return LoByte(rgb);
+    }
+    constexpr inline BYTE GetGreenValue(UINT32 rgb)
+    {
+      return LoByte(static_cast<WORD>(rgb) >> 8);
+    }
+    constexpr inline BYTE GetBlueValue(UINT32 rgb)
+    {
+      return LoByte(rgb >> 16);
+    }
+  } // namespace gdi
 
   template <typename T>
   class ComPtr

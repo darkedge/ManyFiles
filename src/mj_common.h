@@ -100,10 +100,10 @@ namespace mj
     /// <returns></returns>
     ArrayList(uint32_t capacity) : capacity(capacity)
     {
-      pData = (T*)VirtualAlloc(0,                        //
-                               capacity * TSize,         //
-                               MEM_COMMIT | MEM_RESERVE, //
-                               PAGE_READWRITE);
+      pData = reinterpret_cast<T*>(VirtualAlloc(0,                                     //
+                                                static_cast<SIZE_T>(capacity) * TSize, //
+                                                MEM_COMMIT | MEM_RESERVE,              //
+                                                PAGE_READWRITE));
     }
 
     // Destructor
@@ -466,11 +466,12 @@ namespace mj
     {
     }
 
-    MemoryBuffer(void* pBegin, void* end) : end((char*)end), position((char*)pBegin)
+    MemoryBuffer(void* pBegin, void* end) : end(static_cast<char*>(end)), position(static_cast<char*>(pBegin))
     {
     }
 
-    MemoryBuffer(void* pBegin, size_t size) : end((char*)pBegin + size), position((char*)pBegin)
+    MemoryBuffer(void* pBegin, size_t size)
+        : end(static_cast<char*>(pBegin) + size), position(static_cast<char*>(pBegin))
     {
     }
 
