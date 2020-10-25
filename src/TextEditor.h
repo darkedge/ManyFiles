@@ -53,7 +53,8 @@ public:
   void SetRenderTarget(RenderTarget* target);
   void PostRedraw()
   {
-    InvalidateRect(hwnd_, nullptr, FALSE);
+    ZoneScoped;
+    ::InvalidateRect(hwnd_, nullptr, FALSE);
   }
 
   // Used by the main application to respond to button commands.

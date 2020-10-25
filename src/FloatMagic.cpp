@@ -59,6 +59,7 @@ void CALLBACK WinMainCRTStartup()
 
 HRESULT MainWindow::Initialize()
 {
+  ZoneScoped;
   // Initializes the factories and creates the main window,
   // render target, and text editor.
 
@@ -66,12 +67,14 @@ HRESULT MainWindow::Initialize()
 
   if (mj::Succeeded(hr))
   {
+    ZoneScopedN("DWriteCreateFactory");
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                              reinterpret_cast<IUnknown**>(dwriteFactory_.ReleaseAndGetAddressOf()));
   }
 
   if (mj::Succeeded(hr))
   {
+    ZoneScopedN("D2D1CreateFactory");
     static_cast<void>(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2dFactory_.ReleaseAndGetAddressOf()));
   }
 
@@ -82,6 +85,7 @@ HRESULT MainWindow::Initialize()
     static_cast<void>(TextEditor::RegisterWindowClass());
 
     // create window (the hwnd is stored in the create event)
+    ZoneScopedN("CreateWindowExW");
     CreateWindowExW(0L, L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                     CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
@@ -89,19 +93,11 @@ HRESULT MainWindow::Initialize()
       hr = HRESULT_FROM_WIN32(GetLastError());
   }
 
-  // Initialize the controls
-  if (mj::Succeeded(hr))
-  {
-    ZoneScoped("ShowWindow");
-    static_cast<void>(ShowWindow(this->pHwnd, SW_SHOWNORMAL));
-    static_cast<void>(UpdateWindow(this->pHwnd));
-  }
-
   // Need a text format to base the layout on.
   mj::ComPtr<IDWriteTextFormat> textFormat;
   if (mj::Succeeded(hr))
   {
-    ZoneScoped("CreateTextFormat");
+    ZoneScopedN("CreateTextFormat");
     hr = dwriteFactory_->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
                                           DWRITE_FONT_STRETCH_NORMAL, 16, L"", textFormat.GetAddressOf());
   }
@@ -114,7 +110,6 @@ HRESULT MainWindow::Initialize()
 
   if (mj::Succeeded(hr))
   {
-    ZoneScoped("FormatSampleLayout");
     hr = this->FormatSampleLayout(this->pTextEditor->GetLayout());
   }
 
@@ -122,14 +117,12 @@ HRESULT MainWindow::Initialize()
   // and tell it to draw onto it.
   if (mj::Succeeded(hr))
   {
-    ZoneScoped("CreateRenderTarget");
-    hr = CreateRenderTarget(this->pTextEditor->GetHwnd());
+    hr = this->CreateRenderTarget(this->pTextEditor->GetHwnd());
     this->pTextEditor->SetRenderTarget(this->pRenderTarget.Get());
   }
 
   if (mj::Succeeded(hr))
   {
-    ZoneScoped("OnSize");
     // Size everything initially.
     OnSize();
 
@@ -137,11 +130,20 @@ HRESULT MainWindow::Initialize()
     static_cast<void>(SetFocus(this->pTextEditor->GetHwnd()));
   }
 
+  // Initialize the controls
+  if (mj::Succeeded(hr))
+  {
+    ZoneScopedN("ShowWindow");
+    static_cast<void>(ShowWindow(this->pHwnd, SW_SHOWNORMAL));
+    static_cast<void>(UpdateWindow(this->pHwnd));
+  }
+
   return hr;
 }
 
 ATOM MainWindow::RegisterWindowClass()
 {
+  ZoneScoped;
   // Registers window class.
   MJ_UNINITIALIZED WNDCLASSEX wcex;
   wcex.cbSize        = sizeof(WNDCLASSEX);
@@ -162,6 +164,8 @@ ATOM MainWindow::RegisterWindowClass()
 
 HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
 {
+  ZoneScoped;
+
   HRESULT hr = mj::kOK;
 
   mj::ComPtr<RenderTarget> renderTarget;
@@ -183,6 +187,7 @@ HRESULT MainWindow::CreateRenderTarget(HWND hwnd)
 
 WPARAM MainWindow::RunMessageLoop()
 {
+  ZoneScoped;
   MJ_UNINITIALIZED MSG msg;
   MJ_UNINITIALIZED BOOL bRet;
 
@@ -204,6 +209,7 @@ WPARAM MainWindow::RunMessageLoop()
 
 LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+  ZoneScoped;
   // Relays messages for the main window to the internal class.
 
   MainWindow* pMainWindow = reinterpret_cast<MainWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
@@ -266,6 +272,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
 void MainWindow::OpenFileDialog()
 {
+  ZoneScoped;
   mj::ComPtr<IFileOpenDialog> pFileOpen;
 
   // Create the FileOpenDialog object.
@@ -346,6 +353,7 @@ void MainWindow::OpenFileDialog()
 
 void MainWindow::OnCommand(UINT commandId)
 {
+  ZoneScoped;
   // Handles menu commands.
 
   IDWriteTextLayout* textLayout = this->pTextEditor->GetLayout();
@@ -423,6 +431,8 @@ void MainWindow::OnCommand(UINT commandId)
 
 void MainWindow::OnSize()
 {
+  ZoneScoped;
+
   // Updates the child edit control's size to fill the whole window.
 
   if (!this->pTextEditor)
@@ -442,6 +452,7 @@ void MainWindow::OnSize()
 
 void MainWindow::RedrawTextEditor()
 {
+  ZoneScoped;
   // Flags text editor to redraw itself after significant changes.
   this->pTextEditor->RefreshView();
 }
@@ -452,6 +463,7 @@ void MainWindow::RedrawTextEditor()
 /// </summary>
 void MainWindow::UpdateMenuToCaret()
 {
+  ZoneScoped;
   // Read layout-wide attributes from the layout.
   const DWRITE_WORD_WRAPPING wordWrapping = this->pTextEditor->GetLayout()->GetWordWrapping();
 
@@ -463,6 +475,7 @@ void MainWindow::UpdateMenuToCaret()
 
 HRESULT MainWindow::OnChooseFont()
 {
+  ZoneScoped;
   // Displays the font selection dialog,
   // initializing it according to the current selection's format,
   // and updating the current selection with the user's choice.
@@ -554,6 +567,7 @@ HRESULT MainWindow::OnChooseFont()
 
 STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWriteFont** font)
 {
+  ZoneScoped;
   *font = nullptr;
 
   // Conversion to and from LOGFONT uses the IDWriteGdiInterop interface.
@@ -571,6 +585,7 @@ STDMETHODIMP MainWindow::CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWri
 
 STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontFamilyName, UINT32 fontFamilyNameLength)
 {
+  ZoneScoped;
   // Get the font family to which this font belongs.
   mj::ComPtr<IDWriteFontFamily> fontFamily;
   HRESULT hr = font->GetFontFamily(fontFamily.GetAddressOf());
@@ -596,6 +611,8 @@ STDMETHODIMP MainWindow::GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontF
 
 HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 {
+  ZoneScoped;
+
   // Formats the initial sample text with styles, drawing effects, and
   // typographic features.
 
@@ -635,6 +652,7 @@ HRESULT MainWindow::FormatSampleLayout(IDWriteTextLayout* textLayout)
 
 void FailApplication(const wchar_t* message, int functionResult)
 {
+  ZoneScoped;
   // Displays an error message and quits the program.
 
   MJ_UNINITIALIZED wchar_t buffer[1000];

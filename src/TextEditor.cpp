@@ -194,6 +194,8 @@ inline void TextEditor::InitViewDefaults()
 
 void TextEditor::SetRenderTarget(RenderTarget* target)
 {
+  ZoneScoped;
+
   this->renderTarget_ = target;
   this->PostRedraw();
 }

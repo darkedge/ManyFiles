@@ -1,10 +1,12 @@
-﻿#include "Common.h"
+﻿#include "..\3rdparty\tracy\Tracy.hpp"
+#include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 
 HRESULT RenderTarget::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd,
                              OUT RenderTarget** renderTarget)
 {
+  ZoneScoped;
   *renderTarget = nullptr;
   HRESULT hr    = mj::kOK;
 
@@ -25,46 +27,45 @@ HRESULT RenderTarget::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFac
 }
 
 RenderTarget::RenderTarget(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd)
-    : hwnd_(hwnd), d2dFactory_(d2dFactory), dwriteFactory_(dwriteFactory)
+    : hwnd_(hwnd), pD2dFactory(d2dFactory), pDWriteFactory(dwriteFactory)
 {
 }
 
 HRESULT RenderTarget::CreateTarget()
 {
+  ZoneScoped;
   // Creates a D2D render target set on the HWND.
-
-  HRESULT hr = mj::kOK;
 
   // Get the window's pixel size.
   RECT rect = {};
-  GetClientRect(hwnd_, &rect);
+  static_cast<void>(GetClientRect(hwnd_, &rect));
   const D2D1_SIZE_U d2dSize = D2D1::SizeU(rect.right, rect.bottom);
 
   // Create a D2D render target.
-  ID2D1HwndRenderTarget* target = nullptr;
+  ID2D1HwndRenderTarget* pRenderTarget = nullptr;
 
-  hr = d2dFactory_->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
-                                           D2D1::HwndRenderTargetProperties(hwnd_, d2dSize), &target);
+  HRESULT hr = this->pD2dFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
+                                                 D2D1::HwndRenderTargetProperties(hwnd_, d2dSize), &pRenderTarget);
 
   if (mj::Succeeded(hr))
   {
-    this->pRenderTarget = target;
+    this->pRenderTarget = pRenderTarget;
 
     // Any scaling will be combined into matrix transforms rather than an
     // additional DPI scaling. This simplifies the logic for rendering
     // and hit-testing. If an application does not use matrices, then
     // using the scaling factor directly is simpler.
-    target->SetDpi(96.0, 96.0);
+    pRenderTarget->SetDpi(96.0, 96.0);
 
     // Create a reusable scratch brush, rather than allocating one for
     // each new color.
-    hr = target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), brush_.ReleaseAndGetAddressOf());
+    hr = pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), this->pBrush.ReleaseAndGetAddressOf());
   }
 
   if (mj::Succeeded(hr))
   {
     // Update the initial monitor rendering parameters.
-    UpdateMonitor();
+    this->UpdateMonitor();
   }
 
   return hr;
@@ -80,6 +81,7 @@ void RenderTarget::Resize(UINT width, UINT height)
 
 void RenderTarget::UpdateMonitor()
 {
+  ZoneScoped;
   // Updates rendering parameters according to current monitor.
 
   HMONITOR monitor = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST);
@@ -90,7 +92,7 @@ void RenderTarget::UpdateMonitor()
 
     mj::ComPtr<IDWriteRenderingParams> renderingParams;
 
-    dwriteFactory_->CreateMonitorRenderingParams(monitor, renderingParams.GetAddressOf());
+    this->pDWriteFactory->CreateMonitorRenderingParams(monitor, renderingParams.GetAddressOf());
     this->pRenderTarget->SetTextRenderingParams(renderingParams.Get());
 
     hmonitor_ = monitor;
@@ -100,12 +102,14 @@ void RenderTarget::UpdateMonitor()
 
 void RenderTarget::BeginDraw()
 {
+  ZoneScoped;
   this->pRenderTarget->BeginDraw();
   this->pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 }
 
 void RenderTarget::EndDraw()
 {
+  ZoneScoped;
   const HRESULT hr = this->pRenderTarget->EndDraw();
 
   // If the device is lost for any reason, we need to recreate it.
@@ -123,11 +127,13 @@ void RenderTarget::EndDraw()
 
 void RenderTarget::Clear(UINT32 color)
 {
+  ZoneScoped;
   this->pRenderTarget->Clear(D2D1::ColorF(color));
 }
 
 void RenderTarget::FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect)
 {
+  ZoneScoped;
   ID2D1Brush* brush = GetCachedBrush(&drawingEffect);
   if (!brush)
     return;
@@ -139,6 +145,7 @@ void RenderTarget::FillRectangle(const RectF& destRect, const DrawingEffect& dra
 
 void RenderTarget::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect)
 {
+  ZoneScoped;
   if (!textLayout)
     return;
 
@@ -148,29 +155,33 @@ void RenderTarget::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& re
 
 ID2D1Brush* RenderTarget::GetCachedBrush(const DrawingEffect* effect)
 {
-  if (!effect || !brush_)
+  ZoneScoped;
+  if (!effect || !this->pBrush)
     return nullptr;
 
   // Update the D2D brush to the new effect color.
   const UINT32 bgra = effect->GetColor();
   const float alpha = (bgra >> 24) / 255.0f;
-  brush_->SetColor(D2D1::ColorF(bgra, alpha));
+  this->pBrush->SetColor(D2D1::ColorF(bgra, alpha));
 
-  return brush_.Get();
+  return this->pBrush.Get();
 }
 
 void RenderTarget::SetTransform(DWRITE_MATRIX const& transform)
 {
+  ZoneScoped;
   this->pRenderTarget->SetTransform(reinterpret_cast<const D2D1_MATRIX_3X2_F*>(&transform));
 }
 
 void RenderTarget::GetTransform(DWRITE_MATRIX& transform)
 {
+  ZoneScoped;
   this->pRenderTarget->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(&transform));
 }
 
 void RenderTarget::SetAntialiasing(bool isEnabled)
 {
+  ZoneScoped;
   this->pRenderTarget->SetAntialiasMode(isEnabled ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
 }
 
@@ -180,6 +191,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawGlyphRun(void* clientDrawingContext,
                                                      const DWRITE_GLYPH_RUN_DESCRIPTION* glyphRunDescription,
                                                      IUnknown* clientDrawingEffect)
 {
+  ZoneScoped;
   // If no drawing effect is applied to run, but a clientDrawingContext
   // is passed, use the one from that instead. This is useful for trimming
   // signs, where they don't have a color of their own.
@@ -202,6 +214,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawUnderline(void* clientDrawingContext
                                                       FLOAT baselineOriginY, const DWRITE_UNDERLINE* underline,
                                                       IUnknown* clientDrawingEffect)
 {
+  ZoneScoped;
   clientDrawingEffect = GetDrawingEffect(clientDrawingContext, clientDrawingEffect);
 
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
@@ -225,6 +238,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawStrikethrough(void* clientDrawingCon
                                                           const DWRITE_STRIKETHROUGH* strikethrough,
                                                           IUnknown* clientDrawingEffect)
 {
+  ZoneScoped;
   clientDrawingEffect = GetDrawingEffect(clientDrawingContext, clientDrawingEffect);
 
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
@@ -248,6 +262,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawInlineObject(void* clientDrawingCont
                                                          IDWriteInlineObject* inlineObject, BOOL isSideways,
                                                          BOOL isRightToLeft, IUnknown* clientDrawingEffect)
 {
+  ZoneScoped;
   // Inline objects inherit the drawing effect of the text
   // they are in, so we should pass it down (if none is set
   // on this range, use the drawing context's effect instead).
@@ -263,6 +278,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawInlineObject(void* clientDrawingCont
 
 HRESULT STDMETHODCALLTYPE RenderTarget::IsPixelSnappingDisabled(void* clientDrawingContext, OUT BOOL* isDisabled)
 {
+  ZoneScoped;
   // Enable pixel snapping of the text baselines,
   // since we're not animating and don't want blurry text.
   *isDisabled = FALSE;
@@ -271,6 +287,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::IsPixelSnappingDisabled(void* clientDraw
 
 HRESULT STDMETHODCALLTYPE RenderTarget::GetCurrentTransform(void* clientDrawingContext, OUT DWRITE_MATRIX* transform)
 {
+  ZoneScoped;
   // Simply forward what the real renderer holds onto.
   this->pRenderTarget->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(transform));
   return mj::kOK;
@@ -278,6 +295,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::GetCurrentTransform(void* clientDrawingC
 
 HRESULT STDMETHODCALLTYPE RenderTarget::GetPixelsPerDip(void* clientDrawingContext, OUT FLOAT* pixelsPerDip)
 {
+  ZoneScoped;
   // Any scaling will be combined into matrix transforms rather than an
   // additional DPI scaling. This simplifies the logic for rendering
   // and hit-testing. If an application does not use matrices, then

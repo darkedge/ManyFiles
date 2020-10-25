@@ -102,10 +102,10 @@ private:
   }
 
 private:
-  mj::ComPtr<IDWriteFactory> dwriteFactory_;
-  mj::ComPtr<ID2D1Factory> d2dFactory_;
+  mj::ComPtr<IDWriteFactory> pDWriteFactory;
+  mj::ComPtr<ID2D1Factory> pD2dFactory;
   mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget;
-  mj::ComPtr<ID2D1SolidColorBrush> brush_; // reusable scratch brush for current color
+  mj::ComPtr<ID2D1SolidColorBrush> pBrush; // reusable scratch brush for current color
 
   HWND hwnd_         = nullptr;
   HMONITOR hmonitor_ = nullptr;
