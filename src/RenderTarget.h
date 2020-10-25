@@ -14,8 +14,6 @@ public:
   HRESULT static Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFactory, HWND hwnd,
                         OUT RenderTarget** renderTarget);
 
-  ~RenderTarget();
-
   void BeginDraw();
   void EndDraw();
   void Clear(UINT32 color);
@@ -83,32 +81,32 @@ private:
   // object or trimming sign.
   struct Context
   {
-    Context(RenderTarget* initialTarget, IUnknown* initialDrawingEffect)
-        : target(initialTarget), drawingEffect(initialDrawingEffect)
+    Context(RenderTarget* pInitialTarget, IUnknown* pInitialDrawingEffect)
+        : pTarget(pInitialTarget), pDrawingEffect(pInitialDrawingEffect)
     {
     }
 
     // short lived weak pointers
-    RenderTarget* target;
-    IUnknown* drawingEffect;
+    RenderTarget* pTarget;
+    IUnknown* pDrawingEffect;
   };
 
-  IUnknown* GetDrawingEffect(void* clientDrawingContext, IUnknown* drawingEffect)
+  IUnknown* GetDrawingEffect(void* pClientDrawingContext, IUnknown* pDrawingEffect)
   {
     // Callbacks use this to use a drawing effect from the client context
     // if none was passed into the callback.
-    if (drawingEffect)
-      return drawingEffect;
+    if (pDrawingEffect)
+      return pDrawingEffect;
 
-    return (reinterpret_cast<Context*>(clientDrawingContext))->drawingEffect;
+    return (reinterpret_cast<Context*>(pClientDrawingContext))->pDrawingEffect;
   }
 
 private:
   mj::ComPtr<IDWriteFactory> dwriteFactory_;
   mj::ComPtr<ID2D1Factory> d2dFactory_;
-  mj::ComPtr<ID2D1HwndRenderTarget> target_; // D2D render target
-  mj::ComPtr<ID2D1SolidColorBrush> brush_;   // reusable scratch brush for current color
+  mj::ComPtr<ID2D1HwndRenderTarget> pRenderTarget;
+  mj::ComPtr<ID2D1SolidColorBrush> brush_; // reusable scratch brush for current color
 
-  HWND hwnd_;
-  HMONITOR hmonitor_;
+  HWND hwnd_         = nullptr;
+  HMONITOR hmonitor_ = nullptr;
 };

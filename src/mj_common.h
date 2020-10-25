@@ -365,13 +365,13 @@ namespace mj
 
     bool Expand(uint32_t newCapacity)
     {
-      T* ptr = (T*)VirtualAlloc(0,                                //
-                                (size_t)newCapacity * ElemSize(), //
-                                MEM_COMMIT | MEM_RESERVE,         //
-                                PAGE_READWRITE);
+      T* ptr = reinterpret_cast<T*>(VirtualAlloc(0,                                //
+                                                 (size_t)newCapacity * ElemSize(), //
+                                                 MEM_COMMIT | MEM_RESERVE,         //
+                                                 PAGE_READWRITE));
       if (ptr)
       {
-        memcpy(ptr, pData, (size_t)numElements * ElemSize());
+        memcpy(ptr, pData, static_cast<size_t>(numElements) * ElemSize());
         VirtualFree(pData, 0, MEM_RELEASE);
         capacity = newCapacity;
         pData    = ptr;

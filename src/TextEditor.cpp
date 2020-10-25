@@ -5,70 +5,65 @@
 #include "EditableLayout.h"
 #include "TextEditor.h"
 
-namespace
+static inline D2D1::Matrix3x2F& Cast(DWRITE_MATRIX& matrix)
 {
-  // Private helper functions.
+  // DWrite's matrix, D2D's matrix, and GDI's XFORM
+  // are all compatible.
+  return *reinterpret_cast<D2D1::Matrix3x2F*>(&matrix);
+}
 
-  static inline D2D1::Matrix3x2F& Cast(DWRITE_MATRIX& matrix)
-  {
-    // DWrite's matrix, D2D's matrix, and GDI's XFORM
-    // are all compatible.
-    return *reinterpret_cast<D2D1::Matrix3x2F*>(&matrix);
-  }
+static inline DWRITE_MATRIX& Cast(D2D1::Matrix3x2F& matrix)
+{
+  return *reinterpret_cast<DWRITE_MATRIX*>(&matrix);
+}
 
-  static inline DWRITE_MATRIX& Cast(D2D1::Matrix3x2F& matrix)
-  {
-    return *reinterpret_cast<DWRITE_MATRIX*>(&matrix);
-  }
+static inline int32_t RoundToInt(float x)
+{
+  return static_cast<int32_t>(mj::floorf(x + 0.5f));
+}
 
-  static inline int32_t RoundToInt(float x)
-  {
-    return static_cast<int32_t>(mj::floorf(x + 0.5f));
-  }
+static inline float DegreesToRadians(float degrees)
+{
+  return degrees * mj::kPi * 2.0f / 360.0f;
+}
 
-  static inline float DegreesToRadians(float degrees)
-  {
-    return degrees * mj::kPi * 2.0f / 360.0f;
-  }
+static inline float GetDeterminant(DWRITE_MATRIX const& matrix)
+{
+  return matrix.m11 * matrix.m22 - matrix.m12 * matrix.m21;
+}
 
-  static inline float GetDeterminant(DWRITE_MATRIX const& matrix)
-  {
-    return matrix.m11 * matrix.m22 - matrix.m12 * matrix.m21;
-  }
+static void ComputeInverseMatrix(DWRITE_MATRIX const& matrix, OUT DWRITE_MATRIX& result)
+{
+  // Used for hit-testing, mouse scrolling, panning, and scroll bar sizing.
 
-  static void ComputeInverseMatrix(DWRITE_MATRIX const& matrix, OUT DWRITE_MATRIX& result)
-  {
-    // Used for hit-testing, mouse scrolling, panning, and scroll bar sizing.
+  const float invdet = 1.0f / GetDeterminant(matrix);
+  result.m11         = matrix.m22 * invdet;
+  result.m12         = -matrix.m12 * invdet;
+  result.m21         = -matrix.m21 * invdet;
+  result.m22         = matrix.m11 * invdet;
+  result.dx          = (matrix.m21 * matrix.dy - matrix.dx * matrix.m22) * invdet;
+  result.dy          = (matrix.dx * matrix.m12 - matrix.m11 * matrix.dy) * invdet;
+}
 
-    const float invdet = 1.0f / GetDeterminant(matrix);
-    result.m11         = matrix.m22 * invdet;
-    result.m12         = -matrix.m12 * invdet;
-    result.m21         = -matrix.m21 * invdet;
-    result.m22         = matrix.m11 * invdet;
-    result.dx          = (matrix.m21 * matrix.dy - matrix.dx * matrix.m22) * invdet;
-    result.dy          = (matrix.dx * matrix.m12 - matrix.m11 * matrix.dy) * invdet;
-  }
+static D2D1_POINT_2F GetPageSize(IDWriteTextLayout* textLayout)
+{
+  // Use the layout metrics to determine how large the page is, taking
+  // the maximum of the content size and layout's maximal dimensions.
 
-  static D2D1_POINT_2F GetPageSize(IDWriteTextLayout* textLayout)
-  {
-    // Use the layout metrics to determine how large the page is, taking
-    // the maximum of the content size and layout's maximal dimensions.
+  MJ_UNINITIALIZED DWRITE_TEXT_METRICS textMetrics;
+  textLayout->GetMetrics(&textMetrics);
 
-    MJ_UNINITIALIZED DWRITE_TEXT_METRICS textMetrics;
-    textLayout->GetMetrics(&textMetrics);
+  const float width  = mj_max(textMetrics.layoutWidth, textMetrics.left + textMetrics.width);
+  const float height = mj_max(textMetrics.layoutHeight, textMetrics.height);
 
-    const float width  = mj_max(textMetrics.layoutWidth, textMetrics.left + textMetrics.width);
-    const float height = mj_max(textMetrics.layoutHeight, textMetrics.height);
+  D2D1_POINT_2F pageSize = { width, height };
+  return pageSize;
+}
 
-    D2D1_POINT_2F pageSize = { width, height };
-    return pageSize;
-  }
-
-  static bool IsLandscapeAngle(float angle)
-  {
-    return false;
-  }
-} // namespace
+static bool IsLandscapeAngle(float angle)
+{
+  return false;
+}
 
 // Initialization.
 
@@ -77,7 +72,7 @@ ATOM TextEditor::RegisterWindowClass()
   ZoneScoped;
 
   // Registers window class.
-  WNDCLASSEX wcex;
+  MJ_UNINITIALIZED WNDCLASSEX wcex;
   wcex.cbSize        = sizeof(WNDCLASSEX);
   wcex.style         = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
   wcex.lpfnWndProc   = &WindowProc;
@@ -88,7 +83,7 @@ ATOM TextEditor::RegisterWindowClass()
   wcex.hCursor       = LoadCursorW(nullptr, mj::IdcIBeam());
   wcex.hbrBackground = nullptr;
   wcex.lpszMenuName  = nullptr;
-  wcex.lpszClassName = TEXT("DirectWriteEdit");
+  wcex.lpszClassName = L"DirectWriteEdit";
   wcex.hIconSm       = nullptr;
 
   return RegisterClassExW(&wcex);
@@ -106,8 +101,8 @@ TextEditor::TextEditor(IDWriteFactory* factory) : layoutEditor_(factory)
 
   // Creates editor window.
 
-  InitDefaults();
-  InitViewDefaults();
+  this->InitDefaults();
+  this->InitViewDefaults();
 }
 
 HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextFormat* textFormat, IDWriteFactory* factory,
@@ -456,8 +451,8 @@ void TextEditor::RefreshView()
 {
   // Redraws the text and scrollbars.
 
-  UpdateScrollInfo();
-  PostRedraw();
+  this->UpdateScrollInfo();
+  this->PostRedraw();
 }
 
 void TextEditor::OnScroll(UINT message, UINT request)
@@ -545,10 +540,10 @@ void TextEditor::UpdateScrollInfo()
 
   // Determine scroll bar's step size in pixels by multiplying client rect by current view.
   RECT clientRect;
-  GetClientRect(this->hwnd_, &clientRect);
+  ::GetClientRect(this->hwnd_, &clientRect);
 
   D2D1::Matrix3x2F pageTransform;
-  GetInverseViewMatrix(&Cast(pageTransform));
+  this->GetInverseViewMatrix(&Cast(pageTransform));
 
   // Transform vector of viewport size
   D2D1_POINT_2F clientSize = { static_cast<float>(clientRect.right), static_cast<float>(clientRect.bottom) };
@@ -574,17 +569,17 @@ void TextEditor::UpdateScrollInfo()
   scrollInfo.nPos  = static_cast<int32_t>(scaledSize.y >= 0 ? y : pageSize.y - y);
   scrollInfo.nMin  = 0;
   scrollInfo.nMax  = static_cast<int32_t>(pageSize.y) + scrollInfo.nPage;
-  SetScrollInfo(this->hwnd_, SB_VERT, &scrollInfo, TRUE);
+  static_cast<void>(SetScrollInfo(this->hwnd_, SB_VERT, &scrollInfo, TRUE));
   scrollInfo.nPos = 0;
   scrollInfo.nMax = 0;
-  GetScrollInfo(this->hwnd_, SB_VERT, &scrollInfo);
+  static_cast<void>(GetScrollInfo(this->hwnd_, SB_VERT, &scrollInfo));
 
   // Set horizontal scroll bar.
   scrollInfo.nPage = static_cast<int32_t>(mj::abs(scaledSize.x));
   scrollInfo.nPos  = static_cast<int32_t>(scaledSize.x >= 0 ? x : pageSize.x - x);
   scrollInfo.nMin  = 0;
   scrollInfo.nMax  = static_cast<int32_t>(pageSize.x) + scrollInfo.nPage;
-  SetScrollInfo(this->hwnd_, SB_HORZ, &scrollInfo, TRUE);
+  static_cast<void>(SetScrollInfo(this->hwnd_, SB_HORZ, &scrollInfo, TRUE));
 }
 
 void TextEditor::OnSize(UINT width, UINT height)
@@ -1620,5 +1615,5 @@ void TextEditor::GetInverseViewMatrix(OUT DWRITE_MATRIX* matrix) const
   // Inverts the view matrix for hit-testing and scrolling.
   MJ_UNINITIALIZED DWRITE_MATRIX viewMatrix;
   this->GetViewMatrix(&viewMatrix);
-  ::ComputeInverseMatrix(viewMatrix, *matrix);
+  ComputeInverseMatrix(viewMatrix, *matrix);
 }

@@ -61,10 +61,12 @@ namespace mj
   {
     return MakeIntResourceW(32513);
   }
-  constexpr HRESULT ENotImpl     = static_cast<HRESULT>(0x80004001L);
-  constexpr HRESULT EOutOfMemory = static_cast<HRESULT>(0x8007000EL);
-  constexpr int CwUseDefault     = static_cast<int>(0x80000000);
-  constexpr HRESULT kOK          = 0;
+  constexpr HRESULT ENotImpl             = static_cast<HRESULT>(0x80004001L);
+  constexpr HRESULT EFail                = static_cast<HRESULT>(0x80004005L);
+  constexpr HRESULT EOutOfMemory         = static_cast<HRESULT>(0x8007000EL);
+  constexpr HRESULT D2dErrRecreateTarget = static_cast<HRESULT>(0x8899000CL);
+  constexpr int CwUseDefault             = static_cast<int>(0x80000000);
+  constexpr HRESULT kOK                  = 0;
 
   namespace gdi
   {
@@ -218,6 +220,7 @@ namespace mj
 
     operator bool() const
     {
+#pragma warning(suppress : 26477) // Visual Studio Code Analysis bug
       return this->ptr;
     }
 
