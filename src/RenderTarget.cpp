@@ -8,17 +8,17 @@ HRESULT RenderTarget::Create(ID2D1Factory* d2dFactory, IDWriteFactory* dwriteFac
 {
   ZoneScoped;
   *renderTarget = nullptr;
-  HRESULT hr    = mj::kOK;
+  HRESULT hr    = S_OK;
 
   RenderTarget* newRenderTarget =
       new RenderTarget(d2dFactory, dwriteFactory, hwnd); // TODO MJ: Untracked memory allocation
   if (!newRenderTarget)
   {
-    return mj::EOutOfMemory;
+    return E_OUTOFMEMORY;
   }
 
   hr = newRenderTarget->CreateTarget();
-  if (mj::Failed(hr))
+  if (FAILED(hr))
     delete newRenderTarget;
 
   *renderTarget = newRenderTarget;
@@ -47,7 +47,7 @@ HRESULT RenderTarget::CreateTarget()
   HRESULT hr = this->pD2dFactory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
                                                  D2D1::HwndRenderTargetProperties(hwnd_, d2dSize), &pRenderTarget);
 
-  if (mj::Succeeded(hr))
+  if (SUCCEEDED(hr))
   {
     this->pRenderTarget = pRenderTarget;
 
@@ -62,7 +62,7 @@ HRESULT RenderTarget::CreateTarget()
     hr = pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), this->pBrush.ReleaseAndGetAddressOf());
   }
 
-  if (mj::Succeeded(hr))
+  if (SUCCEEDED(hr))
   {
     // Update the initial monitor rendering parameters.
     this->UpdateMonitor();
@@ -113,7 +113,7 @@ void RenderTarget::EndDraw()
   const HRESULT hr = this->pRenderTarget->EndDraw();
 
   // If the device is lost for any reason, we need to recreate it.
-  if (hr == mj::D2dErrRecreateTarget)
+  if (hr == D2DERR_RECREATE_TARGET)
   {
     // Flush resources and recreate them.
     // This is very rare for a device to be lost,
@@ -203,11 +203,11 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawGlyphRun(void* clientDrawingContext,
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
   ID2D1Brush* brush     = GetCachedBrush(effect);
   if (!brush)
-    return mj::EFail;
+    return E_FAIL;
 
   this->pRenderTarget->DrawGlyphRun(D2D1::Point2(baselineOriginX, baselineOriginY), glyphRun, brush, measuringMode);
 
-  return mj::kOK;
+  return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE RenderTarget::DrawUnderline(void* clientDrawingContext, FLOAT baselineOriginX,
@@ -220,7 +220,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawUnderline(void* clientDrawingContext
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
   ID2D1Brush* brush     = GetCachedBrush(effect);
   if (!brush)
-    return mj::EFail;
+    return E_FAIL;
 
   // We will always get a strikethrough as a LTR rectangle
   // with the baseline origin snapped.
@@ -230,7 +230,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawUnderline(void* clientDrawingContext
   // Draw this as a rectangle, rather than a line.
   this->pRenderTarget->FillRectangle(&rectangle, brush);
 
-  return mj::kOK;
+  return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE RenderTarget::DrawStrikethrough(void* clientDrawingContext, FLOAT baselineOriginX,
@@ -244,7 +244,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawStrikethrough(void* clientDrawingCon
   DrawingEffect* effect = static_cast<DrawingEffect*>(clientDrawingEffect);
   ID2D1Brush* brush     = GetCachedBrush(effect);
   if (!brush)
-    return mj::EFail;
+    return E_FAIL;
 
   // We will always get an underline as a LTR rectangle
   // with the baseline origin snapped.
@@ -255,7 +255,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawStrikethrough(void* clientDrawingCon
   // Draw this as a rectangle, rather than a line.
   this->pRenderTarget->FillRectangle(&rectangle, brush);
 
-  return mj::kOK;
+  return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE RenderTarget::DrawInlineObject(void* clientDrawingContext, FLOAT originX, FLOAT originY,
@@ -273,7 +273,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::DrawInlineObject(void* clientDrawingCont
 
   inlineObject->Draw(&subContext, this, originX, originY, false, false, subContext.pDrawingEffect);
 
-  return mj::kOK;
+  return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE RenderTarget::IsPixelSnappingDisabled(void* clientDrawingContext, OUT BOOL* isDisabled)
@@ -282,7 +282,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::IsPixelSnappingDisabled(void* clientDraw
   // Enable pixel snapping of the text baselines,
   // since we're not animating and don't want blurry text.
   *isDisabled = FALSE;
-  return mj::kOK;
+  return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE RenderTarget::GetCurrentTransform(void* clientDrawingContext, OUT DWRITE_MATRIX* transform)
@@ -290,7 +290,7 @@ HRESULT STDMETHODCALLTYPE RenderTarget::GetCurrentTransform(void* clientDrawingC
   ZoneScoped;
   // Simply forward what the real renderer holds onto.
   this->pRenderTarget->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(transform));
-  return mj::kOK;
+  return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE RenderTarget::GetPixelsPerDip(void* clientDrawingContext, OUT FLOAT* pixelsPerDip)
@@ -301,5 +301,5 @@ HRESULT STDMETHODCALLTYPE RenderTarget::GetPixelsPerDip(void* clientDrawingConte
   // and hit-testing. If an application does not use matrices, then
   // using the scaling factor directly is simpler.
   *pixelsPerDip = 1;
-  return mj::kOK;
+  return S_OK;
 }

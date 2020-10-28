@@ -58,7 +58,7 @@ public:
       /* [in] */ REFIID riid,
       /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override
   {
-    return mj::ENotImpl;
+    return E_NOTIMPL;
   }
 
   virtual ULONG STDMETHODCALLTYPE AddRef() override

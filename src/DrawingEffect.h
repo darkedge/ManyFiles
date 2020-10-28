@@ -24,14 +24,14 @@ public:
   {
     // Swaps color order (bgra <-> rgba) from D2D/GDI+'s to a COLORREF.
     // This also leaves the top byte 0, since alpha is ignored anyway.
-    return mj::gdi::Rgb(mj::gdi::GetBlueValue(bgra), mj::gdi::GetGreenValue(bgra), mj::gdi::GetRedValue(bgra));
+    return RGB(GetBValue(bgra), GetGValue(bgra), GetRValue(bgra));
   }
 
   static inline COLORREF GetBgra(COLORREF rgb)
   {
     // Swaps color order (bgra <-> rgba) from COLORREF to D2D/GDI+'s.
     // Sets alpha to full opacity.
-    return mj::gdi::Rgb(mj::gdi::GetBlueValue(rgb), mj::gdi::GetGreenValue(rgb), mj::gdi::GetRedValue(rgb)) |
+    return RGB(GetBValue(rgb), GetGValue(rgb), GetRValue(rgb)) |
            0xFF000000;
   }
 
@@ -40,7 +40,7 @@ public:
       /* [in] */ REFIID riid,
       /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override
   {
-    return mj::ENotImpl;
+    return E_NOTIMPL;
   }
 
   virtual ULONG STDMETHODCALLTYPE AddRef() override

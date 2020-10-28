@@ -80,7 +80,7 @@ ATOM TextEditor::RegisterWindowClass()
   wcex.cbWndExtra    = sizeof(LONG_PTR);
   wcex.hInstance     = HINST_THISCOMPONENT;
   wcex.hIcon         = nullptr;
-  wcex.hCursor       = LoadCursorW(nullptr, mj::IdcIBeam());
+  wcex.hCursor       = LoadCursorW(nullptr, IDC_IBEAM);
   wcex.hbrBackground = nullptr;
   wcex.lpszMenuName  = nullptr;
   wcex.lpszClassName = L"DirectWriteEdit";
@@ -111,17 +111,17 @@ HRESULT TextEditor::Create(HWND parentHwnd, const wchar_t* text, IDWriteTextForm
   ZoneScoped;
 
   *textEditor = nullptr;
-  HRESULT hr  = mj::kOK;
+  HRESULT hr  = S_OK;
 
   // Create and initialize.
   TextEditor* newTextEditor = new TextEditor(factory); // TODO MJ: Untracked memory allocation
   if (!newTextEditor)
   {
-    return mj::EOutOfMemory;
+    return E_OUTOFMEMORY;
   }
 
   hr = newTextEditor->Initialize(parentHwnd, text, textFormat);
-  if (mj::Failed(hr))
+  if (FAILED(hr))
     delete newTextEditor;
 
   *textEditor = newTextEditor;
@@ -133,7 +133,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 {
   ZoneScoped;
 
-  HRESULT hr = mj::kOK;
+  HRESULT hr = S_OK;
 
   // Set the initial text.
   MJ_UNINITIALIZED size_t length;
@@ -148,7 +148,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
                                                     420, // TODO MJ: maximum height
                                                     this->pTextLayout.ReleaseAndGetAddressOf());
 
-  if (mj::Failed(hr))
+  if (FAILED(hr))
     return hr;
 
   // Get size of text layout; needed for setting the view origin.
@@ -161,12 +161,12 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   UpdateCaretFormatting();
 
   // Create text editor window (hwnd is stored in the create event)
-  CreateWindowExW(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, mj::CwUseDefault,
-                  mj::CwUseDefault, mj::CwUseDefault, mj::CwUseDefault, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
+  CreateWindowExW(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
+                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
   if (!this->hwnd_)
     return HRESULT_FROM_WIN32(GetLastError());
 
-  return mj::kOK;
+  return S_OK;
 }
 
 inline void TextEditor::InitDefaults()
@@ -247,8 +247,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   case WM_RBUTTONDBLCLK:
     SetFocus(hwnd);
     SetCapture(hwnd);
-    pWindow->OnMousePress(message, static_cast<float>(mj::GetXLParam(lParam)),
-                          static_cast<float>(mj::GetYLParam(lParam)));
+    pWindow->OnMousePress(message, static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam)));
     break;
 
   case WM_MOUSELEAVE:
@@ -260,8 +259,8 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
   case WM_RBUTTONUP:
   case WM_MBUTTONUP:
     ReleaseCapture();
-    pWindow->OnMouseRelease(message, static_cast<float>(mj::GetXLParam(lParam)),
-                            static_cast<float>(mj::GetYLParam(lParam)));
+    pWindow->OnMouseRelease(message, static_cast<float>(GET_X_LPARAM(lParam)),
+                            static_cast<float>(GET_Y_LPARAM(lParam)));
     break;
 
   case WM_SETFOCUS:
@@ -277,7 +276,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     break;
 
   case WM_MOUSEMOVE:
-    pWindow->OnMouseMove(static_cast<float>(mj::GetXLParam(lParam)), static_cast<float>(mj::GetYLParam(lParam)));
+    pWindow->OnMouseMove(static_cast<float>(GET_X_LPARAM(lParam)), static_cast<float>(GET_Y_LPARAM(lParam)));
     break;
 
   case WM_MOUSEWHEEL:
@@ -292,7 +291,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
     // Set x,y scroll difference,
     // depending on whether horizontal or vertical scroll.
-    const float zDelta = mj::GetWheelDeltaParam(wParam);
+    const float zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
     float yScroll      = (zDelta / WHEEL_DELTA) * userSetting;
     float xScroll      = 0;
     if (message == WM_MOUSEHWHEEL)
@@ -307,19 +306,19 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_VSCROLL:
   case WM_HSCROLL:
-    pWindow->OnScroll(message, mj::LoWord(wParam));
+    pWindow->OnScroll(message, LOWORD(wParam));
     break;
 
   case WM_SIZE:
   {
-    const UINT width  = mj::LoWord(lParam);
-    const UINT height = mj::HiWord(lParam);
+    const UINT width  = LOWORD(lParam);
+    const UINT height = HIWORD(lParam);
     pWindow->OnSize(width, height);
   }
   break;
 
   default:
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
   }
 
   return 0;
