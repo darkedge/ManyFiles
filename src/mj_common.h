@@ -100,7 +100,7 @@ namespace mj
     /// <returns></returns>
     ArrayList(uint32_t capacity) : capacity(capacity)
     {
-      pData = reinterpret_cast<T*>(VirtualAlloc(0,                                     //
+      pData = reinterpret_cast<T*>(VirtualAlloc(nullptr,                               //
                                                 static_cast<SIZE_T>(capacity) * TSize, //
                                                 MEM_COMMIT | MEM_RESERVE,              //
                                                 PAGE_READWRITE));

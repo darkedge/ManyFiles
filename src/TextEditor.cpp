@@ -328,17 +328,17 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
 void TextEditor::OnDraw()
 {
-  PAINTSTRUCT ps;
+  MJ_UNINITIALIZED PAINTSTRUCT ps;
   BeginPaint(this->hwnd_, &ps);
 
   if (this->renderTarget_) // in case event received before we have a target
   {
     this->renderTarget_->BeginDraw();
     this->renderTarget_->Clear(D2D1::ColorF::LightGray);
-    DrawPage(*this->renderTarget_);
+    this->DrawPage(*this->renderTarget_);
     this->renderTarget_->EndDraw();
   }
-  EndPaint(this->hwnd_, &ps);
+  static_cast<void>(EndPaint(this->hwnd_, &ps));
 }
 
 void TextEditor::DrawPage(RenderTarget& target)

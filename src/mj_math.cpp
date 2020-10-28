@@ -43,7 +43,7 @@ float mj::floorf(float x)
     float f;
     uint32_t i;
   } u   = { x };
-  int e = (int)(u.i >> 23 & 0xff) - 0x7f;
+  const int e = static_cast<int>(u.i >> 23 & 0xff) - 0x7f;
   uint32_t m;
 
   if (e >= 23)
@@ -106,7 +106,7 @@ float mj::fmodf(float x, float y)
   } ux = { x }, uy = { y };
   int ex      = ux.i >> 23 & 0xff;
   int ey      = uy.i >> 23 & 0xff;
-  uint32_t sx = ux.i & 0x80000000;
+  const uint32_t sx = ux.i & 0x80000000;
   uint32_t i;
   uint32_t uxi = ux.i;
 

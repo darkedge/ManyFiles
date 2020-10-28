@@ -341,7 +341,7 @@ void MainWindow::OpenFileDialog()
         static_cast<void>(
             FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                            nullptr, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&lpMsgBuf, 0, nullptr));
-        static_cast<void>(MessageBoxW(NULL, lpMsgBuf, TEXT("Error"), MB_OK));
+        static_cast<void>(MessageBoxW(nullptr, lpMsgBuf, TEXT("Error"), MB_OK));
         static_cast<void>(LocalFree(lpMsgBuf));
       }
 
