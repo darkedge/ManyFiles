@@ -510,7 +510,10 @@ HRESULT MainWindow::OnChooseFont()
   logFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
   logFont.lfQuality        = DEFAULT_QUALITY;
   logFont.lfPitchAndFamily = DEFAULT_PITCH;
-  static_cast<void>(StringCchCopyW(logFont.lfFaceName, ARRAYSIZE(logFont.lfFaceName), caretFormat.fontFamilyName));
+  if (SUCCEEDED(hr))
+  {
+    hr = ::StringCchCopyW(logFont.lfFaceName, ARRAYSIZE(logFont.lfFaceName), caretFormat.fontFamilyName);
+  }
 
   // Initialize CHOOSEFONT for the dialog.
 

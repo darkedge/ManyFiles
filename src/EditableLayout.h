@@ -66,13 +66,13 @@ public:
 private:
   HRESULT STDMETHODCALLTYPE RecreateLayout(IN OUT mj::ComPtr<IDWriteTextLayout>& currentLayout, const mj::ArrayList<wchar_t>& text);
 
-  static void CopyGlobalProperties(IDWriteTextLayout* oldLayout, IDWriteTextLayout* newLayout);
+  static HRESULT CopyGlobalProperties(IDWriteTextLayout* oldLayout, IDWriteTextLayout* newLayout);
 
-  static void CopyRangedProperties(IDWriteTextLayout* oldLayout, UINT32 startPos, UINT32 endPos,
+  static HRESULT CopyRangedProperties(IDWriteTextLayout* oldLayout, UINT32 startPos, UINT32 endPos,
                                    UINT32 newLayoutTextOffset, IDWriteTextLayout* newLayout,
                                    bool isOffsetNegative = false);
 
-  static void CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT32 startPosForOld, IDWriteTextLayout* newLayout,
+  static HRESULT CopySinglePropertyRange(IDWriteTextLayout* oldLayout, UINT32 startPosForOld, IDWriteTextLayout* newLayout,
                                       UINT32 startPosForNew, UINT32 length,
                                       EditableLayout::CaretFormat* caretFormat = nullptr);
 

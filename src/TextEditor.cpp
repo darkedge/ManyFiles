@@ -137,7 +137,10 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
 
   // Set the initial text.
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(text, 1024, &length)); // TODO MJ: Fixed buffer size
+  if (SUCCEEDED(hr))
+  {
+    hr = ::StringCchLengthW(text, 1024, &length); // TODO MJ: Fixed buffer size
+  }
   this->text_.Assign(text, static_cast<uint32_t>(length));
   this->text_.Add('\0');
 
@@ -740,10 +743,10 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
   {
   case VK_RETURN:
     // Insert CR/LF pair
-    DeleteSelection();
+    this->DeleteSelection();
     layoutEditor_.InsertTextAt(this->pTextLayout, this->text_, absolutePosition, L"\r\n", 2, &caretFormat_);
-    SetSelection(ESetSelectionMode::AbsoluteLeading, absolutePosition + 2, false, false);
-    RefreshView();
+    this->SetSelection(ESetSelectionMode::AbsoluteLeading, absolutePosition + 2, false, false);
+    this->RefreshView();
     break;
 
   case VK_BACK:
@@ -756,12 +759,13 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     if (absolutePosition != this->caretAnchor_)
     {
       // delete the selected text
-      DeleteSelection();
+      this->DeleteSelection();
     }
     else if (absolutePosition > 0)
     {
       MJ_UNINITIALIZED size_t length;
-      static_cast<void>(StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length));
+      // TODO MJ: Handle HRESULT
+      ::StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length);
 
       UINT32 count = 1;
       // Need special case for surrogate pairs and CR/LF pair.
@@ -775,9 +779,9 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
           count = 2;
         }
       }
-      SetSelection(ESetSelectionMode::LeftChar, count, false);
+      this->SetSelection(ESetSelectionMode::LeftChar, count, false);
       layoutEditor_.RemoveTextAt(this->pTextLayout, this->text_, this->caretPosition_, count);
-      RefreshView();
+      this->RefreshView();
     }
     break;
 
@@ -791,16 +795,16 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     }
     else
     {
-      DWRITE_HIT_TEST_METRICS hitTestMetrics;
-      float caretX, caretY;
+      MJ_UNINITIALIZED DWRITE_HIT_TEST_METRICS hitTestMetrics;
+      MJ_UNINITIALIZED FLOAT caretX, caretY;
 
       // Get the size of the following cluster.
       this->pTextLayout->HitTestTextPosition(absolutePosition, false, &caretX, &caretY, &hitTestMetrics);
 
       layoutEditor_.RemoveTextAt(this->pTextLayout, this->text_, hitTestMetrics.textPosition, hitTestMetrics.length);
 
-      SetSelection(ESetSelectionMode::AbsoluteLeading, hitTestMetrics.textPosition, false);
-      RefreshView();
+      static_cast<void>(this->SetSelection(ESetSelectionMode::AbsoluteLeading, hitTestMetrics.textPosition, false));
+      this->RefreshView();
     }
     break;
 
@@ -808,70 +812,74 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     break; // want tabs
 
   case VK_LEFT: // seek left one cluster
-    SetSelection(heldControl ? ESetSelectionMode::LeftWord : ESetSelectionMode::Left, 1, heldShift);
+    this->SetSelection(heldControl ? ESetSelectionMode::LeftWord : ESetSelectionMode::Left, 1, heldShift);
     break;
 
   case VK_RIGHT: // seek right one cluster
-    SetSelection(heldControl ? ESetSelectionMode::RightWord : ESetSelectionMode::Right, 1, heldShift);
+    this->SetSelection(heldControl ? ESetSelectionMode::RightWord : ESetSelectionMode::Right, 1, heldShift);
     break;
 
   case VK_UP: // up a line
-    SetSelection(ESetSelectionMode::Up, 1, heldShift);
+    this->SetSelection(ESetSelectionMode::Up, 1, heldShift);
     break;
 
   case VK_DOWN: // down a line
-    SetSelection(ESetSelectionMode::Down, 1, heldShift);
+    this->SetSelection(ESetSelectionMode::Down, 1, heldShift);
     break;
 
   case VK_HOME: // beginning of line
-    SetSelection(heldControl ? ESetSelectionMode::First : ESetSelectionMode::Home, 0, heldShift);
+    this->SetSelection(heldControl ? ESetSelectionMode::First : ESetSelectionMode::Home, 0, heldShift);
     break;
 
   case VK_END: // end of line
-    SetSelection(heldControl ? ESetSelectionMode::Last : ESetSelectionMode::End, 0, heldShift);
+    this->SetSelection(heldControl ? ESetSelectionMode::Last : ESetSelectionMode::End, 0, heldShift);
     break;
 
   case 'C':
     if (heldControl)
-      CopyToClipboard();
+      this->CopyToClipboard();
     break;
 
   case VK_INSERT:
     if (heldControl)
-      CopyToClipboard();
+      this->CopyToClipboard();
     else if (heldShift)
-      PasteFromClipboard();
+      this->PasteFromClipboard();
     break;
 
   case 'V':
     if (heldControl)
-      PasteFromClipboard();
+      this->PasteFromClipboard();
     break;
 
   case 'X':
     if (heldControl)
     {
-      CopyToClipboard();
-      DeleteSelection();
+      this->CopyToClipboard();
+      this->DeleteSelection();
     }
     break;
 
   case 'A':
     if (heldControl)
-      SetSelection(ESetSelectionMode::All, 0, true);
+    {
+      this->SetSelection(ESetSelectionMode::All, 0, true);
+    }
     break;
   }
 }
 
+/// <summary>
+/// Inserts text characters.
+/// </summary>
+/// <param name="charCode"></param>
 void TextEditor::OnKeyCharacter(UINT32 charCode)
 {
-  // Inserts text characters.
-
   // Allow normal characters and tabs
   if (charCode >= 0x20 || charCode == 9)
   {
     // Replace any existing selection.
-    DeleteSelection();
+    this->DeleteSelection();
 
     // Convert the UTF32 character code from the Window message to UTF16,
     // yielding 1-2 code-units. Then advance the caret position by how
@@ -889,11 +897,13 @@ void TextEditor::OnKeyCharacter(UINT32 charCode)
       chars[1] = static_cast<wchar_t>(0xDC00 + (charCode & 0x3FF));
       charsLength++;
     }
+
+    // TODO MJ: Handle HRESULT
     layoutEditor_.InsertTextAt(this->pTextLayout, this->text_, this->caretPosition_ + this->caretPositionOffset_, chars,
                                charsLength, &caretFormat_);
-    SetSelection(ESetSelectionMode::Right, charsLength, false, false);
+    this->SetSelection(ESetSelectionMode::Right, charsLength, false, false);
 
-    RefreshView();
+    this->RefreshView();
   }
 }
 
@@ -915,15 +925,15 @@ DWRITE_TEXT_RANGE TextEditor::GetSelectionRange()
     mj::swap(caretBegin, caretEnd);
 
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length));
+  // TODO MJ: Handle HRESULT
+  ::StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length);
 
   // Limit to actual text length.
   const UINT32 textLength = static_cast<UINT32>(length);
   caretBegin              = mj_min(caretBegin, textLength);
   caretEnd                = mj_min(caretEnd, textLength);
 
-  DWRITE_TEXT_RANGE textRange = { caretBegin, caretEnd - caretBegin };
-  return textRange;
+  return DWRITE_TEXT_RANGE{ caretBegin, caretEnd - caretBegin };
 }
 
 void TextEditor::GetLineMetrics(OUT mj::ArrayList<DWRITE_LINE_METRICS>& lineMetrics)
@@ -931,9 +941,13 @@ void TextEditor::GetLineMetrics(OUT mj::ArrayList<DWRITE_LINE_METRICS>& lineMetr
   // Retrieves the line metrics, used for caret navigation, up/down and home/end.
 
   MJ_UNINITIALIZED DWRITE_TEXT_METRICS textMetrics;
+  // TODO MJ: Handle HRESULT
   this->pTextLayout->GetMetrics(&textMetrics);
 
+  // TODO MJ: Handle nullptr
   lineMetrics.Reserve(textMetrics.lineCount);
+
+  // TODO MJ: Handle HRESULT
   this->pTextLayout->GetLineMetrics(&lineMetrics[0], textMetrics.lineCount, &textMetrics.lineCount);
 }
 
@@ -948,6 +962,7 @@ void TextEditor::GetLineFromPosition(const DWRITE_LINE_METRICS* lineMetrics, // 
   UINT32 line             = 0;
   UINT32 linePosition     = 0;
   UINT32 nextLinePosition = 0;
+
   for (; line < lineCount; ++line)
   {
     linePosition     = nextLinePosition;
@@ -959,9 +974,9 @@ void TextEditor::GetLineFromPosition(const DWRITE_LINE_METRICS* lineMetrics, // 
       break;
     }
   }
+
   *linePositionOut = linePosition;
   *lineOut         = mj_min(line, lineCount - 1);
-  return;
 }
 
 void TextEditor::AlignCaretToNearestCluster(bool isTrailingHit, bool skipZeroWidth)
@@ -1005,7 +1020,7 @@ bool TextEditor::SetSelectionFromPoint(float x, float y, bool extendSelection)
 
   // Remap display coordinates to actual.
   MJ_UNINITIALIZED DWRITE_MATRIX matrix;
-  GetInverseViewMatrix(&matrix);
+  this->GetInverseViewMatrix(&matrix);
 
   const float transformedX = (x * matrix.m11 + y * matrix.m21 + matrix.dx);
   const float transformedY = (x * matrix.m12 + y * matrix.m22 + matrix.dy);
@@ -1019,11 +1034,18 @@ bool TextEditor::SetSelectionFromPoint(float x, float y, bool extendSelection)
   return true;
 }
 
+/// <summary>
+/// Moves the caret relatively or absolutely, optionally extending the
+/// selection range (for example, when shift is held).
+/// </summary>
+/// <param name="moveMode"></param>
+/// <param name="advance"></param>
+/// <param name="extendSelection"></param>
+/// <param name="updateCaretFormat"></param>
+/// <returns>True if the caret was moved</returns>
 bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, bool extendSelection,
                               bool updateCaretFormat)
 {
-  // Moves the caret relatively or absolutely, optionally extending the
-  // selection range (for example, when shift is held).
 
   UINT32 line                      = UINT32_MAX; // current line number, needed by a few modes
   UINT32 absolutePosition          = this->caretPosition_ + this->caretPositionOffset_;
@@ -1031,7 +1053,8 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
   const UINT32 oldCaretAnchor      = this->caretAnchor_;
 
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length));
+  // TODO MJ: Handle HRESULT
+  ::StringCchLengthW(this->text_.begin(), this->text_.Capacity(), &length);
 
   switch (moveMode)
   {
@@ -1040,7 +1063,7 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
     if (this->caretPosition_ > 0)
     {
       --this->caretPosition_;
-      AlignCaretToNearestCluster(false, true);
+      this->AlignCaretToNearestCluster(false, true);
 
       // special check for CR/LF pair
       absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
@@ -1048,14 +1071,14 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
           this->text_[absolutePosition] == '\n')
       {
         this->caretPosition_ = absolutePosition - 1;
-        AlignCaretToNearestCluster(false, true);
+        this->AlignCaretToNearestCluster(false, true);
       }
     }
     break;
 
   case ESetSelectionMode::Right:
     this->caretPosition_ = absolutePosition;
-    AlignCaretToNearestCluster(true, true);
+    this->AlignCaretToNearestCluster(true, true);
 
     // special check for CR/LF pair
     absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
@@ -1063,7 +1086,7 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
         this->text_[absolutePosition] == '\n')
     {
       this->caretPosition_ = absolutePosition + 1;
-      AlignCaretToNearestCluster(false, true);
+      this->AlignCaretToNearestCluster(false, true);
     }
     break;
 
@@ -1440,31 +1463,36 @@ void TextEditor::CopyToClipboard()
   }
 }
 
+/// <summary>
+/// Deletes selection.
+/// </summary>
 void TextEditor::DeleteSelection()
 {
-  // Deletes selection.
-
   const DWRITE_TEXT_RANGE selectionRange = GetSelectionRange();
   if (selectionRange.length <= 0)
+  {
     return;
+  }
 
+  // TODO MJ: Handle HRESULT
   layoutEditor_.RemoveTextAt(this->pTextLayout, this->text_, selectionRange.startPosition, selectionRange.length);
 
-  SetSelection(ESetSelectionMode::AbsoluteLeading, selectionRange.startPosition, false);
-  RefreshView();
+  static_cast<void>(this->SetSelection(ESetSelectionMode::AbsoluteLeading, selectionRange.startPosition, false));
+  this->RefreshView();
 }
 
+/// <summary>
+/// Pastes text from clipboard at current caret position.
+/// </summary>
 void TextEditor::PasteFromClipboard()
 {
-  // Pastes text from clipboard at current caret position.
-
-  DeleteSelection();
+  this->DeleteSelection();
 
   UINT32 characterCount = 0;
 
   // Copy Unicode text from clipboard.
 
-  if (OpenClipboard(this->hwnd_))
+  if (::OpenClipboard(this->hwnd_))
   {
     HGLOBAL hClipboardData = GetClipboardData(CF_UNICODETEXT);
 
@@ -1475,7 +1503,8 @@ void TextEditor::PasteFromClipboard()
       void* pMemory       = GlobalLock(hClipboardData); // [byteSize] in bytes
       const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
       MJ_UNINITIALIZED size_t length;
-      static_cast<void>(StringCchLengthW(text, 1024, &length)); // TODO MJ: Fixed buffer size
+  // TODO MJ: Handle HRESULT
+      ::StringCchLengthW(text, 1024, &length); // TODO MJ: Fixed buffer size
       characterCount = static_cast<UINT32>(length);
 
       if (pMemory)
@@ -1486,11 +1515,12 @@ void TextEditor::PasteFromClipboard()
         GlobalUnlock(hClipboardData);
       }
     }
-    CloseClipboard();
+    // TODO MJ: If the function fails, the return value is zero. To get extended error information, call GetLastError.
+    ::CloseClipboard();
   }
 
-  SetSelection(ESetSelectionMode::RightChar, characterCount, true);
-  RefreshView();
+  static_cast<void>(this->SetSelection(ESetSelectionMode::RightChar, characterCount, true));
+  this->RefreshView();
 }
 
 HRESULT TextEditor::InsertText(const wchar_t* text)
@@ -1498,7 +1528,8 @@ HRESULT TextEditor::InsertText(const wchar_t* text)
   const UINT32 absolutePosition = this->caretPosition_ + this->caretPositionOffset_;
 
   MJ_UNINITIALIZED size_t length;
-  static_cast<void>(StringCchLengthW(text, 1024, &length)); // TODO MJ: Fixed buffer size
+  // TODO MJ: Handle HRESULT
+  ::StringCchLengthW(text, 1024, &length); // TODO MJ: Fixed buffer size
 
   return layoutEditor_.InsertTextAt(this->pTextLayout, this->text_, absolutePosition, text, static_cast<UINT32>(length),
                                     &caretFormat_);
@@ -1506,6 +1537,7 @@ HRESULT TextEditor::InsertText(const wchar_t* text)
 
 HRESULT TextEditor::SetText(const wchar_t* text)
 {
+  // TODO MJ: Handle HRESULT
   this->layoutEditor_.Clear(this->pTextLayout, this->text_);
   return this->InsertText(text);
 }

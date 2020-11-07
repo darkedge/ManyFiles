@@ -204,28 +204,34 @@ namespace mj
     }
 
     /// <summary>
-    ///
+    /// Erases a range of elements.
     /// </summary>
     /// <param name="position"></param>
     /// <param name="num"></param>
-    /// <returns></returns>
+    /// <returns>
+    /// Pointer to the element at the specified position after erasure
+    /// (can be the end pointer if all trailing elements were erased)
+    /// or nullptr if one or more arguments are out of range
+    /// </returns>
     T* Erase(uint32_t position, uint32_t num)
     {
       if (position < this->numElements)
       {
-        T* ptr = begin() + position;
+        T* pDst = begin() + position;
+        T* pSrc = pDst + num;
 
-        // Move elements left
-        memmove(ptr, ptr + num, (end() - ptr - 1) * TSize);
+        if (pSrc < end())
+        {
+          // Move elements left
+          memmove(pDst, pSrc, (end() - pDst - 1) * TSize);
 
-        this->numElements -= num;
+          this->numElements -= num;
 
-        return ptr;
+          return pDst;
+        }
       }
-      else
-      {
-        return this->end();
-      }
+
+      return nullptr;
     }
 
     /// <summary>
