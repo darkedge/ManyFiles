@@ -131,7 +131,7 @@ void RenderTarget::Clear(UINT32 color)
   this->pRenderTarget->Clear(D2D1::ColorF(color));
 }
 
-void RenderTarget::FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect)
+void RenderTarget::FillRectangle(const D2D1_RECT_F& destRect, const DrawingEffect& drawingEffect)
 {
   ZoneScoped;
   ID2D1Brush* brush = GetCachedBrush(&drawingEffect);
@@ -143,7 +143,7 @@ void RenderTarget::FillRectangle(const RectF& destRect, const DrawingEffect& dra
   this->pRenderTarget->FillRectangle(destRect, brush);
 }
 
-void RenderTarget::DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect)
+void RenderTarget::DrawTextLayout(IDWriteTextLayout* textLayout, const D2D1_RECT_F& rect)
 {
   ZoneScoped;
   if (!textLayout)

@@ -89,8 +89,8 @@ HRESULT MainWindow::Initialize()
 
     // create window (the hwnd is stored in the create event)
     ZoneScopedN("CreateWindowExW");
-    CreateWindowExW(0L, MainWindow::kClassName, APPLICATION_TITLE, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-                    CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
+    CreateWindowExW(0L, MainWindow::kClassName, APPLICATION_TITLE, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT,
+                    CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
     if (!this->pHwnd)
       hr = HRESULT_FROM_WIN32(GetLastError());

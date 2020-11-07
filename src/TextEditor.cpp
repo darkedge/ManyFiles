@@ -266,7 +266,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
   case WM_SETFOCUS:
   {
-    RectF rect;
+    D2D1_RECT_F rect;
     pWindow->GetCaretRect(rect);
     pWindow->UpdateSystemCaret(rect);
   }
@@ -352,13 +352,13 @@ void TextEditor::DrawPage(RenderTarget& target)
   this->GetViewMatrix(&Cast(pageTransform));
 
   // Scale/Rotate canvas as needed
-  DWRITE_MATRIX previousTransform;
+  MJ_UNINITIALIZED DWRITE_MATRIX previousTransform;
   target.GetTransform(previousTransform);
   target.SetTransform(Cast(pageTransform));
 
   // Draw the page
   const D2D1_POINT_2F pageSize = GetPageSize(this->pTextLayout.Get());
-  RectF pageRect               = { 0, 0, pageSize.x, pageSize.y };
+  D2D1_RECT_F pageRect         = { 0, 0, pageSize.x, pageSize.y };
 
   target.FillRectangle(pageRect, *pageBackgroundEffect_.Get());
 
@@ -402,7 +402,7 @@ void TextEditor::DrawPage(RenderTarget& target)
     for (uint32_t i = 0; i < actualHitTestCount; ++i)
     {
       const DWRITE_HIT_TEST_METRICS& htm = hitTestMetrics[i];
-      RectF highlightRect                = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
+      D2D1_RECT_F highlightRect          = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
 
       target.FillRectangle(highlightRect, *textSelectionEffect_.Get());
     }
@@ -411,7 +411,7 @@ void TextEditor::DrawPage(RenderTarget& target)
   }
 
   // Draw our caret onto the render target.
-  MJ_UNINITIALIZED RectF caretRect;
+  MJ_UNINITIALIZED D2D1_RECT_F caretRect;
   this->GetCaretRect(caretRect);
   target.SetAntialiasing(false);
   target.FillRectangle(caretRect, *this->caretBackgroundEffect_.Get());
@@ -437,7 +437,7 @@ void TextEditor::DrawPage(RenderTarget& target)
       if (htm.isText)
         continue; // Only draw selection if not text.
 
-      RectF highlightRect = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
+      D2D1_RECT_F highlightRect = { htm.left, htm.top, (htm.left + htm.width), (htm.top + htm.height) };
 
       target.FillRectangle(highlightRect, *imageSelectionEffect_.Get());
     }
@@ -1266,7 +1266,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
 
     PostRedraw();
 
-    RectF rect;
+    D2D1_RECT_F rect;
     GetCaretRect(rect);
     UpdateSystemCaret(rect);
   }
@@ -1274,12 +1274,12 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   return caretMoved;
 }
 
-void TextEditor::GetCaretRect(OUT RectF& rect)
+void TextEditor::GetCaretRect(OUT D2D1_RECT_F& rect)
 {
   // Gets the current caret position (in untransformed space).
 
-  RectF zeroRect = {};
-  rect           = zeroRect;
+  D2D1_RECT_F zeroRect = {};
+  rect                 = zeroRect;
 
   if (!this->pTextLayout)
     return;
@@ -1320,7 +1320,7 @@ void TextEditor::GetCaretRect(OUT RectF& rect)
   rect.bottom = caretY + caretMetrics.height;
 }
 
-void TextEditor::UpdateSystemCaret(const RectF& rect)
+void TextEditor::UpdateSystemCaret(const D2D1_RECT_F& rect)
 {
   // Moves the system caret to a new position.
 

@@ -49,8 +49,8 @@ public:
   void DrawPage(RenderTarget& target);
   void OnSize(UINT width, UINT height);
   void OnScroll(UINT message, UINT request);
-  void GetCaretRect(OUT RectF& rect);
-  void UpdateSystemCaret(const RectF& rect);
+  void GetCaretRect(OUT D2D1_RECT_F& rect);
+  void UpdateSystemCaret(const D2D1_RECT_F& rect);
   void SetRenderTarget(RenderTarget* target);
   void PostRedraw()
   {

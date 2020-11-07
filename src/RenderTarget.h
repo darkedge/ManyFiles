@@ -5,7 +5,6 @@ struct ID2D1HwndRenderTarget;
 struct ID2D1Bitmap;
 class InlineImage;
 class DrawingEffect;
-typedef D2D1_RECT_F RectF;
 
 class RenderTarget : public IDWriteTextRenderer
 {
@@ -24,9 +23,9 @@ public:
   void GetTransform(DWRITE_MATRIX& transform);
   void SetAntialiasing(bool isEnabled);
 
-  void DrawTextLayout(IDWriteTextLayout* textLayout, const RectF& rect);
+  void DrawTextLayout(IDWriteTextLayout* textLayout, const D2D1_RECT_F& rect);
 
-  void FillRectangle(const RectF& destRect, const DrawingEffect& drawingEffect);
+  void FillRectangle(const D2D1_RECT_F& destRect, const DrawingEffect& drawingEffect);
 
   // IDWriteTextRenderer interface implementation
   IFACEMETHOD(DrawGlyphRun)
