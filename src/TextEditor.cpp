@@ -742,7 +742,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     // Insert CR/LF pair
     DeleteSelection();
     layoutEditor_.InsertTextAt(this->pTextLayout, this->text_, absolutePosition, L"\r\n", 2, &caretFormat_);
-    SetSelection(SetSelectionModeAbsoluteLeading, absolutePosition + 2, false, false);
+    SetSelection(ESetSelectionMode::AbsoluteLeading, absolutePosition + 2, false, false);
     RefreshView();
     break;
 
@@ -775,7 +775,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
           count = 2;
         }
       }
-      SetSelection(SetSelectionModeLeftChar, count, false);
+      SetSelection(ESetSelectionMode::LeftChar, count, false);
       layoutEditor_.RemoveTextAt(this->pTextLayout, this->text_, this->caretPosition_, count);
       RefreshView();
     }
@@ -799,7 +799,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
 
       layoutEditor_.RemoveTextAt(this->pTextLayout, this->text_, hitTestMetrics.textPosition, hitTestMetrics.length);
 
-      SetSelection(SetSelectionModeAbsoluteLeading, hitTestMetrics.textPosition, false);
+      SetSelection(ESetSelectionMode::AbsoluteLeading, hitTestMetrics.textPosition, false);
       RefreshView();
     }
     break;
@@ -808,27 +808,27 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
     break; // want tabs
 
   case VK_LEFT: // seek left one cluster
-    SetSelection(heldControl ? SetSelectionModeLeftWord : SetSelectionModeLeft, 1, heldShift);
+    SetSelection(heldControl ? ESetSelectionMode::LeftWord : ESetSelectionMode::Left, 1, heldShift);
     break;
 
   case VK_RIGHT: // seek right one cluster
-    SetSelection(heldControl ? SetSelectionModeRightWord : SetSelectionModeRight, 1, heldShift);
+    SetSelection(heldControl ? ESetSelectionMode::RightWord : ESetSelectionMode::Right, 1, heldShift);
     break;
 
   case VK_UP: // up a line
-    SetSelection(SetSelectionModeUp, 1, heldShift);
+    SetSelection(ESetSelectionMode::Up, 1, heldShift);
     break;
 
   case VK_DOWN: // down a line
-    SetSelection(SetSelectionModeDown, 1, heldShift);
+    SetSelection(ESetSelectionMode::Down, 1, heldShift);
     break;
 
   case VK_HOME: // beginning of line
-    SetSelection(heldControl ? SetSelectionModeFirst : SetSelectionModeHome, 0, heldShift);
+    SetSelection(heldControl ? ESetSelectionMode::First : ESetSelectionMode::Home, 0, heldShift);
     break;
 
   case VK_END: // end of line
-    SetSelection(heldControl ? SetSelectionModeLast : SetSelectionModeEnd, 0, heldShift);
+    SetSelection(heldControl ? ESetSelectionMode::Last : ESetSelectionMode::End, 0, heldShift);
     break;
 
   case 'C':
@@ -858,7 +858,7 @@ void TextEditor::OnKeyPress(UINT32 keyCode)
 
   case 'A':
     if (heldControl)
-      SetSelection(SetSelectionModeAll, 0, true);
+      SetSelection(ESetSelectionMode::All, 0, true);
     break;
   }
 }
@@ -891,7 +891,7 @@ void TextEditor::OnKeyCharacter(UINT32 charCode)
     }
     layoutEditor_.InsertTextAt(this->pTextLayout, this->text_, this->caretPosition_ + this->caretPositionOffset_, chars,
                                charsLength, &caretFormat_);
-    SetSelection(SetSelectionModeRight, charsLength, false, false);
+    SetSelection(ESetSelectionMode::Right, charsLength, false, false);
 
     RefreshView();
   }
@@ -1013,13 +1013,14 @@ bool TextEditor::SetSelectionFromPoint(float x, float y, bool extendSelection)
   this->pTextLayout->HitTestPoint(transformedX, transformedY, &isTrailingHit, &isInside, &caretMetrics);
 
   // Update current selection according to click or mouse drag.
-  SetSelection(isTrailingHit ? SetSelectionModeAbsoluteTrailing : SetSelectionModeAbsoluteLeading,
+  SetSelection(isTrailingHit ? ESetSelectionMode::AbsoluteTrailing : ESetSelectionMode::AbsoluteLeading,
                caretMetrics.textPosition, extendSelection);
 
   return true;
 }
 
-bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool extendSelection, bool updateCaretFormat)
+bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, bool extendSelection,
+                              bool updateCaretFormat)
 {
   // Moves the caret relatively or absolutely, optionally extending the
   // selection range (for example, when shift is held).
@@ -1034,7 +1035,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
 
   switch (moveMode)
   {
-  case SetSelectionModeLeft:
+  case ESetSelectionMode::Left:
     this->caretPosition_ += this->caretPositionOffset_;
     if (this->caretPosition_ > 0)
     {
@@ -1052,7 +1053,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     }
     break;
 
-  case SetSelectionModeRight:
+  case ESetSelectionMode::Right:
     this->caretPosition_ = absolutePosition;
     AlignCaretToNearestCluster(true, true);
 
@@ -1066,13 +1067,13 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     }
     break;
 
-  case SetSelectionModeLeftChar:
+  case ESetSelectionMode::LeftChar:
     this->caretPosition_ = absolutePosition;
     this->caretPosition_ -= mj_min(advance, absolutePosition);
     this->caretPositionOffset_ = 0;
     break;
 
-  case SetSelectionModeRightChar:
+  case ESetSelectionMode::RightChar:
     this->caretPosition_       = absolutePosition + advance;
     this->caretPositionOffset_ = 0;
     {
@@ -1085,8 +1086,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     }
     break;
 
-  case SetSelectionModeUp:
-  case SetSelectionModeDown:
+  case ESetSelectionMode::Up:
+  case ESetSelectionMode::Down:
   {
     // Retrieve the line metrics to figure out what line we are on.
     mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics;
@@ -1097,7 +1098,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
                         &linePosition);
 
     // Move up a line or down
-    if (moveMode == SetSelectionModeUp)
+    if (moveMode == ESetSelectionMode::Up)
     {
       if (line <= 0)
         break; // already top line
@@ -1140,8 +1141,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   }
   break;
 
-  case SetSelectionModeLeftWord:
-  case SetSelectionModeRightWord:
+  case ESetSelectionMode::LeftWord:
+  case ESetSelectionMode::RightWord:
   {
     // To navigate by whole words, we look for the canWrapLineAfter
     // flag in the cluster metrics.
@@ -1163,7 +1164,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
     UINT32 clusterPosition        = 0;
     const UINT32 oldCaretPosition = this->caretPosition_;
 
-    if (moveMode == SetSelectionModeLeftWord)
+    if (moveMode == ESetSelectionMode::LeftWord)
     {
       // Read through the clusters, keeping track of the farthest valid
       // stopping point just before the old position.
@@ -1182,7 +1183,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
         }
       }
     }
-    else // SetSelectionModeRightWord
+    else // ESetSelectionMode::RightWord
     {
       // Read through the clusters, looking for the first stopping point
       // after the old position.
@@ -1200,8 +1201,8 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   }
   break;
 
-  case SetSelectionModeHome:
-  case SetSelectionModeEnd:
+  case ESetSelectionMode::Home:
+  case ESetSelectionMode::End:
   {
     // Retrieve the line metrics to know first and last position
     // on the current line.
@@ -1212,7 +1213,7 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
                         &this->caretPosition_);
 
     this->caretPositionOffset_ = 0;
-    if (moveMode == SetSelectionModeEnd)
+    if (moveMode == ESetSelectionMode::End)
     {
       // Place the caret at the last character on the line,
       // excluding line breaks. In the case of wrapped lines,
@@ -1225,27 +1226,27 @@ bool TextEditor::SetSelection(SetSelectionMode moveMode, UINT32 advance, bool ex
   }
   break;
 
-  case SetSelectionModeFirst:
+  case ESetSelectionMode::First:
     this->caretPosition_       = 0;
     this->caretPositionOffset_ = 0;
     break;
 
-  case SetSelectionModeAll:
+  case ESetSelectionMode::All:
     this->caretAnchor_ = 0;
     extendSelection    = true;
 
-  case SetSelectionModeLast: // Fall-through
+  case ESetSelectionMode::Last: // Fall-through
     this->caretPosition_       = UINT32_MAX;
     this->caretPositionOffset_ = 0;
     AlignCaretToNearestCluster(true);
     break;
 
-  case SetSelectionModeAbsoluteLeading:
+  case ESetSelectionMode::AbsoluteLeading:
     this->caretPosition_       = advance;
     this->caretPositionOffset_ = 0;
     break;
 
-  case SetSelectionModeAbsoluteTrailing:
+  case ESetSelectionMode::AbsoluteTrailing:
     this->caretPosition_ = advance;
     AlignCaretToNearestCluster(true);
     break;
@@ -1449,7 +1450,7 @@ void TextEditor::DeleteSelection()
 
   layoutEditor_.RemoveTextAt(this->pTextLayout, this->text_, selectionRange.startPosition, selectionRange.length);
 
-  SetSelection(SetSelectionModeAbsoluteLeading, selectionRange.startPosition, false);
+  SetSelection(ESetSelectionMode::AbsoluteLeading, selectionRange.startPosition, false);
   RefreshView();
 }
 
@@ -1488,7 +1489,7 @@ void TextEditor::PasteFromClipboard()
     CloseClipboard();
   }
 
-  SetSelection(SetSelectionModeRightChar, characterCount, true);
+  SetSelection(ESetSelectionMode::RightChar, characterCount, true);
   RefreshView();
 }
 

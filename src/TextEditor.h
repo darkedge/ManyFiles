@@ -3,23 +3,26 @@
 class TextEditor
 {
 public:
-  enum SetSelectionMode
+  struct ESetSelectionMode
   {
-    SetSelectionModeLeft,             // cluster left
-    SetSelectionModeRight,            // cluster right
-    SetSelectionModeUp,               // line up
-    SetSelectionModeDown,             // line down
-    SetSelectionModeLeftChar,         // single character left (backspace uses it)
-    SetSelectionModeRightChar,        // single character right
-    SetSelectionModeLeftWord,         // single word left
-    SetSelectionModeRightWord,        // single word right
-    SetSelectionModeHome,             // front of line
-    SetSelectionModeEnd,              // back of line
-    SetSelectionModeFirst,            // very first position
-    SetSelectionModeLast,             // very last position
-    SetSelectionModeAbsoluteLeading,  // explicit position (for mouse click)
-    SetSelectionModeAbsoluteTrailing, // explicit position, trailing edge
-    SetSelectionModeAll               // select all text
+    enum Enum
+    {
+      Left,             // cluster left
+      Right,            // cluster right
+      Up,               // line up
+      Down,             // line down
+      LeftChar,         // single character left (backspace uses it)
+      RightChar,        // single character right
+      LeftWord,         // single word left
+      RightWord,        // single word right
+      Home,             // front of line
+      End,              // back of line
+      First,            // very first position
+      Last,             // very last position
+      AbsoluteLeading,  // explicit position (for mouse click)
+      AbsoluteTrailing, // explicit position, trailing edge
+      All               // select all text
+    };
   };
 
 public:
@@ -67,7 +70,8 @@ public:
 
   // Layout/editing/caret navigation
   void UpdateCaretFormatting();
-  bool SetSelection(SetSelectionMode moveMode, UINT32 advance, bool extendSelection, bool updateCaretFormat = true);
+  bool SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, bool extendSelection,
+                    bool updateCaretFormat = true);
   DWRITE_TEXT_RANGE GetSelectionRange();
   UINT32 GetCaretPosition();
   IDWriteTextLayout* GetLayout()
