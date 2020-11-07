@@ -15,24 +15,6 @@
 
 #define MJ_COUNTOF(arr) sizeof(arr) / sizeof(arr[0])
 
-#define SAFE_RELEASE(_ptr) \
-  if (_ptr)                \
-  {                        \
-    (_ptr)->Release();     \
-    (_ptr) = nullptr;      \
-  }
-
-// Raytracer resolution
-static constexpr uint16_t MJ_RT_WIDTH  = 1600;
-static constexpr uint16_t MJ_RT_HEIGHT = 1000;
-
-// Window resolution
-static constexpr uint16_t MJ_WND_WIDTH  = 1600;
-static constexpr uint16_t MJ_WND_HEIGHT = 1000;
-
-static constexpr uint16_t MJ_FS_WIDTH  = 1920;
-static constexpr uint16_t MJ_FS_HEIGHT = 1080;
-
 namespace mj
 {
   /// <summary>
