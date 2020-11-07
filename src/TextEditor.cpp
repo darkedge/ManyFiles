@@ -83,7 +83,7 @@ ATOM TextEditor::RegisterWindowClass()
   wcex.hCursor       = LoadCursorW(nullptr, IDC_IBEAM);
   wcex.hbrBackground = nullptr;
   wcex.lpszMenuName  = nullptr;
-  wcex.lpszClassName = L"DirectWriteEdit";
+  wcex.lpszClassName = TextEditor::kClassName;
   wcex.hIconSm       = nullptr;
 
   return RegisterClassExW(&wcex);
@@ -161,8 +161,9 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   UpdateCaretFormatting();
 
   // Create text editor window (hwnd is stored in the create event)
-  CreateWindowExW(WS_EX_STATICEDGE, L"DirectWriteEdit", L"", WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT,
-                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this);
+  static_cast<void>(CreateWindowExW(WS_EX_STATICEDGE, TextEditor::kClassName, L"",
+                                    WS_CHILDWINDOW | WS_VSCROLL | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
+                                    CW_USEDEFAULT, CW_USEDEFAULT, parentHwnd, nullptr, HINST_THISCOMPONENT, this));
   if (!this->hwnd_)
     return HRESULT_FROM_WIN32(GetLastError());
 

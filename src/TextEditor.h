@@ -23,6 +23,7 @@ public:
   };
 
 public:
+  static constexpr const auto* kClassName = L"DirectWriteEdit";
   HRESULT static Create(HWND parentHwnd, const wchar_t* text, IDWriteTextFormat* textFormat, IDWriteFactory* factory,
                         OUT TextEditor** textEditor);
 

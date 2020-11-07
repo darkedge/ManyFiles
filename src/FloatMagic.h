@@ -4,6 +4,7 @@
 class MainWindow
 {
 public:
+  static constexpr const auto kClassName = L"DirectWritePadDemo";
   static ATOM RegisterWindowClass();
   static LRESULT CALLBACK WindowProc(HWND parentHwnd, UINT message, WPARAM wParam, LPARAM lParam);
 

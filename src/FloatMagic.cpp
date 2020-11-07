@@ -13,7 +13,9 @@
 
 static void FailApplication(const wchar_t* message, int functionResult);
 
-const static wchar_t g_sampleText[] = L"Hello, world!\r\n";
+const static wchar_t g_sampleText[]     = L"Hello, world!\r\n";
+static constexpr const wchar_t* s_pFont = L"Consolas";
+static constexpr const FLOAT s_FontSize = 14;
 
 static void Main()
 {
@@ -41,6 +43,7 @@ static void Main()
 }
 
 #ifdef TRACY_ENABLE
+// CRT entry point (required by Tracy)
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
   Main();
@@ -86,7 +89,7 @@ HRESULT MainWindow::Initialize()
 
     // create window (the hwnd is stored in the create event)
     ZoneScopedN("CreateWindowExW");
-    CreateWindowExW(0L, L"DirectWritePadDemo", TEXT(APPLICATION_TITLE), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+    CreateWindowExW(0L, MainWindow::kClassName, APPLICATION_TITLE, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                     CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, HINST_THISCOMPONENT, this);
 
     if (!this->pHwnd)
@@ -98,8 +101,14 @@ HRESULT MainWindow::Initialize()
   if (SUCCEEDED(hr))
   {
     ZoneScopedN("CreateTextFormat");
-    hr = dwriteFactory_->CreateTextFormat(L"Arial", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
-                                          DWRITE_FONT_STRETCH_NORMAL, 16, L"", textFormat.GetAddressOf());
+    hr = dwriteFactory_->CreateTextFormat(s_pFont,                    //
+                                          nullptr,                    //
+                                          DWRITE_FONT_WEIGHT_NORMAL,  //
+                                          DWRITE_FONT_STYLE_NORMAL,   //
+                                          DWRITE_FONT_STRETCH_NORMAL, //
+                                          s_FontSize,                 //
+                                          L"",                        //
+                                          textFormat.GetAddressOf());
   }
 
   // Set initial text and assign to the text editor.
@@ -156,7 +165,7 @@ ATOM MainWindow::RegisterWindowClass()
   wcex.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
   wcex.hbrBackground = nullptr;
   wcex.lpszMenuName  = MAKEINTRESOURCEW(IDR_MENU1);
-  wcex.lpszClassName = TEXT("DirectWritePadDemo");
+  wcex.lpszClassName = MainWindow::kClassName;
   wcex.hIconSm       = nullptr;
 
   return RegisterClassExW(&wcex);
@@ -370,24 +379,24 @@ void MainWindow::OnCommand(UINT commandId)
     break;
 
   case ID_FORMAT_FONT:
-    OnChooseFont();
+    static_cast<void>(OnChooseFont());
     break;
 
   case ID_FORMAT_LEFT:
-    textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
+    static_cast<void>(textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_LEFT_TO_RIGHT));
     RedrawTextEditor();
     break;
 
   case ID_FORMAT_RIGHT:
-    textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_RIGHT_TO_LEFT);
+    static_cast<void>(textLayout->SetReadingDirection(DWRITE_READING_DIRECTION_RIGHT_TO_LEFT));
     RedrawTextEditor();
     break;
 
   case ID_FORMAT_WRAP:
   {
     const DWRITE_WORD_WRAPPING wordWrapping = textLayout->GetWordWrapping();
-    textLayout->SetWordWrapping((wordWrapping == DWRITE_WORD_WRAPPING_NO_WRAP) ? DWRITE_WORD_WRAPPING_WRAP
-                                                                               : DWRITE_WORD_WRAPPING_NO_WRAP);
+    static_cast<void>(textLayout->SetWordWrapping(
+        (wordWrapping == DWRITE_WORD_WRAPPING_NO_WRAP) ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP));
     RedrawTextEditor();
   }
   break;
@@ -399,11 +408,11 @@ void MainWindow::OnCommand(UINT commandId)
     mj::ComPtr<IDWriteInlineObject> inlineObject;
     DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
 
-    textLayout->GetTrimming(&trimming, inlineObject.GetAddressOf());
+    static_cast<void>(textLayout->GetTrimming(&trimming, inlineObject.GetAddressOf()));
     trimming.granularity = (trimming.granularity == DWRITE_TRIMMING_GRANULARITY_NONE)
                                ? DWRITE_TRIMMING_GRANULARITY_CHARACTER
                                : DWRITE_TRIMMING_GRANULARITY_NONE;
-    textLayout->SetTrimming(&trimming, inlineObject.Get());
+    static_cast<void>(textLayout->SetTrimming(&trimming, inlineObject.Get()));
 
     RedrawTextEditor();
   }
@@ -418,7 +427,7 @@ void MainWindow::OnCommand(UINT commandId)
     break;
 
   case ID_FILE_EXIT:
-    PostMessageW(this->pHwnd, WM_CLOSE, 0, 0);
+    static_cast<void>(PostMessageW(this->pHwnd, WM_CLOSE, 0, 0));
     break;
 
   case ID_FILE_OPEN:
@@ -662,6 +671,6 @@ void FailApplication(const wchar_t* message, int functionResult)
   // const wchar_t* format = L"%s\r\nError code = %X";
 
   // StringCchPrintf(buffer, ARRAYSIZE(buffer), format, message, functionResult);
-  static_cast<void>(MessageBoxW(nullptr, buffer, TEXT(APPLICATION_TITLE), MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL));
+  static_cast<void>(MessageBoxW(nullptr, buffer, APPLICATION_TITLE, MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL));
   ExitProcess(functionResult);
 }
