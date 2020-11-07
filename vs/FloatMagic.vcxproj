@@ -197,6 +197,7 @@
     <ClInclude Include="..\src\Common.h" />
     <ClInclude Include="..\src\DrawingEffect.h" />
     <ClInclude Include="..\src\EditableLayout.h" />
+    <ClInclude Include="..\src\mj_allocator.h" />
     <ClInclude Include="..\src\mj_common.h" />
     <ClInclude Include="..\src\mj_math.h" />
     <ClInclude Include="..\src\mj_win32.h" />
@@ -224,6 +225,7 @@
     </ClCompile>
     <ClCompile Include="..\src\EditableLayout.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
+    <ClCompile Include="..\src\mj_win32.cpp" />
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\FloatMagic.cpp" />

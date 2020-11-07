@@ -12,6 +12,14 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 namespace mj
 {
+  // Allocation
+  void* Win32Alloc(void* pContext, size_t size);
+  void Win32Free(void* pContext, void* ptr);
+
+  /// <summary>
+  /// COM object wrapper
+  /// </summary>
+  /// <typeparam name="T"></typeparam>
   template <typename T>
   class ComPtr
   {

@@ -125,6 +125,7 @@ private:
   mj::ComPtr<IDWriteTextLayout> pTextLayout;        // Owned
   EditableLayout layoutEditor_;                     // Owned
 
+  mj::Allocator allocator;
   mj::ArrayList<wchar_t> text_;
 
   // Selection/Caret navigation

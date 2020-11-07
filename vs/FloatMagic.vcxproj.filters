@@ -13,6 +13,7 @@
     <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
     <ClInclude Include="..\src\TextEditor.h" />
+    <ClInclude Include="..\src\mj_allocator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\EditableLayout.cpp" />
@@ -23,6 +24,7 @@
     <ClCompile Include="..\src\RenderTarget.cpp" />
     <ClCompile Include="..\src\TextEditor.cpp" />
     <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
+    <ClCompile Include="..\src\mj_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />

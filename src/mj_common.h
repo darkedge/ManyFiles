@@ -1,8 +1,7 @@
 #pragma once
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <string.h>
 #include <stdint.h>
+#include "mj_allocator.h"
 
 // Annotation macros
 
@@ -64,6 +63,7 @@ namespace mj
   private:
     static constexpr const uint32_t TSize = sizeof(T);
 
+    Allocator* pAllocator;
     T* pData             = nullptr;
     uint32_t numElements = 0;
     uint32_t capacity    = 0;
@@ -73,7 +73,7 @@ namespace mj
     /// Does no allocation on construction.
     /// </summary>
     /// <returns></returns>
-    ArrayList()
+    ArrayList(Allocator* pAllocator) : pAllocator(pAllocator)
     {
     }
 
@@ -82,12 +82,9 @@ namespace mj
     /// </summary>
     /// <param name="capacity"></param>
     /// <returns></returns>
-    ArrayList(uint32_t capacity) : capacity(capacity)
+    ArrayList(Allocator* pAllocator, uint32_t capacity) : pAllocator(pAllocator), capacity(capacity)
     {
-      pData = reinterpret_cast<T*>(VirtualAlloc(nullptr,                               //
-                                                static_cast<SIZE_T>(capacity) * TSize, //
-                                                MEM_COMMIT | MEM_RESERVE,              //
-                                                PAGE_READWRITE));
+      pData = reinterpret_cast<T*>(this->pAllocator->Allocate(capacity * TSize));
     }
 
     // Destructor
@@ -100,7 +97,7 @@ namespace mj
       }
 
       // Free memory
-      VirtualFree(pData, 0, MEM_RELEASE);
+      this->pAllocator->Free(pData);
 
       // Invalidate internal state
       pData       = nullptr;
@@ -355,14 +352,12 @@ namespace mj
 
     bool Expand(uint32_t newCapacity)
     {
-      T* ptr = reinterpret_cast<T*>(VirtualAlloc(0,                                //
-                                                 (size_t)newCapacity * ElemSize(), //
-                                                 MEM_COMMIT | MEM_RESERVE,         //
-                                                 PAGE_READWRITE));
+      T* ptr = reinterpret_cast<T*>(this->pAllocator->Allocate(newCapacity * ElemSize()));
+
       if (ptr)
       {
         memcpy(ptr, pData, static_cast<size_t>(numElements) * ElemSize());
-        VirtualFree(pData, 0, MEM_RELEASE);
+        this->pAllocator->Free(pData);
         capacity = newCapacity;
         pData    = ptr;
         return true;
@@ -523,7 +518,6 @@ namespace mj
       if (SizeLeft() >= size)
       {
         memcpy(this->position, pData, size);
-        // memcpy(this->position, pData, size);
         this->position += size;
       }
       else

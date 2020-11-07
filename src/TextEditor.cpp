@@ -89,7 +89,10 @@ ATOM TextEditor::RegisterWindowClass()
   return RegisterClassExW(&wcex);
 }
 
-TextEditor::TextEditor(IDWriteFactory* factory) : layoutEditor_(factory)
+TextEditor::TextEditor(IDWriteFactory* factory)
+    : layoutEditor_(factory),                  //
+      allocator(nullptr, mj::Win32Alloc, mj::Win32Free), //
+      text_(&allocator)
 {
   ZoneScoped;
 
@@ -381,7 +384,8 @@ void TextEditor::DrawPage(RenderTarget& target)
 
   // Allocate enough room to return all hit-test metrics.
   // MJ TODO: Use pre-allocated memory
-  mj::ArrayList<DWRITE_HIT_TEST_METRICS> hitTestMetrics(actualHitTestCount);
+  mj::Allocator allocator(nullptr, mj::Win32Alloc, mj::Win32Free);
+  mj::ArrayList<DWRITE_HIT_TEST_METRICS> hitTestMetrics(&allocator, actualHitTestCount);
   hitTestMetrics.Reserve(actualHitTestCount);
 
   if (caretRange.length > 0)
@@ -1113,7 +1117,8 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
   case ESetSelectionMode::Down:
   {
     // Retrieve the line metrics to figure out what line we are on.
-    mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics;
+    mj::Allocator allocator(nullptr, mj::Win32Alloc, mj::Win32Free);
+    mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics(&allocator);
     GetLineMetrics(lineMetrics);
 
     MJ_UNINITIALIZED UINT32 linePosition;
@@ -1171,7 +1176,8 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
     // flag in the cluster metrics.
 
     // First need to know how many clusters there are.
-    mj::ArrayList<DWRITE_CLUSTER_METRICS> clusterMetrics;
+    mj::Allocator allocator(nullptr, mj::Win32Alloc, mj::Win32Free);
+    mj::ArrayList<DWRITE_CLUSTER_METRICS> clusterMetrics(&allocator);
     MJ_UNINITIALIZED UINT32 clusterCount;
     this->pTextLayout->GetClusterMetrics(nullptr, 0, &clusterCount);
 
@@ -1229,7 +1235,8 @@ bool TextEditor::SetSelection(ESetSelectionMode::Enum moveMode, UINT32 advance, 
   {
     // Retrieve the line metrics to know first and last position
     // on the current line.
-    mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics;
+    mj::Allocator allocator(nullptr, mj::Win32Alloc, mj::Win32Free);
+    mj::ArrayList<DWRITE_LINE_METRICS> lineMetrics(&allocator);
     GetLineMetrics(lineMetrics);
 
     GetLineFromPosition(&lineMetrics[0], static_cast<UINT32>(lineMetrics.Size()), this->caretPosition_, &line,
@@ -1503,7 +1510,7 @@ void TextEditor::PasteFromClipboard()
       void* pMemory       = GlobalLock(hClipboardData); // [byteSize] in bytes
       const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
       MJ_UNINITIALIZED size_t length;
-  // TODO MJ: Handle HRESULT
+      // TODO MJ: Handle HRESULT
       ::StringCchLengthW(text, 1024, &length); // TODO MJ: Fixed buffer size
       characterCount = static_cast<UINT32>(length);
 
