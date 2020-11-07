@@ -233,7 +233,7 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     pMainWindow->pHwnd = hwnd;
     static_cast<void>(SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
   }
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
 
   case WM_COMMAND:
     pMainWindow->OnCommand(static_cast<UINT>(wParam));

@@ -330,7 +330,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
 void TextEditor::OnDraw()
 {
   MJ_UNINITIALIZED PAINTSTRUCT ps;
-  BeginPaint(this->hwnd_, &ps);
+  static_cast<void>(::BeginPaint(this->hwnd_, &ps));
 
   if (this->renderTarget_) // in case event received before we have a target
   {
@@ -339,7 +339,7 @@ void TextEditor::OnDraw()
     this->DrawPage(*this->renderTarget_);
     this->renderTarget_->EndDraw();
   }
-  static_cast<void>(EndPaint(this->hwnd_, &ps));
+  static_cast<void>(::EndPaint(this->hwnd_, &ps));
 }
 
 void TextEditor::DrawPage(RenderTarget& target)
@@ -348,8 +348,8 @@ void TextEditor::DrawPage(RenderTarget& target)
 
   // Calculate actual location in render target based on the
   // current page transform and location of edit control.
-  D2D1::Matrix3x2F pageTransform;
-  GetViewMatrix(&Cast(pageTransform));
+  MJ_INITIALIZED D2D1::Matrix3x2F pageTransform;
+  this->GetViewMatrix(&Cast(pageTransform));
 
   // Scale/Rotate canvas as needed
   DWRITE_MATRIX previousTransform;
