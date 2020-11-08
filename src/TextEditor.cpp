@@ -90,7 +90,7 @@ ATOM TextEditor::RegisterWindowClass()
 }
 
 TextEditor::TextEditor(IDWriteFactory* factory)
-    : layoutEditor_(factory),                  //
+    : layoutEditor_(factory),                            //
       allocator(nullptr, mj::Win32Alloc, mj::Win32Free), //
       text_(&allocator)
 {
@@ -155,7 +155,9 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
                                                     this->pTextLayout.ReleaseAndGetAddressOf());
 
   if (FAILED(hr))
+  {
     return hr;
+  }
 
   // Get size of text layout; needed for setting the view origin.
   const float layoutWidth  = this->pTextLayout->GetMaxWidth();
@@ -164,7 +166,7 @@ HRESULT TextEditor::Initialize(HWND parentHwnd, const wchar_t* text, IDWriteText
   this->originY_           = layoutHeight / 2;
 
   // Set the initial text layout and update caret properties accordingly.
-  UpdateCaretFormatting();
+  this->UpdateCaretFormatting();
 
   // Create text editor window (hwnd is stored in the create event)
   static_cast<void>(CreateWindowExW(WS_EX_STATICEDGE, TextEditor::kClassName, L"",
@@ -227,7 +229,7 @@ LRESULT CALLBACK TextEditor::WindowProc(HWND hwnd, UINT message, WPARAM wParam, 
     pWindow->hwnd_          = hwnd;
     static_cast<void>(SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow)));
 
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
   }
 
   case WM_PAINT:
@@ -354,7 +356,7 @@ void TextEditor::DrawPage(RenderTarget& target)
 
   // Calculate actual location in render target based on the
   // current page transform and location of edit control.
-  MJ_INITIALIZED D2D1::Matrix3x2F pageTransform;
+  MJ_UNINITIALIZED D2D1::Matrix3x2F pageTransform;
   this->GetViewMatrix(&Cast(pageTransform));
 
   // Scale/Rotate canvas as needed
@@ -374,6 +376,7 @@ void TextEditor::DrawPage(RenderTarget& target)
 
   if (caretRange.length > 0)
   {
+    // TODO MJ: Check HRESULT
     this->pTextLayout->HitTestTextRange(caretRange.startPosition, caretRange.length,
                                         0, // x
                                         0, // y
@@ -383,7 +386,7 @@ void TextEditor::DrawPage(RenderTarget& target)
   }
 
   // Allocate enough room to return all hit-test metrics.
-  // MJ TODO: Use pre-allocated memory
+  // TODO MJ: Use pre-allocated memory
   mj::Allocator allocator(nullptr, mj::Win32Alloc, mj::Win32Free);
   mj::ArrayList<DWRITE_HIT_TEST_METRICS> hitTestMetrics(&allocator, actualHitTestCount);
   hitTestMetrics.Reserve(actualHitTestCount);
@@ -518,7 +521,7 @@ void TextEditor::OnScroll(UINT message, UINT request)
   if (scrollInfo.nPos != oldPosition)
   {
     // Need the view matrix in case the editor is flipped/mirrored/rotated.
-    D2D1::Matrix3x2F pageTransform;
+    MJ_UNINITIALIZED D2D1::Matrix3x2F pageTransform;
     GetInverseViewMatrix(&Cast(pageTransform));
 
     const float inversePos = static_cast<float>(scrollInfo.nMax - scrollInfo.nPage - scrollInfo.nPos);
@@ -551,7 +554,7 @@ void TextEditor::UpdateScrollInfo()
   RECT clientRect;
   ::GetClientRect(this->hwnd_, &clientRect);
 
-  D2D1::Matrix3x2F pageTransform;
+  MJ_UNINITIALIZED D2D1::Matrix3x2F pageTransform;
   this->GetInverseViewMatrix(&Cast(pageTransform));
 
   // Transform vector of viewport size
@@ -605,7 +608,7 @@ void TextEditor::OnSize(UINT width, UINT height)
 
 void TextEditor::OnMousePress(UINT message, float x, float y)
 {
-  MirrorXCoordinate(x);
+  this->MirrorXCoordinate(x);
 
   if (message == WM_LBUTTONDOWN)
   {
@@ -613,7 +616,7 @@ void TextEditor::OnMousePress(UINT message, float x, float y)
     this->currentlySelecting_ = true;
 
     const bool heldShift = (GetKeyState(VK_SHIFT) & 0x80) != 0;
-    SetSelectionFromPoint(x, y, heldShift);
+    this->SetSelectionFromPoint(x, y, heldShift);
   }
   else if (message == WM_MBUTTONDOWN)
   {
@@ -625,7 +628,7 @@ void TextEditor::OnMousePress(UINT message, float x, float y)
 
 void TextEditor::OnMouseRelease(UINT message, float x, float y)
 {
-  MirrorXCoordinate(x);
+  this->MirrorXCoordinate(x);
 
   if (message == WM_LBUTTONUP)
   {
@@ -1341,7 +1344,8 @@ void TextEditor::GetCaretRect(OUT D2D1_RECT_F& rect)
   // The default thickness of 1 pixel is almost _too_ thin on modern large monitors,
   // but we'll use it.
   DWORD caretIntThickness = 2;
-  SystemParametersInfoW(SPI_GETCARETWIDTH, 0, &caretIntThickness, FALSE);
+  // TODO MJ: If the function fails, the return value is zero. To get extended error information, call GetLastError.
+  ::SystemParametersInfoW(SPI_GETCARETWIDTH, 0, &caretIntThickness, FALSE);
   const float caretThickness = static_cast<float>(caretIntThickness);
 
   // Return the caret rect, untransformed.
@@ -1351,10 +1355,12 @@ void TextEditor::GetCaretRect(OUT D2D1_RECT_F& rect)
   rect.bottom = caretY + caretMetrics.height;
 }
 
+/// <summary>
+/// Moves the system caret to a new position.
+/// </summary>
+/// <param name="rect"></param>
 void TextEditor::UpdateSystemCaret(const D2D1_RECT_F& rect)
 {
-  // Moves the system caret to a new position.
-
   // Although we don't actually use the system caret (drawing our own
   // instead), this is important for accessibility, so the magnifier
   // can follow text we type. The reason we draw our own directly
@@ -1366,8 +1372,8 @@ void TextEditor::UpdateSystemCaret(const D2D1_RECT_F& rect)
   if (GetFocus() != this->hwnd_) // Only update if we have focus.
     return;
 
-  D2D1::Matrix3x2F pageTransform;
-  GetViewMatrix(&Cast(pageTransform));
+  MJ_UNINITIALIZED D2D1::Matrix3x2F pageTransform;
+  this->GetViewMatrix(&Cast(pageTransform));
 
   // Transform caret top/left and size according to current scale and origin.
   const D2D1_POINT_2F caretPoint = pageTransform.TransformPoint(D2D1::Point2F(rect.left, rect.top));
@@ -1385,7 +1391,8 @@ void TextEditor::UpdateSystemCaret(const D2D1_RECT_F& rect)
   const int32_t intWidth  = RoundToInt(transformedWidth);
   const int32_t intHeight = RoundToInt(caretPoint.y + transformedHeight) - intY;
 
-  CreateCaret(this->hwnd_, nullptr, intWidth, intHeight);
+  // TODO MJ: If the function fails, the return value is zero. To get extended error information, call GetLastError.
+  ::CreateCaret(this->hwnd_, nullptr, intWidth, intHeight);
   SetCaretPos(intX, intY);
 
   // Don't actually call ShowCaret. It's enough to just set its position.
@@ -1434,39 +1441,39 @@ void TextEditor::CopyToClipboard()
 {
   // Copies selected text to clipboard.
 
-  const DWRITE_TEXT_RANGE selectionRange = GetSelectionRange();
+  const DWRITE_TEXT_RANGE selectionRange = this->GetSelectionRange();
   if (selectionRange.length <= 0)
     return;
 
   // Open and empty existing contents.
-  if (OpenClipboard(this->hwnd_))
+  if (::OpenClipboard(this->hwnd_))
   {
-    if (EmptyClipboard())
+    if (::EmptyClipboard())
     {
       // Allocate room for the text
       const size_t byteSize  = sizeof(wchar_t) * (static_cast<size_t>(selectionRange.length) + 1);
-      HGLOBAL hClipboardData = GlobalAlloc(GMEM_DDESHARE | GMEM_ZEROINIT, byteSize);
+      HGLOBAL hClipboardData = ::GlobalAlloc(GMEM_DDESHARE | GMEM_ZEROINIT, byteSize);
 
       if (hClipboardData)
       {
-        void* memory = GlobalLock(hClipboardData); // [byteSize] in bytes
+        void* memory = ::GlobalLock(hClipboardData); // [byteSize] in bytes
 
         if (memory)
         {
           // Copy text to memory block.
           const wchar_t* text = this->text_.begin();
-          memcpy(memory, &text[selectionRange.startPosition], byteSize);
-          GlobalUnlock(hClipboardData);
+          static_cast<void>(memcpy(memory, &text[selectionRange.startPosition], byteSize));
+          ::GlobalUnlock(hClipboardData);
 
-          if (SetClipboardData(CF_UNICODETEXT, hClipboardData))
+          if (::SetClipboardData(CF_UNICODETEXT, hClipboardData))
           {
             hClipboardData = nullptr; // system now owns the clipboard, so don't touch it.
           }
         }
-        GlobalFree(hClipboardData); // free if failed
+        ::GlobalFree(hClipboardData); // free if failed
       }
     }
-    CloseClipboard();
+    ::CloseClipboard();
   }
 }
 
@@ -1507,19 +1514,22 @@ void TextEditor::PasteFromClipboard()
     {
       // Get text and size of text.
       // size_t byteSize     = GlobalSize(hClipboardData);
-      void* pMemory       = GlobalLock(hClipboardData); // [byteSize] in bytes
-      const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
-      MJ_UNINITIALIZED size_t length;
-      // TODO MJ: Handle HRESULT
-      ::StringCchLengthW(text, 1024, &length); // TODO MJ: Fixed buffer size
-      characterCount = static_cast<UINT32>(length);
+      void* pMemory = GlobalLock(hClipboardData); // [byteSize] in bytes
 
       if (pMemory)
       {
+        const wchar_t* text = reinterpret_cast<const wchar_t*>(pMemory);
+        MJ_UNINITIALIZED size_t length;
+        // TODO MJ: Handle HRESULT
+        ::StringCchLengthW(text, 1024, &length); // TODO MJ: Fixed buffer size
+        characterCount = static_cast<UINT32>(length);
+
         // Insert the text at the current position.
         layoutEditor_.InsertTextAt(this->pTextLayout, this->text_, this->caretPosition_ + this->caretPositionOffset_,
                                    text, characterCount);
-        GlobalUnlock(hClipboardData);
+        // TODO MJ: If the function fails, the return value is zero and GetLastError returns a value other than
+        // NO_ERROR.
+        ::GlobalUnlock(hClipboardData);
       }
     }
     // TODO MJ: If the function fails, the return value is zero. To get extended error information, call GetLastError.
@@ -1555,7 +1565,7 @@ void TextEditor::ResetView()
 {
   // Resets the default view.
 
-  InitViewDefaults();
+  this->InitViewDefaults();
 
   // Center document
   const float layoutWidth  = this->pTextLayout->GetMaxWidth();
@@ -1563,7 +1573,7 @@ void TextEditor::ResetView()
   this->originX_           = layoutWidth / 2;
   this->originY_           = layoutHeight / 2;
 
-  RefreshView();
+  this->RefreshView();
 }
 
 float TextEditor::SetAngle(float angle, bool relativeAdjustement)
@@ -1573,7 +1583,7 @@ float TextEditor::SetAngle(float angle, bool relativeAdjustement)
   else
     this->angle_ = angle;
 
-  RefreshView();
+  this->RefreshView();
 
   return this->angle_;
 }
@@ -1590,7 +1600,7 @@ void TextEditor::SetScale(float scaleX, float scaleY, bool relativeAdjustement)
     this->scaleX_ = scaleX;
     this->scaleY_ = scaleY;
   }
-  RefreshView();
+  this->RefreshView();
 }
 
 void TextEditor::GetScale(OUT float* scaleX, OUT float* scaleY)
@@ -1605,7 +1615,8 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
 
   // Need the editor size for centering.
   MJ_UNINITIALIZED RECT rect;
-  GetClientRect(this->hwnd_, &rect);
+  // TODO MJ: Check HRESULT
+  ::GetClientRect(this->hwnd_, &rect);
 
   // Translate the origin to 0,0
   DWRITE_MATRIX translationMatrix = { 1.0f,
@@ -1616,7 +1627,7 @@ void TextEditor::GetViewMatrix(OUT DWRITE_MATRIX* matrix) const
                                       -this->originY_ };
 
   // Scale and rotate
-  const float radians = DegreesToRadians(mj::fmodf(this->angle_, 360.0f));
+  const float radians = ::DegreesToRadians(mj::fmodf(this->angle_, 360.0f));
   float cosValue      = mj::cos(radians);
   float sinValue      = mj::sin(radians);
 
@@ -1657,5 +1668,5 @@ void TextEditor::GetInverseViewMatrix(OUT DWRITE_MATRIX* matrix) const
   // Inverts the view matrix for hit-testing and scrolling.
   MJ_UNINITIALIZED DWRITE_MATRIX viewMatrix;
   this->GetViewMatrix(&viewMatrix);
-  ComputeInverseMatrix(viewMatrix, *matrix);
+  ::ComputeInverseMatrix(viewMatrix, *matrix);
 }
