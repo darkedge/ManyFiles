@@ -1,4 +1,4 @@
-﻿#include "Common.h"
+﻿#include "TextEditor.h"
 #include "mj_win32.h"
 
 class MainWindow
@@ -22,6 +22,7 @@ private:
   mj::ComPtr<RenderTarget> pRenderTarget;
 
   TextEditor* pTextEditor = nullptr;
+  //BinaryView* pBinaryView = nullptr;
 
 private:
   HRESULT CreateRenderTarget(HWND hwnd);

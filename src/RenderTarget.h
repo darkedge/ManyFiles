@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "mj_win32.h"
+#include <d2d1.h>
 
 struct ID2D1HwndRenderTarget;
 struct ID2D1Bitmap;
@@ -57,6 +58,8 @@ public:
       /* [in] */ REFIID riid,
       /* [iid_is][out] */ _COM_Outptr_ void __RPC_FAR* __RPC_FAR* ppvObject) override
   {
+    static_cast<void>(riid);
+    static_cast<void>(ppvObject);
     return E_NOTIMPL;
   }
 

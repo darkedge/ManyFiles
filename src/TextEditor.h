@@ -1,4 +1,11 @@
 ﻿#pragma once
+#define WIN32_LEAN_AND_LEAN
+#define NOMINMAX
+#include <Windows.h>
+#include <dwrite.h>
+#include "RenderTarget.h"
+#include "EditableLayout.h"
+#include "../3rdparty/tracy/Tracy.hpp"
 
 class TextEditor
 {
@@ -28,7 +35,7 @@ public:
 public:
   static constexpr const auto* kClassName = L"DirectWriteEdit";
   HRESULT static Create(HWND parentHwnd, const wchar_t* text, IDWriteTextFormat* textFormat, IDWriteFactory* factory,
-                        OUT TextEditor** textEditor);
+                        TextEditor** textEditor);
 
   static ATOM RegisterWindowClass();
   static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -45,14 +52,14 @@ public:
   void OnMouseExit();
   void OnKeyPress(UINT32 keyCode);
   void OnKeyCharacter(UINT32 charCode);
-  void MirrorXCoordinate(IN OUT float& x);
+  void MirrorXCoordinate(float& x);
 
   // Drawing/view change
   void OnDraw();
   void DrawPage(RenderTarget& target);
   void OnSize(UINT width, UINT height);
   void OnScroll(UINT message, UINT request);
-  void GetCaretRect(OUT D2D1_RECT_F& rect);
+  void GetCaretRect(D2D1_RECT_F& rect);
   void UpdateSystemCaret(const D2D1_RECT_F& rect);
   void SetRenderTarget(RenderTarget* target);
   void PostRedraw()
@@ -90,9 +97,9 @@ public:
   }
   float SetAngle(float angle, bool relativeAdjustement);
   void SetScale(float scaleX, float scaleY, bool relativeAdjustement);
-  void GetScale(OUT float* scaleX, OUT float* scaleY);
-  void GetViewMatrix(OUT DWRITE_MATRIX* matrix) const;
-  void GetInverseViewMatrix(OUT DWRITE_MATRIX* matrix) const;
+  void GetScale(float* scaleX, float* scaleY);
+  void GetViewMatrix(DWRITE_MATRIX* matrix) const;
+  void GetInverseViewMatrix(DWRITE_MATRIX* matrix) const;
   void ResetView();
   void RefreshView();
 
@@ -107,9 +114,9 @@ private:
   void UpdateScrollInfo();
   void ConstrainViewOrigin();
 
-  void GetLineMetrics(OUT mj::ArrayList<DWRITE_LINE_METRICS>& lineMetrics);
+  void GetLineMetrics(mj::ArrayList<DWRITE_LINE_METRICS>& lineMetrics);
   void GetLineFromPosition(const DWRITE_LINE_METRICS* lineMetrics, // [lineCount]
-                           UINT32 lineCount, UINT32 textPosition, OUT UINT32* lineOut, OUT UINT32* linePositionOut);
+                           UINT32 lineCount, UINT32 textPosition, UINT32* lineOut, UINT32* linePositionOut);
 
 private:
   // Creation/destruction

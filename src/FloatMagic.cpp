@@ -1,11 +1,11 @@
-﻿#include "..\3rdparty\tracy\Tracy.hpp"
+﻿#include "MainWindow.h"
+#include "..\3rdparty\tracy\Tracy.hpp"
 #include "vld.h"
 #include "Common.h"
 #include "DrawingEffect.h"
 #include "RenderTarget.h"
 #include "EditableLayout.h"
 #include "TextEditor.h"
-#include "FloatMagic.h"
 #include "resource.h"
 
 #include <shobjidl.h> // Save/Load dialogs
