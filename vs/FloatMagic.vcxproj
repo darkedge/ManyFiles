@@ -104,6 +104,7 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
       <AdditionalDependencies>kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
@@ -195,6 +196,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\src\FloatMagic.h" />
+    <ClInclude Include="..\src\minicrt.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
     <ClInclude Include="..\src\mj_common.h" />
     <ClInclude Include="..\src\mj_math.h" />
@@ -223,6 +225,11 @@
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\FloatMagic.cpp" />
+    <None Include="..\src\printf.c">
+      <FileType>CppCode</FileType>
+    </None>
+    <ClCompile Include="..\src\printfw.c" />
+    <ClCompile Include="..\src\string.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />

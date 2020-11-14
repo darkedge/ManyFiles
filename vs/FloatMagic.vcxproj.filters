@@ -8,6 +8,7 @@
     <ClInclude Include="..\src\sse_mathfun.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
     <ClInclude Include="..\src\FloatMagic.h" />
+    <ClInclude Include="..\src\minicrt.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\mj_math.cpp" />
@@ -17,11 +18,14 @@
     <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
     <ClCompile Include="..\src\mj_win32.cpp" />
     <ClCompile Include="..\src\EntryPoint.cpp" />
+    <ClCompile Include="..\src\string.c" />
+    <ClCompile Include="..\src\printfw.c" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />
+    <None Include="..\src\printf.c" />
   </ItemGroup>
 </Project>
