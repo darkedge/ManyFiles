@@ -1,36 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\src\Common.h" />
-    <ClInclude Include="..\src\DrawingEffect.h" />
-    <ClInclude Include="..\src\EditableLayout.h" />
     <ClInclude Include="..\src\mj_common.h" />
     <ClInclude Include="..\src\mj_math.h" />
     <ClInclude Include="..\src\mj_win32.h" />
     <ClInclude Include="..\src\ncrt_memory.h" />
-    <ClInclude Include="..\src\RenderTarget.h" />
-    <ClInclude Include="..\src\resource.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
-    <ClInclude Include="..\src\TextEditor.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
-    <ClInclude Include="..\src\MainWindow.h" />
+    <ClInclude Include="..\src\FloatMagic.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\EditableLayout.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\FloatMagic.cpp" />
-    <ClCompile Include="..\src\RenderTarget.cpp" />
-    <ClCompile Include="..\src\TextEditor.cpp" />
     <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
     <ClCompile Include="..\src\mj_win32.cpp" />
+    <ClCompile Include="..\src\EntryPoint.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\src\Resource.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />
