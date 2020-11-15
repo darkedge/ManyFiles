@@ -2,12 +2,12 @@
 #include "vld.h"
 #include "mj_win32.h"
 #include "mj_common.h"
+#include "minicrt.h"
 
 #define XWSTR(x)     WSTR(x)
 #define WSTR(x)      L##x
 #define WFILE        XWSTR(__FILE__)
 #define __FILENAME__ (::mini_wcsrchr("\\" WFILE, '\\') + 1)
-#include "minicrt.h"
 
 #define MJ_ERR_ZERO(expr)                                \
   do                                                     \

@@ -234,8 +234,8 @@
     <ClCompile Include="..\src\printf.c">
       <FileType>CppCode</FileType>
       <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\src\printfw.c">
       <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
