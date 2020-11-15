@@ -34,6 +34,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
   return ::DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
+static void MenuTest()
+{
+}
+
 void FloatMagicMain()
 {
   MJ_ERR_ZERO(::HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
@@ -60,11 +64,10 @@ void FloatMagicMain()
                                 HINST_THISCOMPONENT,                                        // Instance handle
                                 nullptr // Additional application data
   );
+  MJ_ERR_ZERO(hwnd);
 
   MJ_UNINITIALIZED mj::Direct2D direct2D;
-  if (mj::Direct2DInit(hwnd, &direct2D))
-  {
-  }
+  mj::Direct2DInit(hwnd, &direct2D);
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.

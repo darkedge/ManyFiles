@@ -11,6 +11,6 @@ namespace mj
     ID2D1HwndRenderTarget* pRenderTarget;
   };
 
-  bool Direct2DInit(HWND hwnd, Direct2D* pDirect2D);
+  void Direct2DInit(HWND hwnd, Direct2D* pDirect2D);
 
 } // namespace mj

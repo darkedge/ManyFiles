@@ -39,7 +39,17 @@
     }                                                           \
   } while (0)
 
+#define MJ_ERR_NULL(expr)                                     \
+  do                                                          \
+  {                                                           \
+    if (!expr)                                                \
+    {                                                         \
+      mj::NullExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
+    }                                                         \
+  } while (0)
+
 namespace mj
 {
   void ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wchar_t* expression);
+  void NullExit(const wchar_t* fileName, int lineNumber, const wchar_t* expression);
 } // namespace mj
