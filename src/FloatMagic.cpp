@@ -2,78 +2,8 @@
 #include "vld.h"
 #include "mj_win32.h"
 #include "mj_common.h"
-#include "minicrt.h"
-
-#define XWSTR(x)     WSTR(x)
-#define WSTR(x)      L##x
-#define WFILE        XWSTR(__FILE__)
-#define __FILENAME__ (::mini_wcsrchr("\\" WFILE, '\\') + 1)
-
-#define MJ_ERR_ZERO(expr)                                \
-  do                                                     \
-  {                                                      \
-    if (!(expr))                                         \
-    {                                                    \
-      ::ErrorExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                    \
-  } while (0)
-
-#define MJ_ERR_NONZERO(expr)                             \
-  do                                                     \
-  {                                                      \
-    if (expr)                                            \
-    {                                                    \
-      ::ErrorExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                    \
-  } while (0)
-
-/// <summary>
-/// Do not recurse into this as it is an exit function.
-/// </summary>
-/// <param name="fileName"></param>
-/// <param name="lineNumber"></param>
-/// <param name="expression"></param>
-void ErrorExit(const wchar_t* fileName, int lineNumber, const wchar_t* expression)
-{
-  // Retrieve the system error message for the last-error code
-  const DWORD dw = ::GetLastError();
-
-  // We specify FORMAT_MESSAGE_ALLOCATE_BUFFER so we need to LocalFree the returned string.
-  LPWSTR lpMsgBuf = {};
-  static_cast<void>(::FormatMessageW(
-      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, dw,
-      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPWSTR>(&lpMsgBuf), 0, nullptr));
-
-  if (lpMsgBuf)
-  {
-    // Display the error message and exit the process
-
-    // Calculate display string size
-    size_t displayStringLength = ::mini_wcslen((LPCWSTR)fileName);
-    displayStringLength += ::mini_wcslen((LPCWSTR)expression);
-    displayStringLength += ::mini_wcslen((LPCWSTR)lpMsgBuf);
-    displayStringLength += 50; // Format string length and decimals
-
-    LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
-    if (lpDisplayBuf)
-    {
-      static_cast<void>(::mini_swprintf_s((LPTSTR)lpDisplayBuf, ::LocalSize(lpDisplayBuf) / sizeof(wchar_t),
-                                          L"%s:%d - %s failed with error %d: %s", //
-                                          fileName,                               //
-                                          lineNumber,                             //
-                                          expression,                             //
-                                          dw,                                     //
-                                          lpMsgBuf));
-
-      static_cast<void>(::MessageBoxW(nullptr, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK));
-      static_cast<void>(::LocalFree(lpDisplayBuf));
-    }
-
-    static_cast<void>(::LocalFree(lpMsgBuf));
-  }
-
-  ::ExitProcess(dw);
-}
+#include "ErrorExit.h"
+#include "Direct2D.h"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -109,7 +39,7 @@ void FloatMagicMain()
   MJ_ERR_ZERO(::HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
 
   // Register the window class.
-  static constexpr const auto className = L"Hoi";
+  static constexpr const auto className = L"Class Name";
 
   WNDCLASS wc      = {};
   wc.lpfnWndProc   = ::WindowProc;
@@ -130,6 +60,11 @@ void FloatMagicMain()
                                 HINST_THISCOMPONENT,                                        // Instance handle
                                 nullptr // Additional application data
   );
+
+  MJ_UNINITIALIZED mj::Direct2D direct2D;
+  if (mj::Direct2DInit(hwnd, &direct2D))
+  {
+  }
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.

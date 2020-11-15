@@ -9,8 +9,6 @@
 #define MJ_UNINITIALIZED
 // Variable declaration calls initialization code
 #define MJ_INITIALIZED
-// Argument is passed by reference
-#define MJ_REF
 
 #define MJ_COUNTOF(arr) sizeof(arr) / sizeof(arr[0])
 
