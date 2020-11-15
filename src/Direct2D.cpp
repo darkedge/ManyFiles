@@ -10,8 +10,8 @@
 /// <returns></returns>
 void mj::Direct2DInit(HWND hwnd, mj::Direct2D* pDirect2D)
 {
-  MJ_ERR_NULL(hwnd);
-  MJ_ERR_NULL(pDirect2D);
+  MJ_EXIT_NULL(hwnd);
+  MJ_EXIT_NULL(pDirect2D);
 
   // DirectWrite factory
   IDWriteFactory* pDWriteFactory = {};

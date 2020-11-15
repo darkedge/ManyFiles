@@ -23,9 +23,9 @@ void mj::ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wcha
     // Display the error message and exit the process
 
     // Calculate display string size
-    size_t displayStringLength = ::mini_wcslen((LPCWSTR)fileName);
-    displayStringLength += ::mini_wcslen((LPCWSTR)expression);
-    displayStringLength += ::mini_wcslen((LPCWSTR)lpMsgBuf);
+    size_t displayStringLength = ::mini_wcslen(fileName);
+    displayStringLength += ::mini_wcslen(expression);
+    displayStringLength += ::mini_wcslen(lpMsgBuf);
     displayStringLength += 50; // Format string length and decimals
 
     LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
@@ -60,8 +60,8 @@ void mj::NullExit(const wchar_t* fileName, int lineNumber, const wchar_t* expres
   // Display the error message and exit the process
 
   // Calculate display string size
-  size_t displayStringLength = ::mini_wcslen((LPCWSTR)fileName);
-  displayStringLength += ::mini_wcslen((LPCWSTR)expression);
+  size_t displayStringLength = ::mini_wcslen(fileName);
+  displayStringLength += ::mini_wcslen(expression);
   displayStringLength += 50; // Format string length and decimals
 
   LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));

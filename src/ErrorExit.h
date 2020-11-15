@@ -20,6 +20,8 @@
     }                                                                        \
   } while (0)
 
+#define MJ_ERR_NULL(ptr) MJ_ERR_ZERO(ptr)
+
 #define MJ_ERR_NONZERO(expr)                                                 \
   do                                                                         \
   {                                                                          \
@@ -39,13 +41,13 @@
     }                                                           \
   } while (0)
 
-#define MJ_ERR_NULL(expr)                                     \
-  do                                                          \
-  {                                                           \
-    if (!expr)                                                \
-    {                                                         \
+#define MJ_EXIT_NULL(expr)                                \
+  do                                                      \
+  {                                                       \
+    if (!expr)                                            \
+    {                                                     \
       mj::NullExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                         \
+    }                                                     \
   } while (0)
 
 namespace mj

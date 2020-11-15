@@ -34,8 +34,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
   return ::DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
-static void MenuTest()
+static void MenuTest(HWND pHwnd)
 {
+  HMENU hMenu = CreateMenu();
+  MJ_ERR_NULL(hMenu);
+
+  MJ_UNINITIALIZED HMENU hSubMenu;
+
+  MJ_ERR_NULL(hSubMenu = CreatePopupMenu());
+  //AppendMenu(hSubMenu, MF_STRING, ID_QUIT_ITEM, L"&Quit");
+  MJ_ERR_ZERO(AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
+
+  MJ_ERR_NULL(hSubMenu = CreatePopupMenu());
+  MJ_ERR_ZERO(AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Reports"));
+
+  MJ_ERR_ZERO(SetMenu(pHwnd, hMenu));
 }
 
 void FloatMagicMain()
@@ -54,24 +67,27 @@ void FloatMagicMain()
 
   // Create the window.
 
-  HWND hwnd = ::CreateWindowExW(0,                                                          // Optional window styles.
-                                className,                                                  // Window class
-                                L"Window Title",                                            // Window text
-                                WS_OVERLAPPEDWINDOW,                                        // Window style
-                                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
-                                nullptr,                                                    // Parent window
-                                nullptr,                                                    // Menu
-                                HINST_THISCOMPONENT,                                        // Instance handle
-                                nullptr // Additional application data
+  MJ_UNINITIALIZED HMENU pMenu;
+  HWND pHwnd = ::CreateWindowExW(0,                                                          // Optional window styles.
+                                 className,                                                  // Window class
+                                 L"Window Title",                                            // Window text
+                                 WS_OVERLAPPEDWINDOW,                                        // Window style
+                                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
+                                 nullptr,                                                    // Parent window
+                                 nullptr,                                                    // Menu
+                                 HINST_THISCOMPONENT,                                        // Instance handle
+                                 nullptr // Additional application data
   );
-  MJ_ERR_ZERO(hwnd);
+  MJ_ERR_ZERO(pHwnd);
+
+  ::MenuTest(pHwnd);
 
   MJ_UNINITIALIZED mj::Direct2D direct2D;
-  mj::Direct2DInit(hwnd, &direct2D);
+  mj::Direct2DInit(pHwnd, &direct2D);
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.
-  static_cast<void>(::ShowWindow(hwnd, SW_SHOW));
+  static_cast<void>(::ShowWindow(pHwnd, SW_SHOW));
 
   // Run the message loop.
 
