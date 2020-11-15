@@ -3,36 +3,59 @@
 #include "mj_win32.h"
 #include "mj_common.h"
 
+#define XWSTR(x)     WSTR(x)
+#define WSTR(x)      L##x
+#define WFILE        XWSTR(__FILE__)
+#define __FILENAME__ (mini_wcsrchr("\\" WFILE, '\\') + 1)
 #include "minicrt.h"
 
-void ErrorExit(const wchar_t* lpszFunction) 
-{ 
-    // Retrieve the system error message for the last-error code
+#define MJ_ERR_ZERO(expr)                              \
+  do                                                   \
+  {                                                    \
+    HRESULT _hr = (expr);                              \
+    if ((expr) == 0)                                   \
+    {                                                  \
+      ErrorExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
+    }                                                  \
+  } while (0)
 
-    LPVOID lpMsgBuf;
-    LPVOID lpDisplayBuf;
-    DWORD dw = GetLastError(); 
+#define MJ_ERR_NONZERO(expr)                           \
+  do                                                   \
+  {                                                    \
+    HRESULT _hr = (expr);                              \
+    if ((expr) != 0)                                   \
+    {                                                  \
+      ErrorExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
+    }                                                  \
+  } while (0)
 
-    FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        dw,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR) &lpMsgBuf,
-        0, NULL );
+void ErrorExit(const wchar_t* fileName, int lineNumber, const wchar_t* expression)
+{
+  // Retrieve the system error message for the last-error code
 
-    // Display the error message and exit the process
+  MJ_UNINITIALIZED LPVOID lpMsgBuf;
+  MJ_UNINITIALIZED LPVOID lpDisplayBuf;
+  const DWORD dw = GetLastError();
 
-    lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-        (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR)); 
-    mini_swprintf_s((LPTSTR)lpDisplayBuf, LocalSize(lpDisplayBuf) / sizeof(TCHAR),TEXT("%s failed with error %d: %s"), lpszFunction, dw, lpMsgBuf); 
-    MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
+  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
+                dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, nullptr);
 
-    LocalFree(lpMsgBuf);
-    LocalFree(lpDisplayBuf);
-    ExitProcess(dw); 
+  // Display the error message and exit the process
+
+  lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT,
+                                    (lstrlenW((LPCWSTR)lpMsgBuf) + lstrlenW((LPCWSTR)expression) + 40) * sizeof(TCHAR));
+  mini_swprintf_s((LPTSTR)lpDisplayBuf, LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+                  TEXT("%s:%d - %s failed with error %d: %s"), //
+                  fileName,                                    //
+                  lineNumber,                                  //
+                  expression,                                  //
+                  dw,                                          //
+                  lpMsgBuf);
+  MessageBoxW(nullptr, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK);
+
+  LocalFree(lpMsgBuf);
+  LocalFree(lpDisplayBuf);
+  ExitProcess(dw);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -60,8 +83,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
 void FloatMagicMain()
 {
-  BOOL b = HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0);
-        ErrorExit(L"GetProcessId");
+  MJ_ERR_NONZERO(HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
 
   // Register the window class.
   static constexpr const auto className = L"Hoi";

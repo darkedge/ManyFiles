@@ -225,11 +225,31 @@
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\FloatMagic.cpp" />
-    <None Include="..\src\printf.c">
+    <ClCompile Include="..\src\printfsz.c">
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\src\stringw.c" />
+    <ClCompile Include="..\src\printf.c">
       <FileType>CppCode</FileType>
-    </None>
-    <ClCompile Include="..\src\printfw.c" />
-    <ClCompile Include="..\src\string.c" />
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\src\printfw.c">
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
+      </UndefinePreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="..\src\string.c">
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />
