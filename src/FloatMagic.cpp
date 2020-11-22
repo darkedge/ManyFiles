@@ -4,6 +4,7 @@
 #include "mj_common.h"
 #include "ErrorExit.h"
 #include "Direct2D.h"
+#include "Threadpool.h"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -34,40 +35,44 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
   return ::DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
-static void MenuTest(HWND pHwnd)
+static void mjCreateMenu(HWND pHwnd)
 {
-  HMENU hMenu = CreateMenu();
+  HMENU hMenu = ::CreateMenu();
   MJ_ERR_NULL(hMenu);
 
   MJ_UNINITIALIZED HMENU hSubMenu;
 
-  MJ_ERR_NULL(hSubMenu = CreatePopupMenu());
-  //AppendMenu(hSubMenu, MF_STRING, ID_QUIT_ITEM, L"&Quit");
-  MJ_ERR_ZERO(AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
+  MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
+  // AppendMenu(hSubMenu, MF_STRING, ID_QUIT_ITEM, L"&Quit");
+  MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
 
-  MJ_ERR_NULL(hSubMenu = CreatePopupMenu());
-  MJ_ERR_ZERO(AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Reports"));
+  MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
+  MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Reports"));
 
-  MJ_ERR_ZERO(SetMenu(pHwnd, hMenu));
+  // Loads DLLs: TextShaping
+  MJ_ERR_ZERO(::SetMenu(pHwnd, hMenu));
+}
+
+DWORD WINAPI ThreadBegin(LPVOID lpThreadParameter)
+{
+  return 0;
 }
 
 void FloatMagicMain()
 {
   MJ_ERR_ZERO(::HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
+  mj::ThreadpoolInit();
 
-  // Register the window class.
   static constexpr const auto className = L"Class Name";
+
 
   WNDCLASS wc      = {};
   wc.lpfnWndProc   = ::WindowProc;
   wc.hInstance     = HINST_THISCOMPONENT;
   wc.lpszClassName = className;
-
   MJ_ERR_ZERO(::RegisterClassW(&wc));
 
-  // Create the window.
-
-  MJ_UNINITIALIZED HMENU pMenu;
+  // Loads DLLs: uxtheme, combase, msctf, oleaut32
   HWND pHwnd = ::CreateWindowExW(0,                                                          // Optional window styles.
                                  className,                                                  // Window class
                                  L"Window Title",                                            // Window text
@@ -80,7 +85,7 @@ void FloatMagicMain()
   );
   MJ_ERR_ZERO(pHwnd);
 
-  ::MenuTest(pHwnd);
+  ::mjCreateMenu(pHwnd);
 
   MJ_UNINITIALIZED mj::Direct2D direct2D;
   mj::Direct2DInit(pHwnd, &direct2D);
@@ -97,4 +102,6 @@ void FloatMagicMain()
     static_cast<void>(::TranslateMessage(&msg));
     static_cast<void>(::DispatchMessageW(&msg));
   }
+
+  mj::ThreadpoolDestroy();
 }

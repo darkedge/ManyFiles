@@ -1,7 +1,5 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
+#include "mj_win32.h"
 #include "minicrt.h"
 
 // Note MJ: We might want to put these in a more general header file.

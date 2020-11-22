@@ -11,6 +11,7 @@
     <ClInclude Include="..\src\minicrt.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
     <ClInclude Include="..\src\Direct2D.h" />
+    <ClInclude Include="..\src\Threadpool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\mj_math.cpp" />
@@ -27,6 +28,7 @@
     <ClCompile Include="..\src\printf.c" />
     <ClCompile Include="..\src\ErrorExit.cpp" />
     <ClCompile Include="..\src\Direct2D.cpp" />
+    <ClCompile Include="..\src\Threadpool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
