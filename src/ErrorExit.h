@@ -18,6 +18,20 @@
     }                                                                        \
   } while (0)
 
+#define MJ_ERR_ZERO_VALID(expr)                                   \
+  do                                                              \
+  {                                                               \
+    ::SetLastError(S_OK);                                         \
+    if (!(expr))                                                  \
+    {                                                             \
+      DWORD _hr = ::GetLastError();                               \
+      if (_hr)                                                    \
+      {                                                           \
+        mj::ErrorExit(_hr, __FILENAME__, __LINE__, XWSTR(#expr)); \
+      }                                                           \
+    }                                                             \
+  } while (0)
+
 #define MJ_ERR_NULL(ptr) MJ_ERR_ZERO(ptr)
 
 #define MJ_ERR_NONZERO(expr)                                                 \

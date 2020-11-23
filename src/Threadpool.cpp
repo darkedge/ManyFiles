@@ -5,8 +5,8 @@
 
 static constexpr auto MAX_TASKS = 4096;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
-static mj::TaskContextNode s_TaskContextFreeList[MAX_TASKS];
-static mj::TaskContextNode* s_pTaskContextNodeHead;
+static mj::Task s_TaskFreeList[MAX_TASKS];
+static mj::Task* s_pTaskHead;
 
 static uint32_t s_NumTasksAtomic;
 
@@ -17,24 +17,24 @@ static CRITICAL_SECTION s_CriticalSection;
 
 namespace mj
 {
-  static TaskContextNode* TaskContextAlloc()
+  static Task* TaskAlloc()
   {
-    MJ_EXIT_NULL(s_pTaskContextNodeHead);
+    MJ_EXIT_NULL(s_pTaskHead);
 
-    TaskContextNode* pContext = s_pTaskContextNodeHead;
+    Task* pTask = s_pTaskHead;
 
     ::EnterCriticalSection(&s_CriticalSection);
-    s_pTaskContextNodeHead = s_pTaskContextNodeHead->pNextFreeNode;
+    s_pTaskHead = s_pTaskHead->pNextFreeNode;
     ::LeaveCriticalSection(&s_CriticalSection);
 
-    return pContext;
+    return pTask;
   }
 
-  static void TaskContextFree(TaskContextNode* pNode)
+  static void TaskFree(Task* pNode)
   {
     ::EnterCriticalSection(&s_CriticalSection);
-    pNode->pNextFreeNode   = s_pTaskContextNodeHead;
-    s_pTaskContextNodeHead = pNode;
+    pNode->pNextFreeNode   = s_pTaskHead;
+    s_pTaskHead = pNode;
     ::LeaveCriticalSection(&s_CriticalSection);
   }
 } // namespace mj
@@ -56,28 +56,28 @@ void mj::ThreadpoolInit()
   ::InitializeCriticalSection(&s_CriticalSection);
 
   // Initialize free list
-  TaskContextNode* pNext = nullptr;
+  Task* pNext = nullptr;
   for (int i = 0; i < MAX_TASKS; i++)
   {
-    s_TaskContextFreeList[i].Init(pNext, &s_TaskContextArray[i]);
-    pNext = &s_TaskContextFreeList[i];
+    s_TaskFreeList[i].Init(pNext, &s_TaskContextArray[i]);
+    pNext = &s_TaskFreeList[i];
   }
 
-  s_pTaskContextNodeHead = &s_TaskContextFreeList[MAX_TASKS - 1];
+  s_pTaskHead = &s_TaskFreeList[MAX_TASKS - 1];
 }
 
-mj::Task mj::ThreadpoolTaskAlloc(PTP_WORK_CALLBACK pCallback)
+mj::Task* mj::ThreadpoolTaskAlloc(PTP_WORK_CALLBACK pCallback)
 {
-  MJ_UNINITIALIZED mj::Task task;
-  mj::TaskContextNode* pNext = mj::TaskContextAlloc();
-  task.pNode = pNext;
-  MJ_ERR_NULL(task.pWork = ::CreateThreadpoolWork(pCallback, pNext->pContext, &s_CallbackEnvironment));
-  return task;
+  mj::Task* pTask = mj::TaskAlloc();
+  MJ_ERR_NULL(pTask->pWork = ::CreateThreadpoolWork(pCallback, pTask, &s_CallbackEnvironment));
+  return pTask;
 }
 
-void mj::ThreadpoolTaskFree(Task task)
+void mj::ThreadpoolTaskFree(Task* pTask)
 {
-  mj::TaskContextFree(task.pNode);
+  ::CloseThreadpoolWork(pTask->pWork);
+  pTask->pWork = nullptr;
+  mj::TaskFree(pTask);
 }
 
 void mj::ThreadpoolDestroy()
@@ -97,5 +97,4 @@ void mj::Task::Submit()
 void mj::Task::Wait()
 {
   ::WaitForThreadpoolWorkCallbacks(this->pWork, false);
-  ::CloseThreadpoolWork(pWork);
 }
