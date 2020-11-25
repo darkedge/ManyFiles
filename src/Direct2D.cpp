@@ -3,9 +3,9 @@
 #include "ErrorExit.h"
 #include "Threadpool.h"
 
-IDWriteFactory* pDWriteFactory;
-ID2D1Factory* pDirect2DFactory;
-ID2D1HwndRenderTarget* pRenderTarget;
+static IDWriteFactory* pDWriteFactory;
+static ID2D1Factory* pDirect2DFactory;
+static ID2D1HwndRenderTarget* pRenderTarget;
 
 struct CreateHwndRenderTargetContext
 {
@@ -25,9 +25,13 @@ static void CreateHwndRenderTargetFinish(mj::Task* pTask)
   pDWriteFactory   = pContext->pDWriteFactory;
   pDirect2DFactory = pContext->pDirect2DFactory;
   pRenderTarget    = pContext->pRenderTarget;
+  
+  pRenderTarget->BeginDraw();
+  pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
+  pRenderTarget->EndDraw();
 }
 
-static void CreateHwndRenderTarget(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* pWork)
+static void InitDirect2DAsync(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* pWork)
 {
   static_cast<void>(pInstance);
   static_cast<void>(pWork);
@@ -57,17 +61,11 @@ static void CreateHwndRenderTarget(TP_CALLBACK_INSTANCE* pInstance, void* pConte
                              reinterpret_cast<LPARAM>(CreateHwndRenderTargetFinish)));
 }
 
-/// <summary>
-/// Exits on failed DirectWrite/Direct2D actions
-/// </summary>
-/// <param name="hwnd"></param>
-/// <param name="pDirect2D"></param>
-/// <returns></returns>
 void mj::Direct2DInit(HWND hwnd)
 {
   MJ_EXIT_NULL(hwnd);
 
-  mj::Task* pTask = mj::ThreadpoolTaskAlloc(CreateHwndRenderTarget);
+  mj::Task* pTask = mj::ThreadpoolTaskAlloc(InitDirect2DAsync);
 
   CreateHwndRenderTargetContext* pContext = reinterpret_cast<CreateHwndRenderTargetContext*>(pTask->pContext);
   pContext->pHwnd                         = hwnd;
