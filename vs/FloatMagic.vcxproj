@@ -104,7 +104,7 @@
       <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile>$(IntDir)$(TargetName)$(TargetExt).intermediate.manifest</ManifestFile>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
@@ -140,7 +140,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d2d1.lib;dwrite.lib</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile />
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
@@ -179,7 +179,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile>
       </ManifestFile>
@@ -192,6 +192,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\ConvertToHex.h" />
     <ClInclude Include="..\src\Direct2D.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
     <ClInclude Include="..\src\FloatMagic.h" />
@@ -219,6 +220,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\src\ConvertToHex.cpp" />
     <ClCompile Include="..\src\Direct2D.cpp" />
     <ClCompile Include="..\src\EntryPoint.cpp" />
     <ClCompile Include="..\src\ErrorExit.cpp" />

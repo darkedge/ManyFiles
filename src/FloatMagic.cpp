@@ -6,93 +6,178 @@
 #include "ErrorExit.h"
 #include "Direct2D.h"
 #include "Threadpool.h"
+#include "ConvertToHex.h"
 
-static void mjCreateMenu(HWND pHwnd)
+#include <ShlObj.h>
+
+static constexpr UINT ID_FILE_OPEN = 40001;
+
+namespace mj
 {
-  HMENU hMenu = ::CreateMenu();
-  MJ_ERR_NULL(hMenu);
-
-  MJ_UNINITIALIZED HMENU hSubMenu;
-
-  MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
-  // AppendMenu(hSubMenu, MF_STRING, ID_QUIT_ITEM, L"&Quit");
-  MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
-
-  MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
-  MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Reports"));
-
-  // Loads DLLs: TextShaping
-  MJ_ERR_ZERO(::SetMenu(pHwnd, hMenu));
-}
-
-LRESULT CALLBACK mj::FloatMagic::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-  FloatMagic* pMainWindow = reinterpret_cast<FloatMagic*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-
-  switch (message)
+  static void CreateMenu(HWND pHwnd)
   {
-  case WM_NCCREATE:
-  {
-    // Copy the lpParam from CreateWindowEx to this window's user data
-    CREATESTRUCT* pcs  = reinterpret_cast<CREATESTRUCT*>(lParam);
-    pMainWindow        = reinterpret_cast<FloatMagic*>(pcs->lpCreateParams);
-    pMainWindow->pHwnd = hwnd;
-    MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
+    HMENU hMenu = ::CreateMenu();
+    MJ_ERR_NULL(hMenu);
 
-    ::mjCreateMenu(hwnd);
+    MJ_UNINITIALIZED HMENU hSubMenu;
 
-    mj::Direct2DInit(hwnd);
+    MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
+    ::AppendMenuW(hSubMenu, MF_STRING, ID_FILE_OPEN, L"&Open...");
+    MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
+
+    MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
+    MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Reports"));
+
+    // Loads DLLs: TextShaping
+    MJ_ERR_ZERO(::SetMenu(pHwnd, hMenu));
   }
-    return DefWindowProcW(hwnd, message, wParam, lParam);
 
-  case WM_DESTROY:
-    ::PostQuitMessage(0);
-    return 0;
-
-  case WM_PAINT:
+  void OpenFileDialog(HWND pHwnd)
   {
-    MJ_UNINITIALIZED PAINTSTRUCT ps;
-    HDC hdc = ::BeginPaint(hwnd, &ps);
-    if (hdc)
+    ZoneScoped;
+    mj::ComPtr<::IFileOpenDialog> pFileOpen;
+
+    // Create the FileOpenDialog object.
+    // TODO MJ: Create once?
+    HRESULT hr = ::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                                  reinterpret_cast<LPVOID*>(pFileOpen.GetAddressOf()));
+
+    if (SUCCEEDED(hr))
     {
-      // Don't care if it fails (returns zero, no GetLastError)
-      static_cast<void>(::FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1)));
-
-      // Always returns nonzero.
-      static_cast<void>(::EndPaint(hwnd, &ps));
+      hr = pFileOpen->Show(pHwnd);
     }
-    return 0;
+
+    // Get the file name from the dialog box.
+    mj::ComPtr<::IShellItem> pItem;
+    if (SUCCEEDED(hr))
+    {
+      hr = pFileOpen->GetResult(pItem.GetAddressOf());
+    }
+
+    PWSTR pszFilePath = nullptr;
+    if (SUCCEEDED(hr))
+    {
+      hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+    }
+
+    if (SUCCEEDED(hr))
+    {
+      HANDLE hFile = CreateFileW(pszFilePath,           // file to open
+                                 GENERIC_READ,          // open for reading
+                                 FILE_SHARE_READ,       // share for reading
+                                 nullptr,               // default security
+                                 OPEN_EXISTING,         // existing file only
+                                 FILE_ATTRIBUTE_NORMAL, // normal file
+                                 nullptr);              // no attr. template
+
+      if (hFile != INVALID_HANDLE_VALUE)
+      {
+        MJ_UNINITIALIZED DWORD dwBytesRead;
+        constexpr DWORD BUFFERSIZE = 1024; // TODO MJ: Fixed buffer size
+        char ReadBuffer[BUFFERSIZE];
+
+        MJ_ERR_ZERO(::ReadFile(hFile, ReadBuffer, BUFFERSIZE - 1, &dwBytesRead, nullptr));
+
+        ReadBuffer[dwBytesRead] = '\0';
+
+        MJ_ERR_ZERO(CloseHandle(hFile));
+      }
+
+      ::CoTaskMemFree(pszFilePath);
+    }
   }
-  case MJ_TASKEND:
+
+  /// <summary>
+  /// Processes WM_COMMAND messages from the main WindowProc further.
+  /// </summary>
+  /// <param name="commandId"></param>
+  void WindowProcCommand(FloatMagic* pFloatMagic, UINT commandId)
   {
-    mj::Task* pTask   = reinterpret_cast<mj::Task*>(wParam);
-    mj::TaskEndFn pFn = reinterpret_cast<mj::TaskEndFn>(lParam);
-    pFn(pTask);
+    ZoneScoped;
 
-    mj::ThreadpoolTaskFree(pTask);
+    switch (commandId)
+    {
+    case ID_FILE_OPEN:
+      mj::OpenFileDialog(pFloatMagic->pHwnd);
+      break;
+    }
+
+    return;
   }
-  break;
-  default:
+
+  LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+  {
+    mj::FloatMagic* pMainWindow = reinterpret_cast<mj::FloatMagic*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+
+    switch (message)
+    {
+    case WM_NCCREATE:
+    {
+      // Copy the lpParam from CreateWindowEx to this window's user data
+      CREATESTRUCT* pcs  = reinterpret_cast<CREATESTRUCT*>(lParam);
+      pMainWindow        = reinterpret_cast<mj::FloatMagic*>(pcs->lpCreateParams);
+      pMainWindow->pHwnd = hwnd;
+      MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
+
+      mj::CreateMenu(hwnd);
+
+      mj::Direct2DInit(hwnd);
+    }
+      return DefWindowProcW(hwnd, message, wParam, lParam);
+
+    case WM_DESTROY:
+      ::PostQuitMessage(0);
+      return 0;
+
+    case WM_PAINT:
+    {
+      MJ_UNINITIALIZED PAINTSTRUCT ps;
+      HDC hdc = ::BeginPaint(hwnd, &ps);
+      if (hdc)
+      {
+        // Don't care if it fails (returns zero, no GetLastError)
+        static_cast<void>(::FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1)));
+
+        // Always returns nonzero.
+        static_cast<void>(::EndPaint(hwnd, &ps));
+      }
+      return 0;
+    }
+    case MJ_TASKEND:
+    {
+      mj::Task* pTask   = reinterpret_cast<mj::Task*>(wParam);
+      mj::TaskEndFn pFn = reinterpret_cast<mj::TaskEndFn>(lParam);
+      pFn(pTask);
+
+      mj::ThreadpoolTaskFree(pTask);
+    }
     break;
+    case WM_COMMAND:
+      mj::WindowProcCommand(pMainWindow, static_cast<UINT>(wParam));
+      break;
+    default:
+      break;
+    }
+
+    return ::DefWindowProcW(hwnd, message, wParam, lParam);
   }
+} // namespace mj
 
-  return ::DefWindowProcW(hwnd, message, wParam, lParam);
-}
-
-void FloatMagicMain()
+void mj::FloatMagicMain()
 {
+  // Don't bloat the stack
+  static mj::FloatMagic floatMagic;
+
   MJ_ERR_ZERO(::HeapSetInformation(nullptr, HeapEnableTerminationOnCorruption, nullptr, 0));
   mj::ThreadpoolInit();
 
   static constexpr const auto className = L"Class Name";
 
   WNDCLASS wc      = {};
-  wc.lpfnWndProc   = mj::FloatMagic::WindowProc;
+  wc.lpfnWndProc   = mj::WindowProc;
   wc.hInstance     = HINST_THISCOMPONENT;
   wc.lpszClassName = className;
   MJ_ERR_ZERO(::RegisterClassW(&wc));
-
-  MJ_UNINITIALIZED mj::FloatMagic floatMagic;
 
   // Loads DLLs: uxtheme, combase, msctf, oleaut32
   HWND pHwnd = ::CreateWindowExW(0,                                                          // Optional window styles.

@@ -30,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 /// </summary>
 void CALLBACK WinMainCRTStartup()
 {
-  ::FloatMagicMain();
+  mj::FloatMagicMain();
 
   // Running without CRT requires a manual call to ExitProcess
   ::ExitProcess(0);

@@ -3,14 +3,15 @@
 #define NOMINMAX
 #include <Windows.h>
 
-void FloatMagicMain();
-
 namespace mj
 {
+  void FloatMagicMain();
+
+  /// <summary>
+  /// Main application. Is allocated in static memory (in the scope of the Main function).
+  /// </summary>
   struct FloatMagic
   {
-    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-
     HWND pHwnd;
   };
 } // namespace mj
