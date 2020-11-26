@@ -22,7 +22,7 @@ namespace mj
     MJ_UNINITIALIZED HMENU hSubMenu;
 
     MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
-    ::AppendMenuW(hSubMenu, MF_STRING, ID_FILE_OPEN, L"&Open...");
+    ::AppendMenuW(hSubMenu, MF_STRING, ID_FILE_OPEN, L"&Open...\tCtrl+O");
     MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
 
     MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
@@ -40,7 +40,7 @@ namespace mj
     // Create the FileOpenDialog object.
     // TODO MJ: Create once?
     HRESULT hr = ::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
-                                  reinterpret_cast<LPVOID*>(pFileOpen.GetAddressOf()));
+                                    reinterpret_cast<LPVOID*>(pFileOpen.GetAddressOf()));
 
     if (SUCCEEDED(hr))
     {
@@ -101,8 +101,6 @@ namespace mj
       mj::OpenFileDialog(pFloatMagic->pHwnd);
       break;
     }
-
-    return;
   }
 
   LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -152,8 +150,8 @@ namespace mj
       mj::ThreadpoolTaskFree(pTask);
     }
     break;
-    case WM_COMMAND:
-      mj::WindowProcCommand(pMainWindow, static_cast<UINT>(wParam));
+    case WM_COMMAND: // Fall-through
+      mj::WindowProcCommand(pMainWindow, static_cast<UINT>(LOWORD(wParam)));
       break;
     default:
       break;
@@ -195,10 +193,19 @@ void mj::FloatMagicMain()
   // If the window was previously hidden, the return value is zero.
   static_cast<void>(::ShowWindow(pHwnd, SW_SHOW));
 
+  // Create accelerator table
+  MJ_UNINITIALIZED HACCEL pAcceleratorTable;
+  ACCEL table[] = { { FCONTROL | FVIRTKEY, 'O', ID_FILE_OPEN } };
+  MJ_ERR_NULL(pAcceleratorTable = ::CreateAcceleratorTableW(table, 1));
+
   // Run the message loop.
   MSG msg = {};
   while (::GetMessageW(&msg, nullptr, 0, 0))
   {
+    if (::TranslateAcceleratorW(pHwnd, pAcceleratorTable, &msg))
+    {
+      continue;
+    }
     static_cast<void>(::TranslateMessage(&msg));
     static_cast<void>(::DispatchMessageW(&msg));
   }
