@@ -1,6 +1,6 @@
 #include "mj_win32.h"
 
-void* mj::Win32Alloc(void* pContext, size_t size)
+void* mj::Win32Alloc(size_t size, void* pContext)
 {
   static_cast<void>(pContext);
   return ::VirtualAlloc(nullptr,                  //
@@ -9,7 +9,7 @@ void* mj::Win32Alloc(void* pContext, size_t size)
                         PAGE_READWRITE);
 }
 
-void mj::Win32Free(void* pContext, void* ptr)
+void mj::Win32Free(void* ptr, void* pContext)
 {
   static_cast<void>(pContext);
   ::VirtualFree(ptr, 0, MEM_RELEASE);

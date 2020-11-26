@@ -10,59 +10,44 @@
 
 #include <ShlObj.h>
 
-static constexpr UINT ID_FILE_OPEN = 40001;
+static constexpr WORD ID_FILE_OPEN = 40001;
 
 namespace mj
 {
-  static void CreateMenu(HWND pHwnd)
+  static void CreateMenu(HWND hWnd)
   {
     HMENU hMenu = ::CreateMenu();
     MJ_ERR_NULL(hMenu);
 
     MJ_UNINITIALIZED HMENU hSubMenu;
-
     MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
     ::AppendMenuW(hSubMenu, MF_STRING, ID_FILE_OPEN, L"&Open...\tCtrl+O");
     MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&File"));
 
     MJ_ERR_NULL(hSubMenu = ::CreatePopupMenu());
-    MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Reports"));
+    MJ_ERR_ZERO(::AppendMenuW(hMenu, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(hSubMenu), L"&Help"));
 
     // Loads DLLs: TextShaping
-    MJ_ERR_ZERO(::SetMenu(pHwnd, hMenu));
+    MJ_ERR_ZERO(::SetMenu(hWnd, hMenu));
   }
 
-  void OpenFileDialog(HWND pHwnd)
+  void OpenFileDialog(FloatMagic* pFloatMagic)
   {
     ZoneScoped;
-    mj::ComPtr<::IFileOpenDialog> pFileOpen;
 
-    // Create the FileOpenDialog object.
-    // TODO MJ: Create once?
-    HRESULT hr = ::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
-                                    reinterpret_cast<LPVOID*>(pFileOpen.GetAddressOf()));
+    MJ_UNINITIALIZED ::IFileOpenDialog* pFileOpen;
+    MJ_ERR_HRESULT(::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                                      reinterpret_cast<LPVOID*>(&pFileOpen)));
 
-    if (SUCCEEDED(hr))
+    if (SUCCEEDED(pFileOpen->Show(pFloatMagic->hWnd))) // Dialog result: User picked a file
     {
-      hr = pFileOpen->Show(pHwnd);
-    }
+      MJ_UNINITIALIZED ::IShellItem* pItem;
+      MJ_ERR_HRESULT(pFileOpen->GetResult(&pItem));
 
-    // Get the file name from the dialog box.
-    mj::ComPtr<::IShellItem> pItem;
-    if (SUCCEEDED(hr))
-    {
-      hr = pFileOpen->GetResult(pItem.GetAddressOf());
-    }
+      MJ_UNINITIALIZED PWSTR pFileName;
+      MJ_ERR_HRESULT(pItem->GetDisplayName(SIGDN_FILESYSPATH, &pFileName));
 
-    MJ_UNINITIALIZED PWSTR pszFilePath;
-    if (SUCCEEDED(hr))
-    {
-      hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-    }
-
-    if (SUCCEEDED(hr))
-    {
-      HANDLE pFile = ::CreateFileW(pszFilePath,           // file to open
+      HANDLE hFile = ::CreateFileW(pFileName,             // file to open
                                    GENERIC_READ,          // open for reading
                                    FILE_SHARE_READ,       // share for reading
                                    nullptr,               // default security
@@ -70,21 +55,34 @@ namespace mj
                                    FILE_ATTRIBUTE_NORMAL, // normal file
                                    nullptr);              // no attr. template
 
-      if (pFile != INVALID_HANDLE_VALUE)
+      if (hFile != INVALID_HANDLE_VALUE)
       {
-        MJ_UNINITIALIZED DWORD dwBytesRead;
-        constexpr DWORD BUFFERSIZE = 1024; // TODO MJ: Fixed buffer size
-        char ReadBuffer[BUFFERSIZE];
 
-        MJ_ERR_ZERO(::ReadFile(pFile, ReadBuffer, BUFFERSIZE - 1, &dwBytesRead, nullptr));
+        MJ_UNINITIALIZED LARGE_INTEGER fileSize;
+        MJ_ERR_ZERO(::GetFileSizeEx(hFile, &fileSize));
 
-        ReadBuffer[dwBytesRead] = '\0';
+        char* pMemory = static_cast<char*>(mj::Win32Alloc(fileSize.QuadPart));
+        if (pMemory)
+        {
+          // Note MJ: ReadFile does not accept 64 bit integers for read sizes.
+          // We are currently passing a LONGLONG obtained from GetFileSizeEx.
+          MJ_UNINITIALIZED DWORD dwBytesRead;
+          MJ_ERR_ZERO(::ReadFile(hFile, pMemory, static_cast<DWORD>(fileSize.QuadPart), &dwBytesRead, nullptr));
 
-        MJ_ERR_ZERO(CloseHandle(pFile));
+          mj::AllocConvertToHex(pMemory, dwBytesRead);
+
+          mj::Win32Free(pMemory);
+        }
+
+        MJ_ERR_ZERO(::CloseHandle(hFile));
       }
 
-      ::CoTaskMemFree(pszFilePath);
+      ::CoTaskMemFree(pFileName);
+
+      pItem->Release();
     }
+
+    pFileOpen->Release();
   }
 
   /// <summary>
@@ -98,30 +96,30 @@ namespace mj
     switch (commandId)
     {
     case ID_FILE_OPEN:
-      mj::OpenFileDialog(pFloatMagic->pHwnd);
+      mj::OpenFileDialog(pFloatMagic);
       break;
     }
   }
 
   LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
   {
-    mj::FloatMagic* pMainWindow = reinterpret_cast<mj::FloatMagic*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    mj::FloatMagic* pMainWindow = reinterpret_cast<mj::FloatMagic*>(::GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
     switch (message)
     {
     case WM_NCCREATE:
     {
       // Copy the lpParam from CreateWindowEx to this window's user data
-      CREATESTRUCT* pcs  = reinterpret_cast<CREATESTRUCT*>(lParam);
-      pMainWindow        = reinterpret_cast<mj::FloatMagic*>(pcs->lpCreateParams);
-      pMainWindow->pHwnd = hwnd;
+      CREATESTRUCT* pcs    = reinterpret_cast<CREATESTRUCT*>(lParam);
+      pMainWindow          = reinterpret_cast<mj::FloatMagic*>(pcs->lpCreateParams);
+      pMainWindow->hWnd = hwnd;
       MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
 
       mj::CreateMenu(hwnd);
 
       mj::Direct2DInit(hwnd);
     }
-      return DefWindowProcW(hwnd, message, wParam, lParam);
+      return ::DefWindowProcW(hwnd, message, wParam, lParam);
 
     case WM_DESTROY:
       ::PostQuitMessage(0);
@@ -178,20 +176,20 @@ void mj::FloatMagicMain()
   MJ_ERR_ZERO(::RegisterClassW(&wc));
 
   // Loads DLLs: uxtheme, combase, msctf, oleaut32
-  HWND pHwnd = ::CreateWindowExW(0,                                                          // Optional window styles.
-                                 className,                                                  // Window class
-                                 L"Window Title",                                            // Window text
-                                 WS_OVERLAPPEDWINDOW,                                        // Window style
-                                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
-                                 nullptr,                                                    // Parent window
-                                 nullptr,                                                    // Menu
-                                 HINST_THISCOMPONENT,                                        // Instance handle
-                                 &floatMagic); // Additional application data
-  MJ_ERR_ZERO(pHwnd);
+  HWND hWnd = ::CreateWindowExW(0,                   // Optional window styles.
+                                   className,           // Window class
+                                   L"Window Title",     // Window text
+                                   WS_OVERLAPPEDWINDOW, // Window style
+                                   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
+                                   nullptr,                                                    // Parent window
+                                   nullptr,                                                    // Menu
+                                   HINST_THISCOMPONENT,                                        // Instance handle
+                                   &floatMagic); // Additional application data
+  MJ_ERR_ZERO(hWnd);
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.
-  static_cast<void>(::ShowWindow(pHwnd, SW_SHOW));
+  static_cast<void>(::ShowWindow(hWnd, SW_SHOW));
 
   // Create accelerator table
   MJ_UNINITIALIZED HACCEL pAcceleratorTable;
@@ -202,7 +200,7 @@ void mj::FloatMagicMain()
   MSG msg = {};
   while (::GetMessageW(&msg, nullptr, 0, 0))
   {
-    if (::TranslateAcceleratorW(pHwnd, pAcceleratorTable, &msg))
+    if (::TranslateAcceleratorW(hWnd, pAcceleratorTable, &msg))
     {
       continue;
     }

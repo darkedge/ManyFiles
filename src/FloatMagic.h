@@ -12,6 +12,6 @@ namespace mj
   /// </summary>
   struct FloatMagic
   {
-    HWND pHwnd;
+    HWND hWnd;
   };
 } // namespace mj

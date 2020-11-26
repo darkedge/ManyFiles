@@ -13,9 +13,10 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 namespace mj
 {
   // Allocation
-  void* Win32Alloc(void* pContext, size_t size);
-  void Win32Free(void* pContext, void* ptr);
+  void* Win32Alloc(size_t size, void* pContext = nullptr);
+  void Win32Free(void* ptr, void* pContext = nullptr);
 
+#if 0
   /// <summary>
   /// COM object wrapper
   /// </summary>
@@ -238,4 +239,5 @@ namespace mj
       return this->ptr->QueryInterface(riid, reinterpret_cast<void**>(p->ReleaseAndGetAddressOf()));
     }
   };
+#endif
 } // namespace mj

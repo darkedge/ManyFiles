@@ -10,7 +10,7 @@ static ID2D1HwndRenderTarget* pRenderTarget;
 struct CreateHwndRenderTargetContext
 {
   // In
-  HWND pHwnd;
+  HWND hWnd;
 
   // Out
   IDWriteFactory* pDWriteFactory;
@@ -49,15 +49,15 @@ static void InitDirect2DAsync(TP_CALLBACK_INSTANCE* pInstance, void* pContext, T
 
   // Get the client area size
   RECT rect = {};
-  MJ_ERR_ZERO(::GetClientRect(pTaskContext->pHwnd, &rect));
+  MJ_ERR_ZERO(::GetClientRect(pTaskContext->hWnd, &rect));
   const D2D1_SIZE_U d2dSize = D2D1::SizeU(rect.right, rect.bottom);
 
   // Note: This call is slow as it loads a LOT of DLLs.
   MJ_ERR_HRESULT(pTaskContext->pDirect2DFactory->CreateHwndRenderTarget(
-      D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(pTaskContext->pHwnd, d2dSize),
+      D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(pTaskContext->hWnd, d2dSize),
       &pTaskContext->pRenderTarget));
 
-  MJ_ERR_ZERO(::PostMessageW(pTaskContext->pHwnd, MJ_TASKEND, reinterpret_cast<WPARAM>(pTask),
+  MJ_ERR_ZERO(::PostMessageW(pTaskContext->hWnd, MJ_TASKEND, reinterpret_cast<WPARAM>(pTask),
                              reinterpret_cast<LPARAM>(CreateHwndRenderTargetFinish)));
 }
 
@@ -68,7 +68,7 @@ void mj::Direct2DInit(HWND hwnd)
   mj::Task* pTask = mj::ThreadpoolTaskAlloc(InitDirect2DAsync);
 
   CreateHwndRenderTargetContext* pContext = reinterpret_cast<CreateHwndRenderTargetContext*>(pTask->pContext);
-  pContext->pHwnd                         = hwnd;
+  pContext->hWnd                         = hwnd;
 
   pTask->Submit();
 }
