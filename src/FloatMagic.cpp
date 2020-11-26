@@ -91,7 +91,7 @@ namespace mj
   /// Processes WM_COMMAND messages from the main WindowProc further.
   /// </summary>
   /// <param name="commandId"></param>
-  void WindowProcCommand(FloatMagic* pFloatMagic, UINT commandId)
+  void WindowProcCommand(FloatMagic* pFloatMagic, WORD commandId)
   {
     ZoneScoped;
 
@@ -150,8 +150,8 @@ namespace mj
       mj::ThreadpoolTaskFree(pTask);
     }
     break;
-    case WM_COMMAND: // Fall-through
-      mj::WindowProcCommand(pMainWindow, static_cast<UINT>(LOWORD(wParam)));
+    case WM_COMMAND:
+      mj::WindowProcCommand(pMainWindow, LOWORD(wParam));
       break;
     default:
       break;
