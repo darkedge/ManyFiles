@@ -24,7 +24,7 @@
     ::SetLastError(S_OK);                                         \
     if (!(expr))                                                  \
     {                                                             \
-      DWORD _hr = ::GetLastError();                               \
+      const DWORD _hr = ::GetLastError();                         \
       if (_hr)                                                    \
       {                                                           \
         mj::ErrorExit(_hr, __FILENAME__, __LINE__, XWSTR(#expr)); \

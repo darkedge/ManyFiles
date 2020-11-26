@@ -54,7 +54,7 @@ namespace mj
       hr = pFileOpen->GetResult(pItem.GetAddressOf());
     }
 
-    PWSTR pszFilePath = nullptr;
+    MJ_UNINITIALIZED PWSTR pszFilePath;
     if (SUCCEEDED(hr))
     {
       hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
@@ -62,25 +62,25 @@ namespace mj
 
     if (SUCCEEDED(hr))
     {
-      HANDLE hFile = CreateFileW(pszFilePath,           // file to open
-                                 GENERIC_READ,          // open for reading
-                                 FILE_SHARE_READ,       // share for reading
-                                 nullptr,               // default security
-                                 OPEN_EXISTING,         // existing file only
-                                 FILE_ATTRIBUTE_NORMAL, // normal file
-                                 nullptr);              // no attr. template
+      HANDLE pFile = ::CreateFileW(pszFilePath,           // file to open
+                                   GENERIC_READ,          // open for reading
+                                   FILE_SHARE_READ,       // share for reading
+                                   nullptr,               // default security
+                                   OPEN_EXISTING,         // existing file only
+                                   FILE_ATTRIBUTE_NORMAL, // normal file
+                                   nullptr);              // no attr. template
 
-      if (hFile != INVALID_HANDLE_VALUE)
+      if (pFile != INVALID_HANDLE_VALUE)
       {
         MJ_UNINITIALIZED DWORD dwBytesRead;
         constexpr DWORD BUFFERSIZE = 1024; // TODO MJ: Fixed buffer size
         char ReadBuffer[BUFFERSIZE];
 
-        MJ_ERR_ZERO(::ReadFile(hFile, ReadBuffer, BUFFERSIZE - 1, &dwBytesRead, nullptr));
+        MJ_ERR_ZERO(::ReadFile(pFile, ReadBuffer, BUFFERSIZE - 1, &dwBytesRead, nullptr));
 
         ReadBuffer[dwBytesRead] = '\0';
 
-        MJ_ERR_ZERO(CloseHandle(hFile));
+        MJ_ERR_ZERO(CloseHandle(pFile));
       }
 
       ::CoTaskMemFree(pszFilePath);
