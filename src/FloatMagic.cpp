@@ -16,6 +16,14 @@ static constexpr WORD ID_FILE_OPEN = 40001;
 
 static wchar_t s_pArg[MAX_PATH + 1];
 
+static HWND s_MainWindowHandle;
+
+HWND mj::GetMainWindowHandle()
+{
+  MJ_EXIT_NULL(s_MainWindowHandle);
+  return s_MainWindowHandle;
+}
+
 namespace mj
 {
   static void CreateMenu(HWND hWnd)
@@ -147,7 +155,7 @@ namespace mj
     {
       mj::Task* pTask   = reinterpret_cast<mj::Task*>(wParam);
       mj::TaskEndFn pFn = reinterpret_cast<mj::TaskEndFn>(lParam);
-      pFn(pTask);
+      pFn(pTask->pContext);
 
       mj::ThreadpoolTaskFree(pTask);
     }
@@ -192,20 +200,21 @@ void mj::FloatMagicMain()
   MJ_ERR_ZERO(::RegisterClassW(&wc));
 
   // Loads DLLs: uxtheme, combase, msctf, oleaut32
-  HWND hWnd = ::CreateWindowExW(0,                                                          // Optional window styles.
-                                className,                                                  // Window class
-                                L"Window Title",                                            // Window text
-                                WS_OVERLAPPEDWINDOW,                                        // Window style
-                                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
-                                nullptr,                                                    // Parent window
-                                nullptr,                                                    // Menu
-                                HINST_THISCOMPONENT,                                        // Instance handle
-                                &floatMagic); // Additional application data
-  MJ_ERR_ZERO(hWnd);
+  s_MainWindowHandle =
+      ::CreateWindowExW(0,                                                          // Optional window styles.
+                        className,                                                  // Window class
+                        L"Window Title",                                            // Window text
+                        WS_OVERLAPPEDWINDOW,                                        // Window style
+                        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
+                        nullptr,                                                    // Parent window
+                        nullptr,                                                    // Menu
+                        HINST_THISCOMPONENT,                                        // Instance handle
+                        &floatMagic);                                               // Additional application data
+  MJ_ERR_ZERO(s_MainWindowHandle);
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.
-  static_cast<void>(::ShowWindow(hWnd, SW_SHOW));
+  static_cast<void>(::ShowWindow(s_MainWindowHandle, SW_SHOW));
 
   // Create accelerator table
   MJ_UNINITIALIZED HACCEL pAcceleratorTable;
@@ -216,7 +225,7 @@ void mj::FloatMagicMain()
   MSG msg = {};
   while (::GetMessageW(&msg, nullptr, 0, 0))
   {
-    if (::TranslateAcceleratorW(hWnd, pAcceleratorTable, &msg))
+    if (::TranslateAcceleratorW(s_MainWindowHandle, pAcceleratorTable, &msg))
     {
       continue;
     }

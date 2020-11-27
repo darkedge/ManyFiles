@@ -5,6 +5,8 @@
 
 namespace mj
 {
+  HWND GetMainWindowHandle();
+
   void FloatMagicMain();
 
   /// <summary>

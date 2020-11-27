@@ -2,6 +2,7 @@
 #include "mj_win32.h"
 #include "mj_common.h"
 #include "ErrorExit.h"
+#include "FloatMagic.h"
 #include "minicrt.h"
 
 static constexpr auto MAX_TASKS = 4096;
@@ -34,8 +35,8 @@ namespace mj
   static void TaskFree(Task* pNode)
   {
     ::EnterCriticalSection(&s_CriticalSection);
-    pNode->pNextFreeNode   = s_pTaskHead;
-    s_pTaskHead = pNode;
+    pNode->pNextFreeNode = s_pTaskHead;
+    s_pTaskHead          = pNode;
     ::LeaveCriticalSection(&s_CriticalSection);
   }
 } // namespace mj
@@ -60,17 +61,37 @@ void mj::ThreadpoolInit()
   Task* pNext = nullptr;
   for (int i = 0; i < MAX_TASKS; i++)
   {
-    s_TaskFreeList[i].Init(pNext, &s_TaskContextArray[i]);
+    s_TaskFreeList[i].pNextFreeNode = pNext;
+    s_TaskFreeList[i].pContext      = &s_TaskContextArray[i];
+
     pNext = &s_TaskFreeList[i];
   }
 
   s_pTaskHead = &s_TaskFreeList[MAX_TASKS - 1];
 }
 
-mj::Task* mj::ThreadpoolTaskAlloc(PTP_WORK_CALLBACK pCallback)
+static void TaskMain(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* pWork)
 {
-  mj::Task* pTask = mj::TaskAlloc();
-  MJ_ERR_NULL(pTask->pWork = ::CreateThreadpoolWork(pCallback, pTask, &s_CallbackEnvironment));
+  static_cast<void>(pInstance);
+  static_cast<void>(pWork);
+
+  mj::Task* pTask = static_cast<mj::Task*>(pContext);
+
+  pTask->pCallback(pTask->pContext);
+
+  if (pTask->pMainThreadCallback)
+  {
+    MJ_ERR_ZERO(::PostMessageW(mj::GetMainWindowHandle(), MJ_TASKEND, reinterpret_cast<WPARAM>(pTask),
+                               reinterpret_cast<LPARAM>(pTask->pMainThreadCallback)));
+  }
+};
+
+mj::Task* mj::ThreadpoolTaskAlloc(TaskEndFn pCallback, CTaskEndFn pMainThreadCallback)
+{
+  mj::Task* pTask            = mj::TaskAlloc();
+  pTask->pCallback           = pCallback;
+  pTask->pMainThreadCallback = pMainThreadCallback;
+  MJ_ERR_NULL(pTask->pWork = ::CreateThreadpoolWork(TaskMain, pTask, &s_CallbackEnvironment));
   return pTask;
 }
 
