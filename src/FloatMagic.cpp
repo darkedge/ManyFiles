@@ -107,7 +107,7 @@ namespace mj
 
     switch (message)
     {
-    case WM_NCCREATE:
+    case WM_CREATE:
     {
       // Copy the lpParam from CreateWindowEx to this window's user data
       CREATESTRUCT* pcs    = reinterpret_cast<CREATESTRUCT*>(lParam);
