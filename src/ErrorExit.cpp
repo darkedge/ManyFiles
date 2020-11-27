@@ -3,6 +3,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "minicrt.h"
+
 /// <summary>
 /// We do not recurse into this as it is an exit function.
 /// </summary>

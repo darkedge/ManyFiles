@@ -2,6 +2,7 @@
 #include "mj_common.h"
 #include "ErrorExit.h"
 #include "Threadpool.h"
+#include "minicrt.h"
 
 static IDWriteFactory* pDWriteFactory;
 static ID2D1Factory* pDirect2DFactory;

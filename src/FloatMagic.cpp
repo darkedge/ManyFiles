@@ -7,10 +7,14 @@
 #include "Direct2D.h"
 #include "Threadpool.h"
 #include "ConvertToHex.h"
-
-#include <ShlObj.h>
+#include <shellapi.h> // CommandLineToArgvW
+#include <strsafe.h>
+#include <ShlObj.h> // File dialog
+#include "minicrt.h"
 
 static constexpr WORD ID_FILE_OPEN = 40001;
+
+static wchar_t s_pArg[MAX_PATH + 1];
 
 namespace mj
 {
@@ -110,8 +114,8 @@ namespace mj
     case WM_CREATE:
     {
       // Copy the lpParam from CreateWindowEx to this window's user data
-      CREATESTRUCT* pcs    = reinterpret_cast<CREATESTRUCT*>(lParam);
-      pMainWindow          = reinterpret_cast<mj::FloatMagic*>(pcs->lpCreateParams);
+      CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
+      pMainWindow       = reinterpret_cast<mj::FloatMagic*>(pcs->lpCreateParams);
       pMainWindow->hWnd = hwnd;
       MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
 
@@ -161,6 +165,18 @@ namespace mj
 
 void mj::FloatMagicMain()
 {
+  // Parse command line
+  LPWSTR pCommandLine = ::GetCommandLineW();
+  MJ_UNINITIALIZED int numArgs;
+  MJ_UNINITIALIZED LPWSTR* ppArgs;
+  // Return value must be freed using LocalFree
+  MJ_ERR_NULL(ppArgs = ::CommandLineToArgvW(pCommandLine, &numArgs));
+  if (numArgs >= 2)
+  {
+    MJ_ERR_HRESULT(::StringCchCopyW(s_pArg, MJ_COUNTOF(s_pArg), ppArgs[1]));
+  }
+  MJ_ERR_NONNULL(::LocalFree(ppArgs));
+
   // Don't bloat the stack
   static mj::FloatMagic floatMagic;
 
@@ -176,15 +192,15 @@ void mj::FloatMagicMain()
   MJ_ERR_ZERO(::RegisterClassW(&wc));
 
   // Loads DLLs: uxtheme, combase, msctf, oleaut32
-  HWND hWnd = ::CreateWindowExW(0,                   // Optional window styles.
-                                   className,           // Window class
-                                   L"Window Title",     // Window text
-                                   WS_OVERLAPPEDWINDOW, // Window style
-                                   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
-                                   nullptr,                                                    // Parent window
-                                   nullptr,                                                    // Menu
-                                   HINST_THISCOMPONENT,                                        // Instance handle
-                                   &floatMagic); // Additional application data
+  HWND hWnd = ::CreateWindowExW(0,                                                          // Optional window styles.
+                                className,                                                  // Window class
+                                L"Window Title",                                            // Window text
+                                WS_OVERLAPPEDWINDOW,                                        // Window style
+                                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
+                                nullptr,                                                    // Parent window
+                                nullptr,                                                    // Menu
+                                HINST_THISCOMPONENT,                                        // Instance handle
+                                &floatMagic); // Additional application data
   MJ_ERR_ZERO(hWnd);
 
   // If the window was previously visible, the return value is nonzero.

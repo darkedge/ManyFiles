@@ -2,6 +2,7 @@
 #include "mj_win32.h"
 #include "mj_common.h"
 #include "ErrorExit.h"
+#include "minicrt.h"
 
 static constexpr auto MAX_TASKS = 4096;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];

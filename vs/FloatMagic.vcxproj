@@ -104,7 +104,7 @@
       <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
+      <AdditionalDependencies>shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile>$(IntDir)$(TargetName)$(TargetExt).intermediate.manifest</ManifestFile>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
@@ -140,7 +140,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;</AdditionalDependencies>
+      <AdditionalDependencies>shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile />
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
@@ -179,7 +179,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile>
       </ManifestFile>

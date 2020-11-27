@@ -1,6 +1,5 @@
 #pragma once
 #include "mj_win32.h"
-#include "minicrt.h"
 
 // Note MJ: We might want to put these in a more general header file.
 #define XWSTR(x)     WSTR(x)
@@ -13,6 +12,15 @@
   do                                                                         \
   {                                                                          \
     if (!(expr))                                                             \
+    {                                                                        \
+      mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
+    }                                                                        \
+  } while (0)
+
+#define MJ_ERR_NONNULL(expr)                                                 \
+  do                                                                         \
+  {                                                                          \
+    if (expr)                                                                \
     {                                                                        \
       mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
     }                                                                        \
