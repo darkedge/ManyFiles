@@ -2,6 +2,8 @@
 #include "mj_common.h"
 #include "ErrorExit.h"
 #include "Threadpool.h"
+#include "File.h"
+#include "FloatMagic.h"
 #include "minicrt.h"
 
 static IDWriteFactory* pDWriteFactory;
@@ -27,9 +29,21 @@ static void CreateHwndRenderTargetFinish(const mj::TaskContext* pTaskContext)
   pDirect2DFactory = pContext->pDirect2DFactory;
   pRenderTarget    = pContext->pRenderTarget;
 
+  // Note MJ: Clear the screen once to a different color to get a sense of the loading time
   pRenderTarget->BeginDraw();
   pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
   pRenderTarget->EndDraw();
+
+  // Check if there is any text ready to be rendered
+  wchar_t* pText = mj::GetCommandLineArgument();
+  if (pText)
+  {
+    // Note: Currently, we are loading the text from disk here.
+    // We could do that in the background at the same time as loading Direct2D,
+    // and only do the rendering part here.
+
+    mj::LoadFileAsync(pText);
+  }
 }
 
 static void InitDirect2DAsync(mj::TaskContext* pTaskContext)

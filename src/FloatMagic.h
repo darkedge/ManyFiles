@@ -6,6 +6,7 @@
 namespace mj
 {
   HWND GetMainWindowHandle();
+  wchar_t* GetCommandLineArgument();
 
   void FloatMagicMain();
 

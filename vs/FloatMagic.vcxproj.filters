@@ -13,6 +13,7 @@
     <ClInclude Include="..\src\Direct2D.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\ConvertToHex.h" />
+    <ClInclude Include="..\src\File.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\mj_math.cpp" />
@@ -31,6 +32,7 @@
     <ClCompile Include="..\src\Direct2D.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\ConvertToHex.cpp" />
+    <ClCompile Include="..\src\File.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />

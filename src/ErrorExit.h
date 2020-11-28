@@ -11,7 +11,7 @@
 #define MJ_ERR_ZERO(expr)                                                    \
   do                                                                         \
   {                                                                          \
-    if (!(expr))                                                             \
+    if ((expr) == 0)                                                         \
     {                                                                        \
       mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
     }                                                                        \

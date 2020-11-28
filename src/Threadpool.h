@@ -6,9 +6,12 @@
 namespace mj
 {
   // A cache line for work object context.
+#pragma warning(push)
+#pragma warning(disable : 4324) // structure was padded due to alignment specifier (Yes, we know. That's the point.)
   struct alignas(64) TaskContext
   {
   };
+#pragma warning(pop)
 
   struct Task;
 

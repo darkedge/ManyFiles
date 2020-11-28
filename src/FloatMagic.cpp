@@ -7,6 +7,7 @@
 #include "Direct2D.h"
 #include "Threadpool.h"
 #include "ConvertToHex.h"
+#include "File.h"
 #include <shellapi.h> // CommandLineToArgvW
 #include <strsafe.h>
 #include <ShlObj.h> // File dialog
@@ -22,6 +23,11 @@ HWND mj::GetMainWindowHandle()
 {
   MJ_EXIT_NULL(s_MainWindowHandle);
   return s_MainWindowHandle;
+}
+
+wchar_t* mj::GetCommandLineArgument()
+{
+  return s_pArg;
 }
 
 namespace mj
@@ -59,35 +65,7 @@ namespace mj
       MJ_UNINITIALIZED PWSTR pFileName;
       MJ_ERR_HRESULT(pItem->GetDisplayName(SIGDN_FILESYSPATH, &pFileName));
 
-      HANDLE hFile = ::CreateFileW(pFileName,             // file to open
-                                   GENERIC_READ,          // open for reading
-                                   FILE_SHARE_READ,       // share for reading
-                                   nullptr,               // default security
-                                   OPEN_EXISTING,         // existing file only
-                                   FILE_ATTRIBUTE_NORMAL, // normal file
-                                   nullptr);              // no attr. template
-
-      if (hFile != INVALID_HANDLE_VALUE)
-      {
-
-        MJ_UNINITIALIZED LARGE_INTEGER fileSize;
-        MJ_ERR_ZERO(::GetFileSizeEx(hFile, &fileSize));
-
-        char* pMemory = static_cast<char*>(mj::Win32Alloc(fileSize.QuadPart));
-        if (pMemory)
-        {
-          // Note MJ: ReadFile does not accept 64 bit integers for read sizes.
-          // We are currently passing a LONGLONG obtained from GetFileSizeEx.
-          MJ_UNINITIALIZED DWORD dwBytesRead;
-          MJ_ERR_ZERO(::ReadFile(hFile, pMemory, static_cast<DWORD>(fileSize.QuadPart), &dwBytesRead, nullptr));
-
-          mj::AllocConvertToHex(pMemory, dwBytesRead);
-
-          mj::Win32Free(pMemory);
-        }
-
-        MJ_ERR_ZERO(::CloseHandle(hFile));
-      }
+      mj::LoadFileAsync(pFileName);
 
       ::CoTaskMemFree(pFileName);
 

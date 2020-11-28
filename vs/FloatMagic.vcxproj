@@ -101,7 +101,6 @@
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
-      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
@@ -195,6 +194,7 @@
     <ClInclude Include="..\src\ConvertToHex.h" />
     <ClInclude Include="..\src\Direct2D.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
+    <ClInclude Include="..\src\File.h" />
     <ClInclude Include="..\src\FloatMagic.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\minicrt.h" />
@@ -224,6 +224,7 @@
     <ClCompile Include="..\src\Direct2D.cpp" />
     <ClCompile Include="..\src\EntryPoint.cpp" />
     <ClCompile Include="..\src\ErrorExit.cpp" />
+    <ClCompile Include="..\src\File.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
     <ClCompile Include="..\src\mj_win32.cpp" />

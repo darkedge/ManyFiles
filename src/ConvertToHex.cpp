@@ -1,12 +1,16 @@
 #include "ConvertToHex.h"
 #include "Direct2D.h"
 #include "mj_win32.h"
+#include "ErrorExit.h"
+#include "minicrt.h"
 
 static constexpr wchar_t s_Mapping[] = { L'0', L'1', L'2', L'3', L'4', L'5', L'6', L'7',
                                          L'8', L'9', L'A', L'B', L'C', L'D', L'E', L'F' };
 
 wchar_t* mj::AllocConvertToHex(char* pBinary, size_t length)
 {
+  MJ_EXIT_NULL(pBinary);
+
   // We need three characters for every byte:
   // 2 characters to display the byte (1 byte = 2 printable nibbles)
   // 1 character after every byte for spaces, newlines, or null terminators
@@ -49,5 +53,6 @@ wchar_t* mj::AllocConvertToHex(char* pBinary, size_t length)
 
 void mj::FreeConvertToHex(wchar_t* pText)
 {
+  MJ_EXIT_NULL(pText);
   mj::Win32Free(pText);
 }

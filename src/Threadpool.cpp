@@ -10,8 +10,6 @@ static mj::TaskContext s_TaskContextArray[MAX_TASKS];
 static mj::Task s_TaskFreeList[MAX_TASKS];
 static mj::Task* s_pTaskHead;
 
-static uint32_t s_NumTasksAtomic;
-
 static TP_CALLBACK_ENVIRON s_CallbackEnvironment;
 static TP_POOL* s_pPool;
 static TP_CLEANUP_GROUP* s_pCleanupGroup;
