@@ -6,4 +6,5 @@ namespace mj
 {
   void Direct2DInit(HWND hwnd);
   void RenderHexEditBuffer();
+  UINT GetRenderedTextHeight();
 } // namespace mj

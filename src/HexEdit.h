@@ -21,10 +21,13 @@ namespace mj
   {
     PWCHAR pString;
     UINT32 length;
+    UINT32 numLines;
   };
 
   void HexEditSetBuffer(WideString pBuffer);
   void HexEditSetBinary(BinaryBlob blob);
+  void HexEditOnSize(WORD newClientHeight);
+  void HexEditOnScroll(WORD scrollType);
 
   WideString HexEditGetBuffer();
   BinaryBlob HexEditGetBinary();

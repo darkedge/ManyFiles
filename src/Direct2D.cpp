@@ -98,7 +98,7 @@ void mj::RenderHexEditBuffer()
     // Note MJ: Clear the screen once to a different color to get a sense of the loading time
     pRenderTarget->BeginDraw();
 
-    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
+    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
     // This can be very slow, once the number of characters goes into the millions.
     // Even in release mode!
@@ -106,4 +106,18 @@ void mj::RenderHexEditBuffer()
 
     pRenderTarget->EndDraw();
   }
+}
+
+UINT mj::GetRenderedTextHeight()
+{
+  UINT height = 0;
+
+  if (s_pTextLayout)
+  {
+    MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
+    MJ_ERR_HRESULT(s_pTextLayout->GetMetrics(&metrics));
+    height = static_cast<UINT>(metrics.height);
+  }
+
+  return height;
 }

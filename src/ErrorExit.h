@@ -17,6 +17,15 @@
     }                                                                        \
   } while (0)
 
+#define MJ_ERR_NULL(expr)                                                    \
+  do                                                                         \
+  {                                                                          \
+    if ((expr) == nullptr)                                                   \
+    {                                                                        \
+      mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
+    }                                                                        \
+  } while (0)
+
 #define MJ_ERR_NONNULL(expr)                                                 \
   do                                                                         \
   {                                                                          \
@@ -39,8 +48,6 @@
       }                                                           \
     }                                                             \
   } while (0)
-
-#define MJ_ERR_NULL(ptr) MJ_ERR_ZERO(ptr)
 
 #define MJ_ERR_NONZERO(expr)                                                 \
   do                                                                         \

@@ -21,7 +21,6 @@ static HWND s_MainWindowHandle;
 
 HWND mj::GetMainWindowHandle()
 {
-  MJ_EXIT_NULL(s_MainWindowHandle);
   return s_MainWindowHandle;
 }
 
@@ -110,11 +109,12 @@ namespace mj
       mj::LoadFileAsync(mj::GetCommandLineArgument());
     }
       return ::DefWindowProcW(hwnd, message, wParam, lParam);
-
+    case WM_SIZE:
+      mj::HexEditOnSize(HIWORD(lParam));
+      return 0;
     case WM_DESTROY:
       ::PostQuitMessage(0);
       return 0;
-
     case WM_PAINT:
     {
       MJ_UNINITIALIZED PAINTSTRUCT ps;
@@ -140,6 +140,9 @@ namespace mj
     break;
     case WM_COMMAND:
       mj::WindowProcCommand(pMainWindow, LOWORD(wParam));
+      break;
+    case WM_VSCROLL:
+      mj::HexEditOnScroll(LOWORD(wParam));
       break;
     default:
       break;
@@ -182,13 +185,13 @@ void mj::FloatMagicMain()
       ::CreateWindowExW(0,                                                          // Optional window styles.
                         className,                                                  // Window class
                         L"Window Title",                                            // Window text
-                        WS_OVERLAPPEDWINDOW,                                        // Window style
+                        WS_OVERLAPPEDWINDOW | WS_VSCROLL,                           // Window style
                         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
                         nullptr,                                                    // Parent window
                         nullptr,                                                    // Menu
                         HINST_THISCOMPONENT,                                        // Instance handle
                         &floatMagic);                                               // Additional application data
-  MJ_ERR_ZERO(s_MainWindowHandle);
+  MJ_ERR_NULL(s_MainWindowHandle);
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.
