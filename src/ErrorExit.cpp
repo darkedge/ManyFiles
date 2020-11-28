@@ -42,6 +42,7 @@ void mj::ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wcha
                                           lpMsgBuf));
 
       static_cast<void>(::MessageBoxW(nullptr, lpDisplayBuf, L"Error", MB_OK));
+      DebugBreak();
       static_cast<void>(::LocalFree(lpDisplayBuf));
     }
 
@@ -76,6 +77,7 @@ void mj::NullExit(const wchar_t* fileName, int lineNumber, const wchar_t* expres
                                         expression));
 
     static_cast<void>(::MessageBoxW(nullptr, lpDisplayBuf, L"Error", MB_OK));
+    DebugBreak();
     static_cast<void>(::LocalFree(lpDisplayBuf));
   }
 

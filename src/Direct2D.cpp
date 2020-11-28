@@ -4,11 +4,17 @@
 #include "Threadpool.h"
 #include "File.h"
 #include "FloatMagic.h"
+#include "HexEdit.h"
+#include <strsafe.h>
 #include "minicrt.h"
 
 static IDWriteFactory* pDWriteFactory;
 static ID2D1Factory* pDirect2DFactory;
 static ID2D1HwndRenderTarget* pRenderTarget;
+
+static IDWriteTextLayout* s_pTextLayout;
+static IDWriteTextFormat* s_pTextFormat;
+static ID2D1SolidColorBrush* s_pBrush;
 
 struct CreateHwndRenderTargetContext
 {
@@ -29,21 +35,7 @@ static void CreateHwndRenderTargetFinish(const mj::TaskContext* pTaskContext)
   pDirect2DFactory = pContext->pDirect2DFactory;
   pRenderTarget    = pContext->pRenderTarget;
 
-  // Note MJ: Clear the screen once to a different color to get a sense of the loading time
-  pRenderTarget->BeginDraw();
-  pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
-  pRenderTarget->EndDraw();
-
-  // Check if there is any text ready to be rendered
-  wchar_t* pText = mj::GetCommandLineArgument();
-  if (pText)
-  {
-    // Note: Currently, we are loading the text from disk here.
-    // We could do that in the background at the same time as loading Direct2D,
-    // and only do the rendering part here.
-
-    mj::LoadFileAsync(pText);
-  }
+  mj::RenderHexEditBuffer();
 }
 
 static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
@@ -78,4 +70,40 @@ void mj::Direct2DInit(HWND hwnd)
   pContext->hWnd                          = hwnd;
 
   pTask->Submit();
+}
+
+/// <summary>
+/// Main thread
+/// </summary>
+void mj::RenderHexEditBuffer()
+{
+  const mj::WideString string = mj::HexEditGetBuffer();
+  if (string.pString && pDWriteFactory && pRenderTarget)
+  {
+    MJ_ERR_HRESULT(pDWriteFactory->CreateTextFormat(L"Consolas",                // Font name
+                                                    nullptr,                    // Font collection
+                                                    DWRITE_FONT_WEIGHT_NORMAL,  // Font weight
+                                                    DWRITE_FONT_STYLE_NORMAL,   // Font style
+                                                    DWRITE_FONT_STRETCH_NORMAL, // Font stretch
+                                                    16.0f,                      // Font size
+                                                    L"",                        // Locale name
+                                                    &s_pTextFormat));
+
+    MJ_ERR_HRESULT(pDWriteFactory->CreateTextLayout(string.pString, string.length, s_pTextFormat, 1000.0f, 1000.0f,
+                                                    &s_pTextLayout));
+
+    MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &s_pBrush));
+
+    // Render
+    // Note MJ: Clear the screen once to a different color to get a sense of the loading time
+    pRenderTarget->BeginDraw();
+
+    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::CornflowerBlue));
+
+    // This can be very slow, once the number of characters goes into the millions.
+    // Even in release mode!
+    pRenderTarget->DrawTextLayout(D2D1::Point2F(), s_pTextLayout, s_pBrush);
+
+    pRenderTarget->EndDraw();
+  }
 }

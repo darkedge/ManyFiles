@@ -191,7 +191,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\ConvertToHex.h" />
+    <ClInclude Include="..\src\HexEdit.h" />
     <ClInclude Include="..\src\Direct2D.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
     <ClInclude Include="..\src\File.h" />
@@ -220,7 +220,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\ConvertToHex.cpp" />
+    <ClCompile Include="..\src\HexEdit.cpp" />
     <ClCompile Include="..\src\Direct2D.cpp" />
     <ClCompile Include="..\src\EntryPoint.cpp" />
     <ClCompile Include="..\src\ErrorExit.cpp" />

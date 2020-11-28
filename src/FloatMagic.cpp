@@ -6,7 +6,7 @@
 #include "ErrorExit.h"
 #include "Direct2D.h"
 #include "Threadpool.h"
-#include "ConvertToHex.h"
+#include "HexEdit.h"
 #include "File.h"
 #include <shellapi.h> // CommandLineToArgvW
 #include <strsafe.h>
@@ -106,8 +106,8 @@ namespace mj
       MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
 
       mj::CreateMenu(hwnd);
-
       mj::Direct2DInit(hwnd);
+      mj::LoadFileAsync(mj::GetCommandLineArgument());
     }
       return ::DefWindowProcW(hwnd, message, wParam, lParam);
 

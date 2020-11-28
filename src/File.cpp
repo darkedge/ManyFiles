@@ -2,7 +2,7 @@
 #include "mj_common.h"
 #include "ErrorExit.h"
 #include "Threadpool.h"
-#include "ConvertToHex.h"
+#include "HexEdit.h"
 #include "minicrt.h"
 
 struct LoadFileContext
@@ -11,7 +11,7 @@ struct LoadFileContext
   HANDLE hFile;
 
   // Out
-  wchar_t* pText;
+  mj::BinaryBlob blob;
 };
 
 static void LoadFileCallback(mj::TaskContext* pTaskContext)
@@ -21,34 +21,45 @@ static void LoadFileCallback(mj::TaskContext* pTaskContext)
   MJ_UNINITIALIZED LARGE_INTEGER fileSize;
   MJ_ERR_ZERO(::GetFileSizeEx(pContext->hFile, &fileSize));
 
+  // Make sure we return null if allocation fails
+  pContext->blob.pBinary = nullptr;
+
   char* pMemory = static_cast<char*>(mj::Win32Alloc(fileSize.QuadPart));
   if (pMemory)
   {
-    // Note MJ: ReadFile does not accept 64 bit integers for read sizes.
+    // Note MJ: ReadFile does not accept 64-bit integers for read sizes.
     // We are currently passing a LONGLONG obtained from GetFileSizeEx.
+    // We currently cannot read 64-bit size files!
     MJ_UNINITIALIZED DWORD dwBytesRead;
     MJ_ERR_ZERO(::ReadFile(pContext->hFile, pMemory, static_cast<DWORD>(fileSize.QuadPart), &dwBytesRead, nullptr));
 
-    pContext->pText = mj::AllocConvertToHex(pMemory, dwBytesRead);
-
-    // TODO MJ: Keep the binary loaded as well in case we want to edit it later on
-    mj::Win32Free(pMemory);
+    pContext->blob.pBinary = pMemory;
+    pContext->blob.length  = dwBytesRead;
   }
 
   // Handle can be freed before returning to main thread.
   MJ_ERR_ZERO(::CloseHandle(pContext->hFile));
 }
 
+/// <summary>
+/// File loading complete, send binary blob over to HexEdit for further processing.
+/// </summary>
+/// <param name="pTaskContext"></param>
 static void LoadFileDone(const mj::TaskContext* pTaskContext)
 {
-  // TODO: Render if possible
   const LoadFileContext* pContext = reinterpret_cast<const LoadFileContext*>(pTaskContext);
 
-  mj::FreeConvertToHex(pContext->pText);
+  // If file loading failed, do nothing.
+  if (pContext->blob.pBinary)
+  {
+    mj::HexEditSetBinary(pContext->blob);
+  }
 }
 
 void mj::LoadFileAsync(const wchar_t* pFilePath)
 {
+  MJ_EXIT_NULL(pFilePath);
+
   HANDLE hFile = ::CreateFileW(pFilePath,             // file to open
                                GENERIC_READ,          // open for reading
                                FILE_SHARE_READ,       // share for reading
