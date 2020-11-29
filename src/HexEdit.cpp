@@ -82,6 +82,8 @@ void mj::HexEditSetBinary(mj::BinaryBlob blob)
   s_pBinary = blob;
 
   ::AllocConvertToHex();
+
+  mj::RenderHexEditBuffer();
 }
 
 mj::WideString mj::HexEditGetBuffer()

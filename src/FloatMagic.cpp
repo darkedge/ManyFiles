@@ -56,7 +56,7 @@ namespace mj
     MJ_ERR_HRESULT(::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
                                       reinterpret_cast<LPVOID*>(&pFileOpen)));
 
-    if (SUCCEEDED(pFileOpen->Show(pFloatMagic->hWnd))) // Dialog result: User picked a file
+    if (SUCCEEDED(pFileOpen->Show(s_MainWindowHandle))) // Dialog result: User picked a file
     {
       MJ_UNINITIALIZED ::IShellItem* pItem;
       MJ_ERR_HRESULT(pFileOpen->GetResult(&pItem));
@@ -101,8 +101,10 @@ namespace mj
       // Copy the lpParam from CreateWindowEx to this window's user data
       CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
       pMainWindow       = reinterpret_cast<mj::FloatMagic*>(pcs->lpCreateParams);
-      pMainWindow->hWnd = hwnd;
       MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
+
+      // Make sure the main window handle is assigned before we start async initialization
+      s_MainWindowHandle = hwnd;
 
       mj::CreateMenu(hwnd);
       mj::Direct2DInit(hwnd);
@@ -179,21 +181,23 @@ void mj::FloatMagicMain()
   MJ_ERR_ZERO(::RegisterClassW(&wc));
 
   // Loads DLLs: uxtheme, combase, msctf, oleaut32
-  s_MainWindowHandle =
-      ::CreateWindowExW(0,                                                          // Optional window styles.
-                        className,                                                  // Window class
-                        L"Window Title",                                            // Window text
-                        WS_OVERLAPPEDWINDOW | WS_VSCROLL,                           // Window style
-                        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
-                        nullptr,                                                    // Parent window
-                        nullptr,                                                    // Menu
-                        HINST_THISCOMPONENT,                                        // Instance handle
-                        &floatMagic);                                               // Additional application data
-  MJ_ERR_NULL(s_MainWindowHandle);
+  // We assign the returned HWND to static memory in the WM_CREATE message,
+  // which is sooner, and also necessary if we want to start async
+  // initialization on window creation.
+  HWND hWnd = ::CreateWindowExW(0,                                                          // Optional window styles.
+                                className,                                                  // Window class
+                                L"Window Title",                                            // Window text
+                                WS_OVERLAPPEDWINDOW | WS_VSCROLL,                           // Window style
+                                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, // Size and position
+                                nullptr,                                                    // Parent window
+                                nullptr,                                                    // Menu
+                                HINST_THISCOMPONENT,                                        // Instance handle
+                                &floatMagic); // Additional application data
+  MJ_ERR_NULL(hWnd);
 
   // If the window was previously visible, the return value is nonzero.
   // If the window was previously hidden, the return value is zero.
-  static_cast<void>(::ShowWindow(s_MainWindowHandle, SW_SHOW));
+  static_cast<void>(::ShowWindow(hWnd, SW_SHOW));
 
   // Create accelerator table
   MJ_UNINITIALIZED HACCEL pAcceleratorTable;
@@ -204,7 +208,7 @@ void mj::FloatMagicMain()
   MSG msg = {};
   while (::GetMessageW(&msg, nullptr, 0, 0))
   {
-    if (::TranslateAcceleratorW(s_MainWindowHandle, pAcceleratorTable, &msg))
+    if (::TranslateAcceleratorW(hWnd, pAcceleratorTable, &msg))
     {
       // When TranslateAccelerator returns a nonzero value and the message is translated,
       // the application should not use the TranslateMessage function to process the message again.
