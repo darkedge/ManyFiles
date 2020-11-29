@@ -16,6 +16,33 @@ namespace mj
   void* Win32Alloc(size_t size, void* pContext = nullptr);
   void Win32Free(void* ptr, void* pContext = nullptr);
 
+  template <typename T>
+  struct DeferRelease
+  {
+    T* ptr;
+
+    ~DeferRelease()
+    {
+      ptr->Release();
+    }
+
+    T* operator->()
+    {
+      return this->ptr;
+    }
+
+    T** operator&()
+    {
+      return &this->ptr;
+    }
+
+    template <typename U>
+    operator U()
+    {
+      return this->ptr;
+    }
+  };
+
 #if 0
   /// <summary>
   /// COM object wrapper

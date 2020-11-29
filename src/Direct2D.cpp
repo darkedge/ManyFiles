@@ -61,6 +61,8 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
   // Direct2D factory
   MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pContext->pDirect2DFactory));
 
+  // Note: D3D11_CREATE_DEVICE_BGRA_SUPPORT is required
+  // for Direct2D interoperability with Direct3D resources.
   UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #ifdef _DEBUG
@@ -77,13 +79,13 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
                                      nullptr,                  //
                                      nullptr));
 
-  MJ_UNINITIALIZED IDXGIDevice* pDxgiDevice;
+  MJ_UNINITIALIZED mj::DeferRelease<IDXGIDevice> pDxgiDevice;
   MJ_ERR_HRESULT(pDevice->QueryInterface(__uuidof(pDxgiDevice), reinterpret_cast<void**>(&pDxgiDevice)));
 
-  MJ_UNINITIALIZED IDXGIAdapter* pAdapter;
+  MJ_UNINITIALIZED mj::DeferRelease<IDXGIAdapter> pAdapter;
   MJ_ERR_HRESULT(pDxgiDevice->GetAdapter(&pAdapter));
 
-  MJ_UNINITIALIZED IDXGIFactory2* pFactory;
+  MJ_UNINITIALIZED mj::DeferRelease<IDXGIFactory2> pFactory;
   MJ_ERR_HRESULT(pAdapter->GetParent(__uuidof(pFactory), reinterpret_cast<void**>(&pFactory)));
 
   DXGI_SWAP_CHAIN_DESC1 sd = {};
@@ -92,24 +94,22 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
   sd.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   sd.BufferCount           = 2;
 
-  // MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
   MJ_ERR_HRESULT(
       pFactory->CreateSwapChainForHwnd(pDevice, pContext->hWnd, &sd, nullptr, nullptr, &pContext->pSwapChain));
 
-  MJ_UNINITIALIZED ID2D1Device* pD2DDevice;
+  MJ_UNINITIALIZED mj::DeferRelease<ID2D1Device> pD2DDevice;
   MJ_ERR_HRESULT(pContext->pDirect2DFactory->CreateDevice(pDxgiDevice, &pD2DDevice));
 
-  // MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
   MJ_ERR_HRESULT(pD2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pContext->pDeviceContext));
 
-  IDXGISurface* pSurface;
+  MJ_UNINITIALIZED mj::DeferRelease<IDXGISurface> pSurface;
   MJ_ERR_HRESULT(pContext->pSwapChain->GetBuffer(0, __uuidof(pSurface), reinterpret_cast<void**>(&pSurface)));
 
   const D2D1_BITMAP_PROPERTIES1 bp =
       D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
                               D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE));
 
-  MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
+  MJ_UNINITIALIZED mj::DeferRelease<ID2D1Bitmap1> pBitmap;
   MJ_ERR_HRESULT(pContext->pDeviceContext->CreateBitmapFromDxgiSurface(pSurface, &bp, &pBitmap));
   pContext->pDeviceContext->SetTarget(pBitmap);
 
@@ -194,11 +194,11 @@ void mj::Direct2DDraw(int y)
 /// </summary>
 void mj::Direct2DOnSize(WORD width, WORD height)
 {
-  if (s_pDeviceContext)
+  if (s_pSwapChain)
   {
     MJ_UNINITIALIZED D2D1_SIZE_U size;
     size.width  = width;
     size.height = height;
-    // pDeviceContext->Resize(&size); // TODO
+    // s_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
   }
 }
