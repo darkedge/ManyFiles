@@ -116,6 +116,7 @@ namespace mj
       mj::Direct2DOnSize(LOWORD(lParam), HIWORD(lParam));
       return 0;
     case WM_DESTROY:
+      mj::Direct2DDestroy();
       ::PostQuitMessage(0);
       return 0;
     case WM_PAINT:

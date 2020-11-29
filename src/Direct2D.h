@@ -10,4 +10,5 @@ namespace mj
   UINT GetRenderedTextHeight();
   void Direct2DDraw(int y);
   void Direct2DOnSize(WORD width, WORD height);
+  void Direct2DDestroy();
 } // namespace mj

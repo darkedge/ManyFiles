@@ -17,7 +17,7 @@ static IDWriteTextFormat* s_pTextFormat;
 
 static IDWriteTextLayout* s_pTextLayout;
 
-struct CreateHwndRenderTargetContext
+struct Direct2DInitContext
 {
   // In
   HWND hWnd;
@@ -33,12 +33,12 @@ struct CreateHwndRenderTargetContext
 
 struct
 {
-  static_assert(sizeof(CreateHwndRenderTargetContext) <= 64);
+  static_assert(sizeof(Direct2DInitContext) <= 64);
 };
 
-static void CreateHwndRenderTargetFinish(const mj::TaskContext* pTaskContext)
+static void Direct2DInitJoin(const mj::TaskContext* pTaskContext)
 {
-  const CreateHwndRenderTargetContext* pContext = reinterpret_cast<const CreateHwndRenderTargetContext*>(pTaskContext);
+  const Direct2DInitContext* pContext = reinterpret_cast<const Direct2DInitContext*>(pTaskContext);
 
   s_pDWriteFactory   = pContext->pDWriteFactory;
   s_pDirect2DFactory = pContext->pDirect2DFactory;
@@ -50,9 +50,9 @@ static void CreateHwndRenderTargetFinish(const mj::TaskContext* pTaskContext)
   mj::RenderHexEditBuffer();
 }
 
-static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
+static void Direct2DInitAsync(mj::TaskContext* pTaskContext)
 {
-  CreateHwndRenderTargetContext* pContext = reinterpret_cast<CreateHwndRenderTargetContext*>(pTaskContext);
+  Direct2DInitContext* pContext = reinterpret_cast<Direct2DInitContext*>(pTaskContext);
 
   // DirectWrite factory
   MJ_ERR_HRESULT(::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
@@ -68,7 +68,7 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
 #ifdef _DEBUG
   flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
-  ID3D11Device* pDevice;
+  MJ_UNINITIALIZED mj::DeferRelease<ID3D11Device> pDevice;
   MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  //
                                      D3D_DRIVER_TYPE_HARDWARE, //
                                      nullptr,                  //
@@ -130,9 +130,9 @@ void mj::Direct2DInit(HWND hwnd)
 {
   MJ_EXIT_NULL(hwnd);
 
-  mj::Task* pTask = mj::ThreadpoolTaskAlloc(InitDirect2DAsync, CreateHwndRenderTargetFinish);
+  mj::Task* pTask = mj::ThreadpoolTaskAlloc(::Direct2DInitAsync, ::Direct2DInitJoin);
 
-  CreateHwndRenderTargetContext* pContext = reinterpret_cast<CreateHwndRenderTargetContext*>(pTask->pContext);
+  Direct2DInitContext* pContext = reinterpret_cast<Direct2DInitContext*>(pTask->pContext);
   pContext->hWnd                          = hwnd;
 
   pTask->Submit();
@@ -201,4 +201,16 @@ void mj::Direct2DOnSize(WORD width, WORD height)
     size.height = height;
     // s_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
   }
+}
+
+void mj::Direct2DDestroy()
+{
+  MJ_SAFE_RELEASE(s_pDWriteFactory);
+  MJ_SAFE_RELEASE(s_pDirect2DFactory);
+  MJ_SAFE_RELEASE(s_pDeviceContext);
+  MJ_SAFE_RELEASE(s_pSwapChain);
+  MJ_SAFE_RELEASE(s_pBrush);
+  MJ_SAFE_RELEASE(s_pTextFormat);
+
+  MJ_SAFE_RELEASE(s_pTextLayout);
 }
