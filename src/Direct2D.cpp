@@ -58,6 +58,18 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
   MJ_ERR_HRESULT(pContext->pDirect2DFactory->CreateHwndRenderTarget(
       D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(pContext->hWnd, d2dSize),
       &pContext->pRenderTarget));
+
+  // Init-once stuff
+  MJ_ERR_HRESULT(pContext->pDWriteFactory->CreateTextFormat(L"Consolas",                // Font name
+                                                  nullptr,                    // Font collection
+                                                  DWRITE_FONT_WEIGHT_NORMAL,  // Font weight
+                                                  DWRITE_FONT_STYLE_NORMAL,   // Font style
+                                                  DWRITE_FONT_STRETCH_NORMAL, // Font stretch
+                                                  16.0f,                      // Font size
+                                                  L"",                        // Locale name
+                                                  &s_pTextFormat));
+
+  MJ_ERR_HRESULT(pContext->pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &s_pBrush));
 }
 
 void mj::Direct2DInit(HWND hwnd)
@@ -80,31 +92,12 @@ void mj::RenderHexEditBuffer()
   const mj::WideString string = mj::HexEditGetBuffer();
   if (string.pString && pDWriteFactory && pRenderTarget)
   {
-    MJ_ERR_HRESULT(pDWriteFactory->CreateTextFormat(L"Consolas",                // Font name
-                                                    nullptr,                    // Font collection
-                                                    DWRITE_FONT_WEIGHT_NORMAL,  // Font weight
-                                                    DWRITE_FONT_STYLE_NORMAL,   // Font style
-                                                    DWRITE_FONT_STRETCH_NORMAL, // Font stretch
-                                                    16.0f,                      // Font size
-                                                    L"",                        // Locale name
-                                                    &s_pTextFormat));
-
+    if (s_pTextLayout)
+    {
+      s_pTextLayout->Release();
+    }
     MJ_ERR_HRESULT(pDWriteFactory->CreateTextLayout(string.pString, string.length, s_pTextFormat, 1000.0f, 1000.0f,
                                                     &s_pTextLayout));
-
-    MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &s_pBrush));
-
-    // Render
-    // Note MJ: Clear the screen once to a different color to get a sense of the loading time
-    pRenderTarget->BeginDraw();
-
-    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-
-    // This can be very slow, once the number of characters goes into the millions.
-    // Even in release mode!
-    pRenderTarget->DrawTextLayout(D2D1::Point2F(), s_pTextLayout, s_pBrush);
-
-    pRenderTarget->EndDraw();
   }
 }
 
@@ -120,4 +113,21 @@ UINT mj::GetRenderedTextHeight()
   }
 
   return height;
+}
+
+void mj::Direct2DDraw(int y)
+{
+  if (pRenderTarget && s_pTextLayout)
+  {
+    pRenderTarget->BeginDraw();
+
+    // Note MJ: Clear the screen once to a different color to get a sense of the loading time
+    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+
+    // This can be very slow, once the number of characters goes into the millions.
+    // Even in release mode!
+    pRenderTarget->DrawTextLayout(D2D1::Point2F(0.0f, static_cast<FLOAT>(-y)), s_pTextLayout, s_pBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    pRenderTarget->EndDraw();
+  }
 }

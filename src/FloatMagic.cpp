@@ -117,16 +117,13 @@ namespace mj
       return 0;
     case WM_PAINT:
     {
-      MJ_UNINITIALIZED PAINTSTRUCT ps;
-      HDC hdc = ::BeginPaint(hwnd, &ps);
-      if (hdc)
-      {
-        // Don't care if it fails (returns zero, no GetLastError)
-        static_cast<void>(::FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1)));
+      // Get vertical scroll bar position.
+      MJ_UNINITIALIZED SCROLLINFO si;
+    si.cbSize = sizeof(si);
+    si.fMask = SIF_POS;
+    MJ_ERR_ZERO(::GetScrollInfo(hwnd, SB_VERT, &si));
 
-        // Always returns nonzero.
-        static_cast<void>(::EndPaint(hwnd, &ps));
-      }
+      mj::Direct2DDraw(si.nPos);
       return 0;
     }
     case MJ_TASKEND:
@@ -208,9 +205,19 @@ void mj::FloatMagicMain()
   {
     if (::TranslateAcceleratorW(s_MainWindowHandle, pAcceleratorTable, &msg))
     {
+      // When TranslateAccelerator returns a nonzero value and the message is translated,
+      // the application should not use the TranslateMessage function to process the message again.
+      // Note MJ: Do not use DispatchMessage either.
       continue;
     }
+
+    // If the message is translated, the return value is nonzero.
+    // If the message is not translated, the return value is zero.
     static_cast<void>(::TranslateMessage(&msg));
+
+    // The return value specifies the value returned by the window procedure.
+    // Although its meaning depends on the message being dispatched,
+    // the return value generally is ignored.
     static_cast<void>(::DispatchMessageW(&msg));
   }
 

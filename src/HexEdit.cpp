@@ -120,10 +120,10 @@ void mj::HexEditOnScroll(WORD scrollType)
   SCROLLINFO si = {};
   si.cbSize     = sizeof(si);
   si.fMask      = SIF_ALL;
-  ::GetScrollInfo(hWnd, SB_VERT, &si);
+  MJ_ERR_ZERO(::GetScrollInfo(hWnd, SB_VERT, &si));
 
   // Save the position for comparison later on.
-  int yPos = si.nPos;
+  const int yPos = si.nPos;
   switch (scrollType)
   {
     // User clicked the HOME keyboard key.
