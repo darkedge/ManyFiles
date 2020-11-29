@@ -8,13 +8,14 @@
 #include <strsafe.h>
 #include "minicrt.h"
 
-static IDWriteFactory* pDWriteFactory;
-static ID2D1Factory* pDirect2DFactory;
-static ID2D1HwndRenderTarget* pRenderTarget;
+static IDWriteFactory* s_pDWriteFactory;
+static ID2D1Factory* s_pDirect2DFactory;
+static ID2D1DeviceContext* s_pDeviceContext;
+static IDXGISwapChain1* s_pSwapChain;
+static ID2D1SolidColorBrush* s_pBrush;
+static IDWriteTextFormat* s_pTextFormat;
 
 static IDWriteTextLayout* s_pTextLayout;
-static IDWriteTextFormat* s_pTextFormat;
-static ID2D1SolidColorBrush* s_pBrush;
 
 struct CreateHwndRenderTargetContext
 {
@@ -23,17 +24,28 @@ struct CreateHwndRenderTargetContext
 
   // Out
   IDWriteFactory* pDWriteFactory;
-  ID2D1Factory* pDirect2DFactory;
-  ID2D1HwndRenderTarget* pRenderTarget;
+  ID2D1Factory1* pDirect2DFactory;
+  ID2D1DeviceContext* pDeviceContext;
+  IDXGISwapChain1* pSwapChain;
+  ID2D1SolidColorBrush* pBrush;
+  IDWriteTextFormat* pTextFormat;
+};
+
+struct
+{
+  static_assert(sizeof(CreateHwndRenderTargetContext) <= 64);
 };
 
 static void CreateHwndRenderTargetFinish(const mj::TaskContext* pTaskContext)
 {
   const CreateHwndRenderTargetContext* pContext = reinterpret_cast<const CreateHwndRenderTargetContext*>(pTaskContext);
 
-  pDWriteFactory   = pContext->pDWriteFactory;
-  pDirect2DFactory = pContext->pDirect2DFactory;
-  pRenderTarget    = pContext->pRenderTarget;
+  s_pDWriteFactory   = pContext->pDWriteFactory;
+  s_pDirect2DFactory = pContext->pDirect2DFactory;
+  s_pDeviceContext   = pContext->pDeviceContext;
+  s_pSwapChain       = pContext->pSwapChain;
+  s_pBrush           = pContext->pBrush;
+  s_pTextFormat      = pContext->pTextFormat;
 
   mj::RenderHexEditBuffer();
 }
@@ -49,15 +61,57 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
   // Direct2D factory
   MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pContext->pDirect2DFactory));
 
-  // Get the client area size
-  RECT rect = {};
-  MJ_ERR_ZERO(::GetClientRect(pContext->hWnd, &rect));
-  const D2D1_SIZE_U d2dSize = D2D1::SizeU(rect.right, rect.bottom);
+  UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
-  // Note: This call is slow as it loads a LOT of DLLs.
-  MJ_ERR_HRESULT(pContext->pDirect2DFactory->CreateHwndRenderTarget(
-      D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(pContext->hWnd, d2dSize),
-      &pContext->pRenderTarget));
+#ifdef _DEBUG
+  flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+  ID3D11Device* pDevice;
+  MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  //
+                                     D3D_DRIVER_TYPE_HARDWARE, //
+                                     nullptr,                  //
+                                     flags,                    //
+                                     nullptr, 0,               //
+                                     D3D11_SDK_VERSION,        //
+                                     &pDevice,                 //
+                                     nullptr,                  //
+                                     nullptr));
+
+  MJ_UNINITIALIZED IDXGIDevice* pDxgiDevice;
+  MJ_ERR_HRESULT(pDevice->QueryInterface(__uuidof(pDxgiDevice), reinterpret_cast<void**>(&pDxgiDevice)));
+
+  MJ_UNINITIALIZED IDXGIAdapter* pAdapter;
+  MJ_ERR_HRESULT(pDxgiDevice->GetAdapter(&pAdapter));
+
+  MJ_UNINITIALIZED IDXGIFactory2* pFactory;
+  MJ_ERR_HRESULT(pAdapter->GetParent(__uuidof(pFactory), reinterpret_cast<void**>(&pFactory)));
+
+  DXGI_SWAP_CHAIN_DESC1 sd = {};
+  sd.Format                = DXGI_FORMAT_B8G8R8A8_UNORM;
+  sd.SampleDesc.Count      = 1;
+  sd.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  sd.BufferCount           = 2;
+
+  // MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
+  MJ_ERR_HRESULT(
+      pFactory->CreateSwapChainForHwnd(pDevice, pContext->hWnd, &sd, nullptr, nullptr, &pContext->pSwapChain));
+
+  MJ_UNINITIALIZED ID2D1Device* pD2DDevice;
+  MJ_ERR_HRESULT(pContext->pDirect2DFactory->CreateDevice(pDxgiDevice, &pD2DDevice));
+
+  // MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
+  MJ_ERR_HRESULT(pD2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pContext->pDeviceContext));
+
+  IDXGISurface* pSurface;
+  MJ_ERR_HRESULT(pContext->pSwapChain->GetBuffer(0, __uuidof(pSurface), reinterpret_cast<void**>(&pSurface)));
+
+  const D2D1_BITMAP_PROPERTIES1 bp =
+      D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+                              D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE));
+
+  MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
+  MJ_ERR_HRESULT(pContext->pDeviceContext->CreateBitmapFromDxgiSurface(pSurface, &bp, &pBitmap));
+  pContext->pDeviceContext->SetTarget(pBitmap);
 
   // Init-once stuff
   MJ_ERR_HRESULT(pContext->pDWriteFactory->CreateTextFormat(L"Consolas",                // Font name
@@ -67,9 +121,9 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
                                                             DWRITE_FONT_STRETCH_NORMAL, // Font stretch
                                                             16.0f,                      // Font size
                                                             L"",                        // Locale name
-                                                            &s_pTextFormat));
+                                                            &pContext->pTextFormat));
 
-  MJ_ERR_HRESULT(pContext->pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &s_pBrush));
+  MJ_ERR_HRESULT(pContext->pDeviceContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pContext->pBrush));
 }
 
 void mj::Direct2DInit(HWND hwnd)
@@ -90,14 +144,14 @@ void mj::Direct2DInit(HWND hwnd)
 void mj::RenderHexEditBuffer()
 {
   const mj::WideString string = mj::HexEditGetBuffer();
-  if (string.pString && pDWriteFactory && pRenderTarget)
+  if (string.pString && s_pDWriteFactory && s_pDeviceContext)
   {
     if (s_pTextLayout)
     {
       s_pTextLayout->Release();
     }
-    MJ_ERR_HRESULT(pDWriteFactory->CreateTextLayout(string.pString, string.length, s_pTextFormat, 1000.0f, 1000.0f,
-                                                    &s_pTextLayout));
+    MJ_ERR_HRESULT(s_pDWriteFactory->CreateTextLayout(string.pString, string.length, s_pTextFormat, 1000.0f, 1000.0f,
+                                                      &s_pTextLayout));
   }
 }
 
@@ -117,19 +171,21 @@ UINT mj::GetRenderedTextHeight()
 
 void mj::Direct2DDraw(int y)
 {
-  if (pRenderTarget && s_pTextLayout)
+  if (s_pDeviceContext && s_pTextLayout && s_pSwapChain)
   {
-    pRenderTarget->BeginDraw();
+    s_pDeviceContext->BeginDraw();
 
     // Note MJ: Clear the screen once to a different color to get a sense of the loading time
-    pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+    s_pDeviceContext->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
     // This can be very slow, once the number of characters goes into the millions.
     // Even in release mode!
-    pRenderTarget->DrawTextLayout(D2D1::Point2F(0.0f, static_cast<FLOAT>(-y)), s_pTextLayout, s_pBrush,
-                                  D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    s_pDeviceContext->DrawTextLayout(D2D1::Point2F(0.0f, static_cast<FLOAT>(-y)), s_pTextLayout, s_pBrush,
+                                     D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    pRenderTarget->EndDraw();
+    MJ_ERR_HRESULT(s_pDeviceContext->EndDraw());
+
+    MJ_ERR_HRESULT(s_pSwapChain->Present(1, 0));
   }
 }
 
@@ -138,11 +194,11 @@ void mj::Direct2DDraw(int y)
 /// </summary>
 void mj::Direct2DOnSize(WORD width, WORD height)
 {
-  if (pRenderTarget)
+  if (s_pDeviceContext)
   {
     MJ_UNINITIALIZED D2D1_SIZE_U size;
     size.width  = width;
     size.height = height;
-    pRenderTarget->Resize(&size);
+    // pDeviceContext->Resize(&size); // TODO
   }
 }
