@@ -116,49 +116,37 @@ void mj::HexEditOnSize(WORD newClientHeight)
 
 void mj::HexEditOnScroll(WORD scrollType)
 {
-  HWND hWnd     = mj::GetMainWindowHandle();
-  SCROLLINFO si = {};
-  si.cbSize     = sizeof(si);
-  si.fMask      = SIF_ALL;
-  MJ_ERR_ZERO(::GetScrollInfo(hWnd, SB_VERT, &si));
+  HWND hWnd             = mj::GetMainWindowHandle();
+
+  SCROLLINFO scrollInfo = {};
+  scrollInfo.cbSize     = sizeof(scrollInfo);
+  scrollInfo.fMask      = SIF_ALL;
+  MJ_ERR_ZERO(::GetScrollInfo(hWnd, SB_VERT, &scrollInfo));
 
   // Save the position for comparison later on.
-  const int yPos = si.nPos;
+  const int yPos = scrollInfo.nPos;
   switch (scrollType)
   {
-    // User clicked the HOME keyboard key.
-  case SB_TOP:
-    si.nPos = si.nMin;
+  case SB_TOP: // User clicked the HOME keyboard key.
+    scrollInfo.nPos = scrollInfo.nMin;
     break;
-
-    // User clicked the END keyboard key.
-  case SB_BOTTOM:
-    si.nPos = si.nMax;
+  case SB_BOTTOM: // User clicked the END keyboard key.
+    scrollInfo.nPos = scrollInfo.nMax;
     break;
-
-    // User clicked the top arrow.
-  case SB_LINEUP:
-    si.nPos -= 1;
+  case SB_LINEUP: // User clicked the top arrow.
+    scrollInfo.nPos -= 10;
     break;
-
-    // User clicked the bottom arrow.
-  case SB_LINEDOWN:
-    si.nPos += 1;
+  case SB_LINEDOWN: // User clicked the bottom arrow.
+    scrollInfo.nPos += 10;
     break;
-
-    // User clicked the scroll bar shaft above the scroll box.
-  case SB_PAGEUP:
-    si.nPos -= si.nPage;
+  case SB_PAGEUP: // User clicked the scroll bar shaft above the scroll box.
+    scrollInfo.nPos -= scrollInfo.nPage;
     break;
-
-    // User clicked the scroll bar shaft below the scroll box.
-  case SB_PAGEDOWN:
-    si.nPos += si.nPage;
+  case SB_PAGEDOWN: // User clicked the scroll bar shaft below the scroll box.
+    scrollInfo.nPos += scrollInfo.nPage;
     break;
-
-    // User dragged the scroll box.
-  case SB_THUMBTRACK:
-    si.nPos = si.nTrackPos;
+  case SB_THUMBTRACK: // User dragged the scroll box.
+    scrollInfo.nPos = scrollInfo.nTrackPos;
     break;
 
   default:
@@ -167,14 +155,14 @@ void mj::HexEditOnScroll(WORD scrollType)
 
   // Set the position and then retrieve it.  Due to adjustments
   // by Windows it may not be the same as the value set.
-  si.fMask = SIF_POS;
-  static_cast<void>(::SetScrollInfo(hWnd, SB_VERT, &si, TRUE));
-  MJ_ERR_ZERO(::GetScrollInfo(hWnd, SB_VERT, &si));
+  scrollInfo.fMask = SIF_POS;
+  static_cast<void>(::SetScrollInfo(hWnd, SB_VERT, &scrollInfo, TRUE));
+  MJ_ERR_ZERO(::GetScrollInfo(hWnd, SB_VERT, &scrollInfo));
 
   // If the position has changed, scroll window and update it.
-  if (si.nPos != yPos)
+  if (scrollInfo.nPos != yPos)
   {
-    MJ_ERR_ZERO(::ScrollWindow(hWnd, 0, yPos - si.nPos, nullptr, nullptr));
+    MJ_ERR_ZERO(::ScrollWindow(hWnd, 0, yPos - scrollInfo.nPos, nullptr, nullptr));
 
     // If the function fails, the return value is zero.
     // GetLastError is not specified in the documentation.

@@ -111,6 +111,7 @@ namespace mj
       return ::DefWindowProcW(hwnd, message, wParam, lParam);
     case WM_SIZE:
       mj::HexEditOnSize(HIWORD(lParam));
+      mj::Direct2DOnSize(LOWORD(lParam), HIWORD(lParam));
       return 0;
     case WM_DESTROY:
       ::PostQuitMessage(0);
@@ -119,9 +120,9 @@ namespace mj
     {
       // Get vertical scroll bar position.
       MJ_UNINITIALIZED SCROLLINFO si;
-    si.cbSize = sizeof(si);
-    si.fMask = SIF_POS;
-    MJ_ERR_ZERO(::GetScrollInfo(hwnd, SB_VERT, &si));
+      si.cbSize = sizeof(si);
+      si.fMask  = SIF_POS;
+      MJ_ERR_ZERO(::GetScrollInfo(hwnd, SB_VERT, &si));
 
       mj::Direct2DDraw(si.nPos);
       return 0;

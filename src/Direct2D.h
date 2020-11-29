@@ -8,4 +8,5 @@ namespace mj
   void RenderHexEditBuffer();
   UINT GetRenderedTextHeight();
   void Direct2DDraw(int y);
+  void Direct2DOnSize(WORD width, WORD height);
 } // namespace mj

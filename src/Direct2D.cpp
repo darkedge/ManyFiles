@@ -61,13 +61,13 @@ static void InitDirect2DAsync(mj::TaskContext* pTaskContext)
 
   // Init-once stuff
   MJ_ERR_HRESULT(pContext->pDWriteFactory->CreateTextFormat(L"Consolas",                // Font name
-                                                  nullptr,                    // Font collection
-                                                  DWRITE_FONT_WEIGHT_NORMAL,  // Font weight
-                                                  DWRITE_FONT_STYLE_NORMAL,   // Font style
-                                                  DWRITE_FONT_STRETCH_NORMAL, // Font stretch
-                                                  16.0f,                      // Font size
-                                                  L"",                        // Locale name
-                                                  &s_pTextFormat));
+                                                            nullptr,                    // Font collection
+                                                            DWRITE_FONT_WEIGHT_NORMAL,  // Font weight
+                                                            DWRITE_FONT_STYLE_NORMAL,   // Font style
+                                                            DWRITE_FONT_STRETCH_NORMAL, // Font stretch
+                                                            16.0f,                      // Font size
+                                                            L"",                        // Locale name
+                                                            &s_pTextFormat));
 
   MJ_ERR_HRESULT(pContext->pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &s_pBrush));
 }
@@ -126,8 +126,23 @@ void mj::Direct2DDraw(int y)
 
     // This can be very slow, once the number of characters goes into the millions.
     // Even in release mode!
-    pRenderTarget->DrawTextLayout(D2D1::Point2F(0.0f, static_cast<FLOAT>(-y)), s_pTextLayout, s_pBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    pRenderTarget->DrawTextLayout(D2D1::Point2F(0.0f, static_cast<FLOAT>(-y)), s_pTextLayout, s_pBrush,
+                                  D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
     pRenderTarget->EndDraw();
+  }
+}
+
+/// <summary>
+/// Resizes the render target.
+/// </summary>
+void mj::Direct2DOnSize(WORD width, WORD height)
+{
+  if (pRenderTarget)
+  {
+    MJ_UNINITIALIZED D2D1_SIZE_U size;
+    size.width  = width;
+    size.height = height;
+    pRenderTarget->Resize(&size);
   }
 }
