@@ -31,7 +31,7 @@ struct Direct2DInitContext
   IDWriteTextFormat* pTextFormat;
 };
 
-struct
+struct Direct2DInitContextAssert
 {
   static_assert(sizeof(Direct2DInitContext) <= 64);
 };

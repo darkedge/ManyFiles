@@ -2,8 +2,8 @@
 #include "mj_win32.h"
 
 // Note MJ: We might want to put these in a more general header file.
-#define XWSTR(x)     WSTR(x)
 #define WSTR(x)      L##x
+#define XWSTR(x)     WSTR(x)
 #define WFILE        XWSTR(__FILE__)
 #define __FILENAME__ (::mini_wcsrchr("\\" WFILE, '\\') + 1)
 
