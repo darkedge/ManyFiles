@@ -46,8 +46,6 @@ static void Direct2DInitJoin(const mj::TaskContext* pTaskContext)
   s_pSwapChain       = pContext->pSwapChain;
   s_pBrush           = pContext->pBrush;
   s_pTextFormat      = pContext->pTextFormat;
-
-  mj::RenderHexEditBuffer();
 }
 
 static void Direct2DInitAsync(mj::TaskContext* pTaskContext)

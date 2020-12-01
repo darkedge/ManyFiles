@@ -66,12 +66,6 @@ static void AllocConvertToHex()
   s_pBuffer.length = static_cast<UINT32>(stringLength);
 }
 
-void mj::HexEditSetBuffer(mj::WideString pBuffer)
-{
-  s_pBuffer = pBuffer;
-  mj::RenderHexEditBuffer();
-}
-
 void mj::HexEditSetBinary(mj::BinaryBlob blob)
 {
   if (s_pBinary.pBinary)

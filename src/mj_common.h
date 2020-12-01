@@ -41,7 +41,7 @@ namespace mj
 #define MJ_CONCAT(x, y)    x##y
 #define MJ_XCONCAT(x, y)   MJ_CONCAT(x, y)
 #define MJ_DEFER_DETAIL(x) MJ_XCONCAT(x, __COUNTER__)
-#define MJ_DEFER(code)     auto MJ_DEFER_DETAIL(_defer_) = mj::detail::defer([&]() { code; })
+#define MJ_DEFER(expr)     auto MJ_DEFER_DETAIL(_defer_) = mj::detail::defer([&]() { expr; })
 
 namespace mj
 {
