@@ -19,7 +19,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   static_cast<void>(lpCmdLine);
   static_cast<void>(nShowCmd);
 
-  ::FloatMagicMain();
+  mj::FloatMagicMain();
 
   return 0;
 }

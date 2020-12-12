@@ -175,11 +175,12 @@ void mj::FloatMagicMain()
 
   static constexpr const auto className = L"Class Name";
 
-  WNDCLASS wc      = {};
+  WNDCLASSEXW wc   = {};
+  wc.cbSize        = sizeof(WNDCLASSEX);
   wc.lpfnWndProc   = mj::WindowProc;
   wc.hInstance     = HINST_THISCOMPONENT;
   wc.lpszClassName = className;
-  MJ_ERR_ZERO(::RegisterClassW(&wc));
+  MJ_ERR_ZERO(::RegisterClassExW(&wc));
 
   // Loads DLLs: uxtheme, combase, msctf, oleaut32
   // We assign the returned HWND to static memory in the WM_CREATE message,

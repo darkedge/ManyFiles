@@ -81,7 +81,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0600;_HAS_EXCEPTIONS=0;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader />
@@ -103,7 +103,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile>$(IntDir)$(TargetName)$(TargetExt).intermediate.manifest</ManifestFile>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
@@ -118,7 +118,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0600;_HAS_EXCEPTIONS=0;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader />
@@ -139,7 +139,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile />
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
@@ -156,7 +156,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0600;_HAS_EXCEPTIONS=0;NDEBUG;_CONSOLE;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0;NDEBUG;_CONSOLE;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
@@ -178,7 +178,7 @@
       <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <ManifestFile>
       </ManifestFile>
