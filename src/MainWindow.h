@@ -1,38 +1,30 @@
-﻿#include "TextEditor.h"
+#pragma once
+#include "IControl.h"
 #include "mj_win32.h"
+#include "mj_allocator.h"
+#include <d2d1_1.h>
+#include <dxgi1_2.h>
 
-class MainWindow
+namespace mj
 {
-public:
-  static constexpr const auto kClassName = L"DirectWritePadDemo";
-  static ATOM RegisterWindowClass();
-  static LRESULT CALLBACK WindowProc(HWND parentHwnd, UINT message, WPARAM wParam, LPARAM lParam);
+  class MainWindow
+  {
+  private:
+    IControl* pDirectoryNavigationPanel;
+    ID2D1DeviceContext* pDeviceContext;
+    IDXGISwapChain1* pSwapChain;
+    bool s_Resize;
+    VirtualAllocator allocator;
 
-  HRESULT Initialize();
-  WPARAM RunMessageLoop();
+    static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-public:
-  STDMETHODIMP CreateFontFromLOGFONT(const LOGFONT& logFont, OUT IDWriteFont** font);
-  STDMETHODIMP GetFontFamilyName(IDWriteFont* font, OUT wchar_t* fontFamilyName, UINT32 fontFamilyNameLength);
+    void Init(HWND hWnd);
+    void Resize();
+    void Paint();
+    void Destroy();
 
-private:
-  HWND pHwnd = nullptr;
-  mj::ComPtr<IDWriteFactory> dwriteFactory_;
-  mj::ComPtr<ID2D1Factory> d2dFactory_;
-  mj::ComPtr<RenderTarget> pRenderTarget;
+  public:
+    void Run();
+  };
 
-  TextEditor* pTextEditor = nullptr;
-  //BinaryView* pBinaryView = nullptr;
-
-private:
-  HRESULT CreateRenderTarget(HWND hwnd);
-  HRESULT FormatSampleLayout(IDWriteTextLayout* textLayout);
-
-  void OnSize();
-  void OnCommand(UINT commandId);
-  HRESULT OnChooseFont();
-
-  void OpenFileDialog();
-  void UpdateMenuToCaret();
-  void RedrawTextEditor();
-};
+} // namespace mj

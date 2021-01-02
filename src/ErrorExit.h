@@ -1,84 +1,86 @@
 #pragma once
 #include "mj_win32.h"
+#include "StringBuilder.h"
 
 // Note MJ: We might want to put these in a more general header file.
 #define WSTR(x)      L##x
 #define XWSTR(x)     WSTR(x)
 #define WFILE        XWSTR(__FILE__)
-#define __FILENAME__ (::mini_wcsrchr("\\" WFILE, '\\') + 1)
+#define __FILENAME__ WFILE
 
 // Macros for use with Win32 functions that set GetLastError
-#define MJ_ERR_ZERO(expr)                                                    \
-  do                                                                         \
-  {                                                                          \
-    if ((expr) == 0)                                                         \
-    {                                                                        \
-      mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                                        \
+#define MJ_ERR_ZERO(expr)                                                                            \
+  do                                                                                                 \
+  {                                                                                                  \
+    if ((expr) == 0)                                                                                 \
+    {                                                                                                \
+      mj::ErrorExit(::GetLastError(), mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+    }                                                                                                \
   } while (0)
 
-#define MJ_ERR_NULL(expr)                                                    \
-  do                                                                         \
-  {                                                                          \
-    if ((expr) == nullptr)                                                   \
-    {                                                                        \
-      mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                                        \
+// Note: This one is for GetLastError functions. For generic null error messages, use MJ_EXIT_NULL.
+#define MJ_ERR_NULL(expr)                                                                            \
+  do                                                                                                 \
+  {                                                                                                  \
+    if ((expr) == nullptr)                                                                           \
+    {                                                                                                \
+      mj::ErrorExit(::GetLastError(), mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+    }                                                                                                \
   } while (0)
 
-#define MJ_ERR_NONNULL(expr)                                                 \
-  do                                                                         \
-  {                                                                          \
-    if (expr)                                                                \
-    {                                                                        \
-      mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                                        \
+#define MJ_ERR_NONNULL(expr)                                                                         \
+  do                                                                                                 \
+  {                                                                                                  \
+    if (expr)                                                                                        \
+    {                                                                                                \
+      mj::ErrorExit(::GetLastError(), mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+    }                                                                                                \
   } while (0)
 
-#define MJ_ERR_ZERO_VALID(expr)                                   \
-  do                                                              \
-  {                                                               \
-    ::SetLastError(S_OK);                                         \
-    if (!(expr))                                                  \
-    {                                                             \
-      const DWORD _hr = ::GetLastError();                         \
-      if (_hr)                                                    \
-      {                                                           \
-        mj::ErrorExit(_hr, __FILENAME__, __LINE__, XWSTR(#expr)); \
-      }                                                           \
-    }                                                             \
+#define MJ_ERR_ZERO_VALID(expr)                                                           \
+  do                                                                                      \
+  {                                                                                       \
+    ::SetLastError(S_OK);                                                                 \
+    if (!(expr))                                                                          \
+    {                                                                                     \
+      const DWORD _hr = ::GetLastError();                                                 \
+      if (_hr)                                                                            \
+      {                                                                                   \
+        mj::ErrorExit(_hr, mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+      }                                                                                   \
+    }                                                                                     \
   } while (0)
 
-#define MJ_ERR_NONZERO(expr)                                                 \
-  do                                                                         \
-  {                                                                          \
-    if (expr)                                                                \
-    {                                                                        \
-      mj::ErrorExit(::GetLastError(), __FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                                        \
+#define MJ_ERR_NONZERO(expr)                                                                         \
+  do                                                                                                 \
+  {                                                                                                  \
+    if (expr)                                                                                        \
+    {                                                                                                \
+      mj::ErrorExit(::GetLastError(), mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+    }                                                                                                \
   } while (0)
 
-#define MJ_ERR_HRESULT(expr)                                    \
-  do                                                            \
-  {                                                             \
-    const HRESULT _hr = (expr);                                 \
-    if (_hr != S_OK)                                            \
-    {                                                           \
-      mj::ErrorExit(_hr, __FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                           \
+#define MJ_ERR_HRESULT(expr)                                                            \
+  do                                                                                    \
+  {                                                                                     \
+    const HRESULT _hr = (expr);                                                         \
+    if (_hr != S_OK)                                                                    \
+    {                                                                                   \
+      mj::ErrorExit(_hr, mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+    }                                                                                   \
   } while (0)
 
-#define MJ_EXIT_NULL(expr)                                \
-  do                                                      \
-  {                                                       \
-    if (!expr)                                            \
-    {                                                     \
-      mj::NullExit(__FILENAME__, __LINE__, XWSTR(#expr)); \
-    }                                                     \
+#define MJ_EXIT_NULL(expr)                                                        \
+  do                                                                              \
+  {                                                                               \
+    if (!expr)                                                                    \
+    {                                                                             \
+      mj::NullExit(mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
+    }                                                                             \
   } while (0)
 
 namespace mj
 {
-  void ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wchar_t* expression);
-  void NullExit(const wchar_t* fileName, int lineNumber, const wchar_t* expression);
+  void ErrorExit(DWORD dw, const String& fileName, int lineNumber, const String& expression);
+  void NullExit(const String& fileName, int lineNumber, const String& expression);
 } // namespace mj

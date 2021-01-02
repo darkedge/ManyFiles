@@ -24,36 +24,42 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
     <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="PropertySheet.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup>
-    <_ProjectFileVersion>16.0.30028.132</_ProjectFileVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
@@ -61,6 +67,9 @@
     <LinkIncremental>true</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
     <CodeAnalysisRuleSet>FloatMagic.ruleset</CodeAnalysisRuleSet>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
@@ -68,6 +77,9 @@
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
     <CodeAnalysisRuleSet>FloatMagic.ruleset</CodeAnalysisRuleSet>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
@@ -75,135 +87,36 @@
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
     <CodeAnalysisRuleSet>FloatMagic.ruleset</CodeAnalysisRuleSet>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeader />
-      <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ExceptionHandling>false</ExceptionHandling>
-      <ConformanceMode>true</ConformanceMode>
-      <DisableSpecificWarnings>4458;4146</DisableSpecificWarnings>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <Optimization>Disabled</Optimization>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
-      <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <SupportJustMyCode>false</SupportJustMyCode>
-      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>comctl32.lib;d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;vld.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <ManifestFile>$(IntDir)$(TargetName)$(TargetExt).intermediate.manifest</ManifestFile>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
-      <TargetMachine>MachineX64</TargetMachine>
-      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalLibraryDirectories>..\3rdparty\vld\lib</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <PrecompiledHeader />
-      <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ExceptionHandling>false</ExceptionHandling>
-      <ConformanceMode>true</ConformanceMode>
-      <DisableSpecificWarnings>4458;4146</DisableSpecificWarnings>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>comctl32.lib;d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <ManifestFile />
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <TargetMachine>MachineX64</TargetMachine>
-      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
-    <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0;NDEBUG;_CONSOLE;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ExceptionHandling>false</ExceptionHandling>
-      <ConformanceMode>true</ConformanceMode>
-      <DisableSpecificWarnings>4458;4146</DisableSpecificWarnings>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <AdditionalIncludeDirectories>..\3rdparty\vld\include</AdditionalIncludeDirectories>
-    </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;d3d11.lib;shell32.lib;ole32.lib;uuid.lib;kernel32.lib;user32.lib;d2d1.lib;dwrite.lib;advapi32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <ManifestFile>
-      </ManifestFile>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <TargetMachine>MachineX64</TargetMachine>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>TRACY_ENABLE;UNICODE;_UNICODE;_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\HexEdit.h" />
-    <ClInclude Include="..\src\Direct2D.h" />
+    <ClInclude Include="..\src\Common.h" />
+    <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
-    <ClInclude Include="..\src\File.h" />
-    <ClInclude Include="..\src\FloatMagic.h" />
-    <ClInclude Include="..\src\Threadpool.h" />
-    <ClInclude Include="..\src\minicrt.h" />
+    <ClInclude Include="..\src\IControl.h" />
+    <ClInclude Include="..\src\MainWindow.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
+    <ClInclude Include="..\src\mj_allocatordebug.h" />
     <ClInclude Include="..\src\mj_common.h" />
+    <ClInclude Include="..\src\mj_hashtable.h" />
     <ClInclude Include="..\src\mj_math.h" />
     <ClInclude Include="..\src\mj_win32.h" />
     <ClInclude Include="..\src\ncrt_memory.h" />
+    <ClInclude Include="..\src\ServiceLocator.h" />
+    <ClInclude Include="..\src\ServiceProvider.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
+    <ClInclude Include="..\src\StringBuilder.h" />
+    <ClInclude Include="..\src\Threadpool.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest">
@@ -220,42 +133,25 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\src\HexEdit.cpp" />
-    <ClCompile Include="..\src\Direct2D.cpp" />
+    <ClCompile Include="..\src\DirectoryNavigationPanel.cpp" />
     <ClCompile Include="..\src\EntryPoint.cpp" />
     <ClCompile Include="..\src\ErrorExit.cpp" />
-    <ClCompile Include="..\src\File.cpp" />
-    <ClCompile Include="..\src\Threadpool.cpp" />
+    <ClCompile Include="..\src\IControl.cpp" />
+    <ClCompile Include="..\src\MainWindow.cpp" />
+    <ClCompile Include="..\src\mj_common.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
-    <ClCompile Include="..\src\mj_win32.cpp" />
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
-    <ClCompile Include="..\src\FloatMagic.cpp" />
-    <ClCompile Include="..\src\printfsz.c">
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-    </ClCompile>
-    <ClCompile Include="..\src\stringw.c" />
-    <ClCompile Include="..\src\printf.c">
-      <FileType>CppCode</FileType>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE;PRINTF_SIZEONLY</UndefinePreprocessorDefinitions>
-    </ClCompile>
-    <ClCompile Include="..\src\printfw.c">
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
-      </UndefinePreprocessorDefinitions>
-    </ClCompile>
-    <ClCompile Include="..\src\string.c">
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-      <UndefinePreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">UNICODE;_UNICODE</UndefinePreprocessorDefinitions>
-    </ClCompile>
+    <ClCompile Include="..\src\ServiceLocator.cpp" />
+    <ClCompile Include="..\src\StringBuilder.cpp" />
+    <ClCompile Include="..\src\Threadpool.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\3rdparty\Everything\Everything64.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">true</DeploymentContent>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />

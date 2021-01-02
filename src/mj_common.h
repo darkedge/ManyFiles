@@ -7,8 +7,6 @@
 
 // Variable declaration does not call initialization code
 #define MJ_UNINITIALIZED
-// Variable declaration calls initialization code
-#define MJ_INITIALIZED
 
 #define MJ_COUNTOF(arr) sizeof(arr) / sizeof(arr[0])
 
@@ -45,6 +43,11 @@ namespace mj
 
 namespace mj
 {
+  size_t Kibibytes(size_t kib);
+  size_t Mebibytes(size_t mib);
+  size_t Gibibytes(size_t gib);
+  size_t Tebibytes(size_t tib);
+
   /// <summary>
   /// Calculates min and max at the same time.
   /// Also checks if the order of a and b was initially correct or not.
@@ -84,54 +87,58 @@ namespace mj
   class ArrayListView;
 
   /// <summary>
-  /// Reduced functionality mj::ArrayList replacement
+  /// Similar to std::vector, except without constructors or destructors
+  /// Requires explicit initialization and destruction.
   /// </summary>
   template <typename T>
   class ArrayList
   {
   private:
-    static constexpr const uint32_t TSize = sizeof(T);
+    static constexpr const size_t TSize = sizeof(T);
 
-    Allocator* pAllocator;
-    T* pData             = nullptr;
-    uint32_t numElements = 0;
-    uint32_t capacity    = 0;
+    AllocatorBase* pAllocator = nullptr;
+    T* pData                  = nullptr; // Single allocation
+    size_t numElements        = 0;
+    size_t capacity           = 0;
 
   public:
     /// <summary>
     /// Does no allocation on construction.
     /// </summary>
     /// <returns></returns>
-    ArrayList(Allocator* pAllocator) : pAllocator(pAllocator)
+    void Init(AllocatorBase* pAllocator)
     {
+      this->Destroy();
+      this->pAllocator = pAllocator;
     }
 
     /// <summary>
-    /// ArrayList with an initial capacity.
+    /// ArrayList with an initial capacity, allocated using the provided allocator.
     /// </summary>
     /// <param name="capacity"></param>
     /// <returns></returns>
-    ArrayList(Allocator* pAllocator, uint32_t capacity) : pAllocator(pAllocator), capacity(capacity)
+    bool Init(AllocatorBase* pAllocator, size_t capacity)
     {
-      pData = reinterpret_cast<T*>(this->pAllocator->Allocate(capacity * TSize));
+      this->Destroy();
+      this->pAllocator = pAllocator;
+      this->capacity   = capacity;
+      this->pData      = reinterpret_cast<T*>(this->pAllocator->Allocate(capacity * TSize));
+      return this->pData != nullptr;
     }
 
-    // Destructor
-    ~ArrayList()
+    /// <summary>
+    /// Data is freed using the assigned allocator.
+    /// </summary>
+    void Destroy()
     {
-      // Destroy elements
-      for (auto& t : *this)
+      if (this->pAllocator && this->pData)
       {
-        t.~T();
+        this->pAllocator->Free(this->pData);
       }
-
-      // Free memory
-      this->pAllocator->Free(pData);
-
-      // Invalidate internal state
-      pData       = nullptr;
-      numElements = 0;
-      capacity    = 0;
+      this->pAllocator  = nullptr;
+      this->pData       = nullptr;
+      this->numElements = 0;
+      this->capacity    = 0;
     }
 
     /// <summary>
@@ -146,11 +153,12 @@ namespace mj
     }
 
     /// <summary>
-    /// Reserves additional memory for new objects. No construction is done.
+    /// Reserves additional memory for new objects.
+    /// Only performs an allocation if the current capacity is insufficient.
     /// </summary>
     /// <param name="num">Amount of objects</param>
     /// <returns>Pointer to the newly reserved range, or nullptr if there is no more space.</returns>
-    T* Reserve(uint32_t num)
+    T* Reserve(size_t num)
     {
       if (num == 0)
       {
@@ -177,13 +185,10 @@ namespace mj
     }
 
     /// <summary>
-    /// Inserts a range of elements at the specified position.
+    /// Inserts a range of elements at the specified pCurrent.
     /// </summary>
-    /// <param name="position"></param>
-    /// <param name="pSrc"></param>
-    /// <param name="num"></param>
     /// <returns>A pointer to the start of the newly inserted elements, or nullptr if there was no space.</returns>
-    T* Insert(uint32_t position, const T* pSrc, uint32_t num)
+    T* Insert(size_t pCurrent, const T* pSrc, size_t num)
     {
       // Note: These first checks are redundant after we recurse
       if (num == 0)
@@ -194,7 +199,7 @@ namespace mj
       {
         return nullptr;
       }
-      if (position > this->numElements) // Out of range
+      if (pCurrent > this->numElements) // Out of range
       {
         return nullptr;
       }
@@ -202,14 +207,14 @@ namespace mj
       if (this->numElements + num <= this->capacity)
       {
         // Number of elements to move right
-        uint32_t numMove = this->numElements - position;
+        size_t numMove = this->numElements - pCurrent;
 
-        T* ptr = begin() + position;
+        T* ptr = begin() + pCurrent;
 
         // Move elements right
         memmove(end() + num - numMove, ptr, numMove * TSize);
 
-        // Copy new elements into position
+        // Copy new elements into pCurrent
         memcpy(ptr, pSrc, num * TSize);
 
         this->numElements += num;
@@ -220,7 +225,7 @@ namespace mj
       {
         if (Expand(this->numElements + num))
         {
-          return Insert(position, pSrc, num);
+          return Insert(pCurrent, pSrc, num);
         }
         else
         {
@@ -232,27 +237,24 @@ namespace mj
     /// <summary>
     /// Erases a range of elements.
     /// </summary>
-    /// <param name="position"></param>
-    /// <param name="num"></param>
     /// <returns>
-    /// Pointer to the element at the specified position after erasure
-    /// (can be the end pointer if all trailing elements were erased)
+    /// Pointer to the element at the specified pCurrent after erasure
+    /// (can be the pEnd pointer if all trailing elements were erased)
     /// or nullptr if one or more arguments are out of range
     /// </returns>
-    T* Erase(uint32_t position, uint32_t num)
+    T* Erase(size_t pCurrent, size_t num)
     {
-      if (position < this->numElements)
+      if (pCurrent < this->numElements && num <= (this->numElements - pCurrent))
       {
-        T* pDst = begin() + position;
+        this->numElements -= num;
+
+        // Move elements from right of erased range to left
+        T* pDst = begin() + pCurrent;
         T* pSrc = pDst + num;
 
         if (pSrc < end())
         {
-          // Move elements left
           memmove(pDst, pSrc, (end() - pDst - 1) * TSize);
-
-          this->numElements -= num;
-
           return pDst;
         }
       }
@@ -263,19 +265,12 @@ namespace mj
     /// <summary>
     /// Assumes the source does not overlap this ArrayList.
     /// </summary>
-    /// <param name="pT"></param>
-    /// <param name="length"></param>
-    /// <returns></returns>
-    bool Assign(const T* pT, uint32_t length)
+    bool Assign(const T* pT, size_t length)
     {
-      if (this->pData)
-      {
-        this->~ArrayList();
-      }
+      this->Destroy();
 
       if (this->Expand(length))
       {
-        // TODO MJ: Using memcpy skips copy constructors!
         static_cast<void>(memcpy(this->pData, pT, length * TSize));
         this->numElements = length;
         return true;
@@ -286,20 +281,36 @@ namespace mj
       }
     }
 
+    bool Contains(const T& t)
+    {
+      for (const auto& element : *this)
+      {
+        if (t == element)
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    /// <summary>
+    /// Adds a new element. Can trigger a reallocation.
+    /// </summary>
     bool Add(const T& t)
     {
-      if (numElements < capacity)
+      if (this->numElements < this->capacity)
       {
-        T* ptr = pData + numElements;
+        T* ptr = this->pData + this->numElements;
         *ptr   = t;
-        ++numElements;
+        ++this->numElements;
         return true;
       }
       else
       {
-        if (Double())
+        if (this->Double())
         {
-          return Add(t);
+          return this->Add(t);
         }
         else
         {
@@ -308,54 +319,72 @@ namespace mj
       }
     }
 
+    /// <summary>
+    /// Removes all elements equal to the argument (using equality operator)
+    /// </summary>
+    void RemoveAll(const T& t)
+    {
+      T* ptr = this->pData;
+      while (ptr && ptr != this->end())
+      {
+        if (*ptr == t)
+        {
+          ptr = this->Erase(ptr - pData, 1);
+        }
+        else
+        {
+          ptr++;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Sets number of elements to zero.
+    /// Keeps current allocation.
+    /// </summary>
     void Clear()
     {
-      for (auto& t : *this)
-      {
-        t.~T();
-      }
       this->numElements = 0;
     }
 
-    uint32_t Size() const
+    size_t Size() const
     {
       return this->numElements;
     }
 
-    uint32_t Capacity() const
+    size_t Capacity() const
     {
       return this->capacity;
     }
 
-    uint32_t ElemSize() const
+    size_t ElemSize() const
     {
       return TSize;
     }
 
-    uint32_t ByteWidth() const
+    size_t ByteWidth() const
     {
       return this->Size() * this->ElemSize();
     }
 
     T* Get() const
     {
-      return pData;
+      return this->pData;
     }
 
     T* begin() const
     {
-      return pData;
+      return this->pData;
     }
 
     T* end() const
     {
-      return pData + Size();
+      return this->pData + this->Size();
     }
 
-    T& operator[](uint32_t index)
+    T& operator[](size_t index)
     {
-      // assert(index < numElements);
-      return pData[index];
+      return this->pData[index];
     }
 
     operator mj::ArrayListView<T>()
@@ -371,24 +400,27 @@ namespace mj
     {
       if (this->capacity == 0)
       {
-        return Expand(4);
+        return this->Expand(4);
       }
       else
       {
-        return Expand(2 * this->capacity);
+        return this->Expand(2 * this->capacity);
       }
     }
 
-    bool Expand(uint32_t newCapacity)
+    bool Expand(size_t newCapacity)
     {
-      T* ptr = reinterpret_cast<T*>(this->pAllocator->Allocate(newCapacity * ElemSize()));
+      T* ptr = static_cast<T*>(this->pAllocator->Allocate(newCapacity * this->ElemSize()));
 
       if (ptr)
       {
-        memcpy(ptr, pData, static_cast<size_t>(numElements) * ElemSize());
-        this->pAllocator->Free(pData);
-        capacity = newCapacity;
-        pData    = ptr;
+        if (this->pData)
+        {
+          ::memcpy(ptr, this->pData, this->numElements * this->ElemSize());
+          this->pAllocator->Free(this->pData);
+        }
+        this->capacity = newCapacity;
+        this->pData    = ptr;
         return true;
       }
       else
@@ -403,17 +435,17 @@ namespace mj
   class ArrayListView
   {
   private:
-    T* pData                              = nullptr;
-    uint32_t numElements                  = 0;
-    static constexpr const uint32_t TSize = sizeof(T);
+    T* pData                            = nullptr;
+    size_t numElements                  = 0;
+    static constexpr const size_t TSize = sizeof(T);
 
   public:
-    template <uint32_t Size>
+    template <size_t Size>
     ArrayListView(T (&data)[Size]) : pData(data), numElements(Size)
     {
     }
 
-    ArrayListView(T* pData, uint32_t numElements) : pData(pData), numElements(numElements)
+    ArrayListView(T* pData, size_t numElements) : pData(pData), numElements(numElements)
     {
     }
 
@@ -429,40 +461,39 @@ namespace mj
     {
     }
 
-    uint32_t Size() const
+    size_t Size() const
     {
       return numElements;
     }
 
-    uint32_t ElemSize() const
+    size_t ElemSize() const
     {
       return TSize;
     }
 
-    uint32_t ByteWidth() const
+    size_t ByteWidth() const
     {
-      return Size() * ElemSize();
+      return this->Size() * this->ElemSize();
     }
 
     T* Get() const
     {
-      return pData;
+      return this->pData;
     }
 
     T* begin() const
     {
-      return pData;
+      return this->pData;
     }
 
     T* end() const
     {
-      return pData + Size();
+      return this->pData + this->Size();
     }
 
-    T& operator[](uint32_t index)
+    T& operator[](size_t index)
     {
-      // assert(index < numElements);
-      return pData[index];
+      return this->pData[index];
     }
   };
 
@@ -472,42 +503,42 @@ namespace mj
   class MemoryBuffer
   {
   private:
-    char* end;
-    char* position;
+    char* pEnd;
+    char* pCurrent;
 
   public:
-    MemoryBuffer() : end(nullptr), position(nullptr)
+    MemoryBuffer() : pEnd(nullptr), pCurrent(nullptr)
     {
     }
 
-    MemoryBuffer(void* pBegin, void* end) : end(static_cast<char*>(end)), position(static_cast<char*>(pBegin))
+    MemoryBuffer(void* pBegin, void* pEnd) : pEnd(static_cast<char*>(pEnd)), pCurrent(static_cast<char*>(pBegin))
     {
     }
 
     MemoryBuffer(void* pBegin, size_t size)
-        : end(static_cast<char*>(pBegin) + size), position(static_cast<char*>(pBegin))
+        : pEnd(static_cast<char*>(pBegin) + size), pCurrent(static_cast<char*>(pBegin))
     {
     }
 
-    MemoryBuffer(const MemoryBuffer& other) : end(other.end), position(other.position)
+    MemoryBuffer(const MemoryBuffer& other) : pEnd(other.pEnd), pCurrent(other.pCurrent)
     {
     }
 
     MemoryBuffer& operator=(const MemoryBuffer& rhs)
     {
-      this->end      = rhs.end;
-      this->position = rhs.position;
+      this->pEnd     = rhs.pEnd;
+      this->pCurrent = rhs.pCurrent;
       return *this;
     }
 
     char* Position()
     {
-      return this->position;
+      return this->pCurrent;
     }
 
     size_t SizeLeft()
     {
-      return (this->end - this->position);
+      return (this->pEnd - this->pCurrent);
     }
 
     template <typename T>
@@ -515,13 +546,13 @@ namespace mj
     {
       if (SizeLeft() >= sizeof(T))
       {
-        memcpy(&t, this->position, sizeof(T));
-        this->position += sizeof(T);
+        memcpy(&t, this->pCurrent, sizeof(T));
+        this->pCurrent += sizeof(T);
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
       }
       return *this;
     }
@@ -531,28 +562,28 @@ namespace mj
     {
       if (SizeLeft() >= sizeof(T))
       {
-        memcpy(this->position, &t, sizeof(T));
-        this->position += sizeof(T);
+        memcpy(this->pCurrent, &t, sizeof(T));
+        this->pCurrent += sizeof(T);
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
       }
       return *this;
     }
 
-    MemoryBuffer& Write(void* pData, size_t size)
+    MemoryBuffer& Write(const void* pData, size_t size)
     {
       if (SizeLeft() >= size)
       {
-        memcpy(this->position, pData, size);
-        this->position += size;
+        memcpy(this->pCurrent, pData, size);
+        this->pCurrent += size;
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
       }
       return *this;
     }
@@ -562,13 +593,13 @@ namespace mj
     {
       if (SizeLeft() >= sizeof(T))
       {
-        memcpy(&t, this->position, sizeof(T));
-        this->position += sizeof(T);
+        memcpy(&t, this->pCurrent, sizeof(T));
+        this->pCurrent += sizeof(T);
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
       }
       return *this;
     }
@@ -577,12 +608,12 @@ namespace mj
     {
       if (SizeLeft() >= numBytes)
       {
-        this->position += numBytes;
+        this->pCurrent += numBytes;
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
       }
       return *this;
     }
@@ -592,14 +623,14 @@ namespace mj
     {
       if (SizeLeft() >= (numElements * sizeof(T)))
       {
-        T* t = (T*)this->position;
-        this->position += (numElements * sizeof(T));
+        T* t = (T*)this->pCurrent;
+        this->pCurrent += (numElements * sizeof(T));
         return t;
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
         return nullptr;
       }
     }
@@ -609,14 +640,14 @@ namespace mj
     {
       if (SizeLeft() >= sizeof(T))
       {
-        T* t = (T*)this->position;
-        this->position += sizeof(T);
+        T* t = (T*)this->pCurrent;
+        this->pCurrent += sizeof(T);
         return new (t) T(args...);
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
         return nullptr;
       }
     }
@@ -626,25 +657,46 @@ namespace mj
     {
       if (SizeLeft() >= (numElements * sizeof(T)))
       {
-        T* t = (T*)this->position;
-        this->position += (numElements * sizeof(T));
-        for (size_t i = 0; i < numElements; i++)
-        {
-          new (t + i) T();
-        }
+        T* t = (T*)this->pCurrent;
+        this->pCurrent += (numElements * sizeof(T));
         return t;
       }
       else
       {
-        this->end      = nullptr;
-        this->position = nullptr;
+        this->pEnd     = nullptr;
+        this->pCurrent = nullptr;
         return nullptr;
       }
     }
 
     bool Good()
     {
-      return (this->end && this->position);
+      return (this->pEnd && this->pCurrent);
+    }
+  };
+
+  /// <summary>
+  /// Does not free, allocates until full.
+  /// </summary>
+  class LinearAllocator : public AllocatorBase
+  {
+  private:
+    MemoryBuffer memoryBuffer;
+
+  public:
+    void Init(const mj::Allocation& allocation)
+    {
+      this->memoryBuffer = MemoryBuffer(allocation.pAddress, allocation.numBytes);
+    }
+
+    void* Allocate(size_t numBytes) override
+    {
+      return this->memoryBuffer.NewArrayUnaligned<char>(numBytes);
+    }
+
+    void Free(void* ptr) override
+    {
+      static_cast<void>(ptr);
     }
   };
 } // namespace mj

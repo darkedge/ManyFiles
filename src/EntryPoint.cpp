@@ -1,17 +1,22 @@
+#include "MainWindow.h"
+#include "mj_win32.h"
+#include "ErrorExit.h"
+#include "mj_allocatordebug.h"
+
+static void Main()
+{
+  mj::MainWindow pMainWindow;
+  pMainWindow.Run();
+}
+
+#ifdef TRACY_ENABLE
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
-#include "FloatMagic.h"
 
-#ifdef TRACY_ENABLE
 /// <summary>
 /// CRT entry point (required by Tracy for Profile build configuration)
 /// </summary>
-/// <param name="hInstance"></param>
-/// <param name="hPrevInstance"></param>
-/// <param name="lpCmdLine"></param>
-/// <param name="nShowCmd"></param>
-/// <returns></returns>
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
   static_cast<void>(hInstance);
@@ -19,10 +24,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   static_cast<void>(lpCmdLine);
   static_cast<void>(nShowCmd);
 
-  mj::FloatMagicMain();
+  Main();
 
   return 0;
 }
+
 #else
 
 /// <summary>
@@ -30,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 /// </summary>
 void CALLBACK WinMainCRTStartup()
 {
-  mj::FloatMagicMain();
+  Main();
 
   // Running without CRT requires a manual call to ExitProcess
   ::ExitProcess(0);

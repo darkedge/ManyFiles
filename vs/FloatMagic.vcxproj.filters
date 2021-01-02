@@ -1,43 +1,44 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\src\mj_common.h" />
-    <ClInclude Include="..\src\mj_math.h" />
-    <ClInclude Include="..\src\mj_win32.h" />
-    <ClInclude Include="..\src\ncrt_memory.h" />
-    <ClInclude Include="..\src\sse_mathfun.h" />
-    <ClInclude Include="..\src\mj_allocator.h" />
-    <ClInclude Include="..\src\FloatMagic.h" />
-    <ClInclude Include="..\src\minicrt.h" />
-    <ClInclude Include="..\src\ErrorExit.h" />
-    <ClInclude Include="..\src\Direct2D.h" />
-    <ClInclude Include="..\src\Threadpool.h" />
-    <ClInclude Include="..\src\File.h" />
-    <ClInclude Include="..\src\HexEdit.h" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
+    <ClCompile Include="..\src\EntryPoint.cpp" />
+    <ClCompile Include="..\src\ErrorExit.cpp" />
+    <ClCompile Include="..\src\IControl.cpp" />
+    <ClCompile Include="..\src\MainWindow.cpp" />
+    <ClCompile Include="..\src\mj_common.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
-    <ClCompile Include="..\src\FloatMagic.cpp" />
-    <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
-    <ClCompile Include="..\src\mj_win32.cpp" />
-    <ClCompile Include="..\src\EntryPoint.cpp" />
-    <ClCompile Include="..\src\string.c" />
-    <ClCompile Include="..\src\printfw.c" />
-    <ClCompile Include="..\src\stringw.c" />
-    <ClCompile Include="..\src\printfsz.c" />
-    <ClCompile Include="..\src\printf.c" />
-    <ClCompile Include="..\src\ErrorExit.cpp" />
-    <ClCompile Include="..\src\Direct2D.cpp" />
+    <ClCompile Include="..\src\ServiceLocator.cpp" />
+    <ClCompile Include="..\src\StringBuilder.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
-    <ClCompile Include="..\src\File.cpp" />
-    <ClCompile Include="..\src\HexEdit.cpp" />
+    <ClCompile Include="..\src\DirectoryNavigationPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />
+    <None Include="..\3rdparty\Everything\Everything64.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\ErrorExit.h" />
+    <ClInclude Include="..\src\IControl.h" />
+    <ClInclude Include="..\src\MainWindow.h" />
+    <ClInclude Include="..\src\mj_allocator.h" />
+    <ClInclude Include="..\src\mj_allocatordebug.h" />
+    <ClInclude Include="..\src\mj_common.h" />
+    <ClInclude Include="..\src\mj_hashtable.h" />
+    <ClInclude Include="..\src\mj_math.h" />
+    <ClInclude Include="..\src\mj_win32.h" />
+    <ClInclude Include="..\src\ncrt_memory.h" />
+    <ClInclude Include="..\src\ServiceLocator.h" />
+    <ClInclude Include="..\src\ServiceProvider.h" />
+    <ClInclude Include="..\src\sse_mathfun.h" />
+    <ClInclude Include="..\src\StringBuilder.h" />
+    <ClInclude Include="..\src\Threadpool.h" />
+    <ClInclude Include="..\src\Common.h" />
+    <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
   </ItemGroup>
 </Project>

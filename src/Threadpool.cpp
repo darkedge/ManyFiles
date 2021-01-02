@@ -2,8 +2,7 @@
 #include "mj_win32.h"
 #include "mj_common.h"
 #include "ErrorExit.h"
-#include "FloatMagic.h"
-#include "minicrt.h"
+#include "ServiceLocator.h"
 
 static constexpr auto MAX_TASKS = 4096;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
@@ -79,7 +78,7 @@ static void TaskMain(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* p
 
   if (pTask->pMainThreadCallback)
   {
-    MJ_ERR_ZERO(::PostMessageW(mj::GetMainWindowHandle(), MJ_TASKEND, reinterpret_cast<WPARAM>(pTask),
+    MJ_ERR_ZERO(::PostMessageW(svc::MainWindowHandle(), MJ_TASKEND, reinterpret_cast<WPARAM>(pTask),
                                reinterpret_cast<LPARAM>(pTask->pMainThreadCallback)));
   }
 };

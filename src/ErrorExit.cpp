@@ -1,9 +1,5 @@
 #include "ErrorExit.h"
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
-#include "minicrt.h"
+#include "StringBuilder.h"
 
 /// <summary>
 /// We do not recurse into this as it is an exit function.
@@ -12,7 +8,7 @@
 /// <param name="fileName"></param>
 /// <param name="lineNumber"></param>
 /// <param name="expression"></param>
-void mj::ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wchar_t* expression)
+void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const String& expression)
 {
   // We specify FORMAT_MESSAGE_ALLOCATE_BUFFER so we need to LocalFree the returned string.
   LPWSTR lpMsgBuf = {};
@@ -23,27 +19,43 @@ void mj::ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wcha
   if (lpMsgBuf)
   {
     // Display the error message and exit the process
+    String msgString(lpMsgBuf);
 
     // Calculate display string size
-    size_t displayStringLength = ::mini_wcslen(fileName);
-    displayStringLength += ::mini_wcslen(expression);
-    displayStringLength += ::mini_wcslen(lpMsgBuf);
-    displayStringLength += 50; // Format string length and decimals
+    size_t displayStringLength = fileName.len     //
+                                 + expression.len //
+                                 + msgString.len  //
+                                 + 50;            // Format string length and decimals
 
-    LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
-    if (lpDisplayBuf)
+    mj::VirtualAllocator alloc;
+    alloc.Init(0);
+    Allocation allocation = alloc.Allocation(displayStringLength * sizeof(wchar_t));
+
+    if (allocation.Ok())
     {
-      static_cast<void>(::mini_swprintf_s(lpDisplayBuf, ::LocalSize(lpDisplayBuf) / sizeof(wchar_t),
-                                          L"%s:%d - %s failed with error 0x%08x: %s", //
-                                          fileName,                                   //
-                                          lineNumber,                                 //
-                                          expression,                                 //
-                                          dw,                                         //
-                                          lpMsgBuf));
+      MJ_DEFER(alloc.Free(allocation.pAddress));
+      LinearAllocator sbAlloc;
+      sbAlloc.Init(allocation);
 
-      static_cast<void>(::MessageBoxW(nullptr, lpDisplayBuf, L"Error", MB_OK));
+      ArrayList<wchar_t> arrayList;
+      arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
+
+      StringBuilder sb;
+      sb.SetArrayList(&arrayList);
+
+      auto string = sb.Append(fileName)                   //
+                        .Append(L":")                     //
+                        .Append(lineNumber)               //
+                        .Append(L" - ")                   //
+                        .Append(expression)               //
+                        .Append(L" failed with error 0x") //
+                        .AppendHex32(dw)                  //
+                        .Append(L": ")                    //
+                        .Append(msgString)                //
+                        .ToString();
+
+      static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
       DebugBreak();
-      static_cast<void>(::LocalFree(lpDisplayBuf));
     }
 
     static_cast<void>(::LocalFree(lpMsgBuf));
@@ -58,27 +70,40 @@ void mj::ErrorExit(DWORD dw, const wchar_t* fileName, int lineNumber, const wcha
 /// <param name="fileName"></param>
 /// <param name="lineNumber"></param>
 /// <param name="expression"></param>
-void mj::NullExit(const wchar_t* fileName, int lineNumber, const wchar_t* expression)
+void mj::NullExit(const String& fileName, int lineNumber, const String& expression)
 {
   // Display the error message and exit the process
 
   // Calculate display string size
-  size_t displayStringLength = ::mini_wcslen(fileName);
-  displayStringLength += ::mini_wcslen(expression);
-  displayStringLength += 50; // Format string length and decimals
+  size_t displayStringLength = fileName.len     //
+                               + expression.len //
+                               + 50;            // Format string length and decimals
 
-  LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
-  if (lpDisplayBuf)
+  // LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
+  mj::VirtualAllocator alloc;
+  alloc.Init(0);
+  Allocation allocation = alloc.Allocation(displayStringLength * sizeof(wchar_t));
+  if (allocation.Ok())
   {
-    static_cast<void>(::mini_swprintf_s(lpDisplayBuf, ::LocalSize(lpDisplayBuf) / sizeof(wchar_t),
-                                        L"%s:%d - Pointer was null: %s", //
-                                        fileName,                        //
-                                        lineNumber,                      //
-                                        expression));
+    MJ_DEFER(alloc.Free(allocation.pAddress));
+    LinearAllocator sbAlloc;
+    sbAlloc.Init(allocation);
 
-    static_cast<void>(::MessageBoxW(nullptr, lpDisplayBuf, L"Error", MB_OK));
+    ArrayList<wchar_t> arrayList;
+    arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
+
+    StringBuilder sb;
+    sb.SetArrayList(&arrayList);
+
+    auto string = sb.Append(fileName)                   //
+                      .Append(L":")                     //
+                      .Append(lineNumber)               //
+                      .Append(L" - Pointer was null: ") //
+                      .Append(expression)               //
+                      .ToString();
+
+    static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
     DebugBreak();
-    static_cast<void>(::LocalFree(lpDisplayBuf));
   }
 
   ::ExitProcess(EXCEPTION_ACCESS_VIOLATION);
