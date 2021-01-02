@@ -18,11 +18,10 @@
     }                                                                                                \
   } while (0)
 
-// Note: This one is for GetLastError functions. For generic null error messages, use MJ_EXIT_NULL.
-#define MJ_ERR_NULL(expr)                                                                            \
+#define MJ_ERR_IF(expr, x)                                                                           \
   do                                                                                                 \
   {                                                                                                  \
-    if ((expr) == nullptr)                                                                           \
+    if ((expr) == (x))                                                                               \
     {                                                                                                \
       mj::ErrorExit(::GetLastError(), mj::String(__FILENAME__), __LINE__, mj::String(XWSTR(#expr))); \
     }                                                                                                \

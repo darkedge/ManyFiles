@@ -1,9 +1,9 @@
 #include "MainWindow.h"
 #include "ErrorExit.h"
 #include "ServiceProvider.h"
+#include "DirectoryNavigationPanel.h"
 #include <dwrite.h>
 #include <wincodec.h>
-#include "DirectoryNavigationPanel.h"
 #include <d3d11.h>
 
 #define MJ_WM_SIZE (WM_USER + 0)
@@ -35,7 +35,7 @@ void mj::MainWindow::Init(HWND hWnd)
   MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
   MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
                                      D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
-                                     0,                        //
+                                     nullptr,                  //
                                      creationFlags,            // optionally set debug and Direct2D compatibility flags
                                      featureLevels,            // list of feature levels this app can support
                                      ARRAYSIZE(featureLevels), // number of possible feature levels

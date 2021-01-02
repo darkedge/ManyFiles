@@ -42,12 +42,12 @@ void mj::ThreadpoolInit()
 {
   ::InitializeThreadpoolEnvironment(&s_CallbackEnvironment);
 
-  MJ_ERR_NULL(s_pPool = ::CreateThreadpool(nullptr));
+  MJ_ERR_IF(s_pPool = ::CreateThreadpool(nullptr), nullptr);
 
   ::SetThreadpoolThreadMaximum(s_pPool, 8);
   MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
 
-  MJ_ERR_NULL(s_pCleanupGroup = CreateThreadpoolCleanupGroup());
+  MJ_ERR_IF(s_pCleanupGroup = ::CreateThreadpoolCleanupGroup(), nullptr);
 
   ::SetThreadpoolCallbackPool(&s_CallbackEnvironment, s_pPool);
   ::SetThreadpoolCallbackCleanupGroup(&s_CallbackEnvironment, s_pCleanupGroup, nullptr);
@@ -88,7 +88,7 @@ mj::Task* mj::ThreadpoolTaskAlloc(TaskEndFn pCallback, CTaskEndFn pMainThreadCal
   mj::Task* pTask            = mj::TaskAlloc();
   pTask->pCallback           = pCallback;
   pTask->pMainThreadCallback = pMainThreadCallback;
-  MJ_ERR_NULL(pTask->pWork = ::CreateThreadpoolWork(TaskMain, pTask, &s_CallbackEnvironment));
+  MJ_ERR_IF(pTask->pWork = ::CreateThreadpoolWork(TaskMain, pTask, &s_CallbackEnvironment), nullptr);
   return pTask;
 }
 
