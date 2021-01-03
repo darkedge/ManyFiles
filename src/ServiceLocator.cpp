@@ -23,7 +23,6 @@ void svc::Init(mj::AllocatorBase* pAllocator)
 
 IDWriteFactory* svc::DWriteFactory()
 {
-  MJ_EXIT_NULL(pDWriteFactory);
   return pDWriteFactory;
 }
 
@@ -53,7 +52,6 @@ void svc::RemoveIDWriteFactoryObserver(IDWriteFactoryObserver* pObserver)
 
 ID2D1DeviceContext* svc::D2D1DeviceContext()
 {
-  MJ_EXIT_NULL(pD2D1DeviceContext);
   return pD2D1DeviceContext;
 }
 
@@ -83,7 +81,6 @@ void svc::RemoveID2D1DeviceContextObserver(ID2D1DeviceContextObserver* pObserver
 
 IWICImagingFactory* svc::WicFactory()
 {
-  MJ_EXIT_NULL(pWicFactory);
   return pWicFactory;
 }
 

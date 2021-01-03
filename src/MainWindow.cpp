@@ -4,7 +4,6 @@
 #include "DirectoryNavigationPanel.h"
 #include <dwrite.h>
 #include <wincodec.h>
-#include <d3d11.h>
 #include "..\3rdparty\tracy\Tracy.hpp"
 #include "Threadpool.h"
 
@@ -13,8 +12,8 @@
 
 struct CreateIWICImagingFactoryContext
 {
-  mj::MainWindow* pMainWindow;
-  IWICImagingFactory* pWicFactory;
+  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+  MJ_UNINITIALIZED IWICImagingFactory* pWicFactory;
 
   static void ExecuteAsync(CreateIWICImagingFactoryContext* pContext)
   {
@@ -28,6 +27,217 @@ struct CreateIWICImagingFactoryContext
     svc::ProvideWicFactory(pContext->pWicFactory);
   }
 };
+
+struct CreateID3D11DeviceContext
+{
+  // In
+  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+  // Out
+  MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
+  MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
+
+  static void ExecuteAsync(CreateID3D11DeviceContext* pContext)
+  {
+    // This flag adds support for surfaces with a different color channel ordering than the API default.
+    // You need it for compatibility with Direct2D.
+#ifdef _DEBUG
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
+#else
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#endif
+
+    // This array defines the set of DirectX hardware feature levels this app  supports.
+    // The ordering is important and you should  preserve it.
+    // Don't forget to declare your app's minimum required feature level in its
+    // description.  All apps are assumed to support 9.1 unless otherwise stated.
+    D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_1, //
+                                          D3D_FEATURE_LEVEL_11_0, //
+                                          D3D_FEATURE_LEVEL_10_1, //
+                                          D3D_FEATURE_LEVEL_10_0, //
+                                          D3D_FEATURE_LEVEL_9_3,  //
+                                          D3D_FEATURE_LEVEL_9_2,  //
+                                          D3D_FEATURE_LEVEL_9_1 };
+
+    // Create the DX11 API device object, and get a corresponding context.
+    MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
+    {
+      ZoneScopedN("D3D11CreateDevice");
+      MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,              // specify null to use the default adapter
+                                         D3D_DRIVER_TYPE_WARP, // Use the fast software driver which loads faster
+                                         nullptr,              //
+                                         creationFlags,        // optionally set debug and Direct2D compatibility flags
+                                         featureLevels,        // list of feature levels this app can support
+                                         ARRAYSIZE(featureLevels), // number of possible feature levels
+                                         D3D11_SDK_VERSION,        //
+                                         &pContext->pD3d11Device,  // returns the Direct3D device created
+                                         &featureLevel,            // returns feature level of device created
+                                         nullptr                   // No ID3D11DeviceContext will be returned.
+                                         ));
+    }
+
+    // Obtain the underlying DXGI device of the Direct3D11 device.
+    MJ_ERR_HRESULT(pContext->pD3d11Device->QueryInterface<IDXGIDevice1>(&pContext->pDxgiDevice));
+
+    // Ensure that DXGI doesn't queue more than one frame at a time.
+    MJ_ERR_HRESULT(pContext->pDxgiDevice->SetMaximumFrameLatency(1));
+  }
+
+  static void OnDone(const CreateID3D11DeviceContext* pContext)
+  {
+    pContext->pMainWindow->OnCreateID3D11Device(pContext->pD3d11Device, pContext->pDxgiDevice);
+  }
+};
+
+struct CreateIDXGISwapChain1Context
+{
+  // In
+  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+  MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
+  MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
+  // Out
+  MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
+
+  static void ExecuteAsync(CreateIDXGISwapChain1Context* pContext)
+  {
+    ZoneScoped;
+    // Identify the physical adapter (GPU or card) this device is runs on.
+    MJ_UNINITIALIZED IDXGIAdapter* pDxgiAdapter;
+    MJ_ERR_HRESULT(pContext->pDxgiDevice->GetAdapter(&pDxgiAdapter));
+    MJ_DEFER(pDxgiAdapter->Release());
+
+    // Get the factory object that created the DXGI device.
+    {
+      MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
+      MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
+      MJ_DEFER(pDxgiFactory->Release());
+
+      // Allocate a descriptor.
+      DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+      swapChainDesc.Width                 = 0; // use automatic sizing
+      swapChainDesc.Height                = 0;
+      swapChainDesc.Format                = DXGI_FORMAT_B8G8R8A8_UNORM; // this is the most common swapchain format
+      swapChainDesc.Stereo                = false;
+      swapChainDesc.SampleDesc.Count      = 1; // don't use multi-sampling
+      swapChainDesc.SampleDesc.Quality    = 0;
+      swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+      swapChainDesc.BufferCount           = 2; // use double buffering to enable flip
+      swapChainDesc.Scaling               = DXGI_SCALING_NONE;
+      swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // all apps must use this SwapEffect
+      swapChainDesc.Flags                 = 0;
+
+      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
+      fullscreenDesc.Windowed                        = TRUE;
+
+      // Get the final swap chain for this window from the DXGI factory.
+      {
+        ZoneScopedN("IDXGIFactory2::CreateSwapChainForHwnd");
+        MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(pContext->pD3d11Device,  //
+                                                            svc::MainWindowHandle(), //
+                                                            &swapChainDesc,          //
+                                                            &fullscreenDesc,         //
+                                                            nullptr,                 // allow on all displays
+                                                            &pContext->pSwapChain));
+      }
+    }
+  }
+
+  static void OnDone(const CreateIDXGISwapChain1Context* pContext)
+  {
+    pContext->pMainWindow->OnCreateIDXGISwapChain1(pContext->pSwapChain);
+  }
+};
+
+struct CreateID2D1DeviceContextContext
+{
+  // In
+  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+  MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
+
+  // Out
+  MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
+
+  static void ExecuteAsync(CreateID2D1DeviceContextContext* pContext)
+  {
+    ZoneScoped;
+    // Obtain the Direct2D device for 2-D rendering.
+    MJ_UNINITIALIZED ID2D1Factory1* pD2d1Factory;
+    {
+      ZoneScopedN("D2D1CreateFactory");
+      MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2d1Factory));
+    }
+    MJ_DEFER(pD2d1Factory->Release());
+
+    MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
+    {
+      ZoneScopedN("ID2D1Factory1::CreateDevice");
+      MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(pContext->pDxgiDevice, &pD2d1Device));
+    }
+    MJ_DEFER(pD2d1Device->Release());
+
+    // Get Direct2D device's corresponding device context object.
+    {
+      ZoneScopedN("ID2D1Device::CreateDeviceContext");
+      MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pContext->pDeviceContext));
+    }
+  }
+
+  static void OnDone(const CreateID2D1DeviceContextContext* pContext)
+  {
+    pContext->pMainWindow->OnCreateID2D1DeviceContext(pContext->pDeviceContext);
+  }
+};
+
+void mj::MainWindow::OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevice1* pDxgiDevice)
+{
+  this->pD3d11Device = pD3d11Device;
+  this->pDxgiDevice  = pDxgiDevice;
+
+  {
+    CreateIDXGISwapChain1Context* pContext;
+    mj::Task* pTask        = mj::ThreadpoolTaskAlloc(&pContext, CreateIDXGISwapChain1Context::ExecuteAsync,
+                                              CreateIDXGISwapChain1Context::OnDone);
+    pContext->pMainWindow  = this;
+    pContext->pD3d11Device = this->pD3d11Device;
+    pContext->pDxgiDevice  = this->pDxgiDevice;
+    pTask->Submit();
+  }
+
+  {
+    CreateID2D1DeviceContextContext* pContext;
+    mj::Task* pTask       = mj::ThreadpoolTaskAlloc(&pContext, CreateID2D1DeviceContextContext::ExecuteAsync,
+                                              CreateID2D1DeviceContextContext::OnDone);
+    pContext->pMainWindow = this;
+    pContext->pDxgiDevice = this->pDxgiDevice;
+    pTask->Submit();
+  }
+}
+
+void mj::MainWindow::OnCreateID2D1DeviceContext(ID2D1DeviceContext* pDeviceContext)
+{
+  this->pDeviceContext = pDeviceContext;
+  svc::ProvideD2D1DeviceContext(pDeviceContext);
+  this->ReleaseUnusedObjects();
+}
+
+void mj::MainWindow::OnCreateIDXGISwapChain1(IDXGISwapChain1* pSwapChain)
+{
+  this->pSwapChain = pSwapChain;
+  this->ReleaseUnusedObjects();
+}
+
+void mj::MainWindow::ReleaseUnusedObjects()
+{
+  if (this->pDeviceContext && this->pSwapChain)
+  {
+    this->Resize();
+
+    this->pD3d11Device->Release();
+    this->pD3d11Device = nullptr;
+
+    this->pDxgiDevice->Release();
+    this->pDxgiDevice = nullptr;
+  }
+}
 
 void mj::MainWindow::Init(HWND hWnd)
 {
@@ -45,7 +255,6 @@ void mj::MainWindow::Init(HWND hWnd)
 
   // Start a bunch of tasks
 
-  // Create WIC factory
   {
     CreateIWICImagingFactoryContext* pContext;
     mj::Task* pTask       = mj::ThreadpoolTaskAlloc(&pContext, CreateIWICImagingFactoryContext::ExecuteAsync,
@@ -53,122 +262,12 @@ void mj::MainWindow::Init(HWND hWnd)
     pContext->pMainWindow = this;
     pTask->Submit();
   }
-
-  // This flag adds support for surfaces with a different color channel ordering than the API default.
-  // You need it for compatibility with Direct2D.
-#ifdef _DEBUG
-  UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-#else
-  UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#endif
-
-  // This array defines the set of DirectX hardware feature levels this app  supports.
-  // The ordering is important and you should  preserve it.
-  // Don't forget to declare your app's minimum required feature level in its
-  // description.  All apps are assumed to support 9.1 unless otherwise stated.
-  D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_1, //
-                                        D3D_FEATURE_LEVEL_11_0, //
-                                        D3D_FEATURE_LEVEL_10_1, //
-                                        D3D_FEATURE_LEVEL_10_0, //
-                                        D3D_FEATURE_LEVEL_9_3,  //
-                                        D3D_FEATURE_LEVEL_9_2,  //
-                                        D3D_FEATURE_LEVEL_9_1 };
-
-  // Create the DX11 API device object, and get a corresponding context.
-  MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
-  MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
   {
-    ZoneScopedN("D3D11CreateDevice");
-    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,              // specify null to use the default adapter
-                                       D3D_DRIVER_TYPE_WARP, // Use the fast software driver which loads faster
-                                       nullptr,              //
-                                       creationFlags,        // optionally set debug and Direct2D compatibility flags
-                                       featureLevels,        // list of feature levels this app can support
-                                       ARRAYSIZE(featureLevels), // number of possible feature levels
-                                       D3D11_SDK_VERSION,        //
-                                       &pD3d11Device,            // returns the Direct3D device created
-                                       &featureLevel,            // returns feature level of device created
-                                       nullptr                   // No ID3D11DeviceContext will be returned.
-                                       ));
-  }
-  MJ_DEFER(pD3d11Device->Release());
-
-  // Obtain the underlying DXGI device of the Direct3D11 device.
-  {
-    MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
-    MJ_ERR_HRESULT(pD3d11Device->QueryInterface<IDXGIDevice1>(&pDxgiDevice));
-    MJ_DEFER(pDxgiDevice->Release());
-
-    // Ensure that DXGI doesn't queue more than one frame at a time.
-    MJ_ERR_HRESULT(pDxgiDevice->SetMaximumFrameLatency(1));
-
-    // Obtain the Direct2D device for 2-D rendering.
-    {
-      MJ_UNINITIALIZED ID2D1Factory1* pD2d1Factory;
-      {
-        ZoneScopedN("D2D1CreateFactory");
-        MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2d1Factory));
-      }
-      MJ_DEFER(pD2d1Factory->Release());
-
-      {
-        MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
-        {
-          ZoneScopedN("ID2D1Factory1::CreateDevice");
-          MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(pDxgiDevice, &pD2d1Device));
-        }
-        MJ_DEFER(pD2d1Device->Release());
-
-        // Get Direct2D device's corresponding device context object.
-        {
-          ZoneScopedN("ID2D1Device::CreateDeviceContext");
-          MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
-        }
-        svc::ProvideD2D1DeviceContext(pDeviceContext);
-      }
-    }
-
-    // Identify the physical adapter (GPU or card) this device is runs on.
-    {
-      MJ_UNINITIALIZED IDXGIAdapter* pDxgiAdapter;
-      MJ_ERR_HRESULT(pDxgiDevice->GetAdapter(&pDxgiAdapter));
-      MJ_DEFER(pDxgiAdapter->Release());
-
-      // Get the factory object that created the DXGI device.
-      {
-        MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
-        MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
-        MJ_DEFER(pDxgiFactory->Release());
-
-        // Allocate a descriptor.
-        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-        swapChainDesc.Width                 = 0; // use automatic sizing
-        swapChainDesc.Height                = 0;
-        swapChainDesc.Format                = DXGI_FORMAT_B8G8R8A8_UNORM; // this is the most common swapchain format
-        swapChainDesc.Stereo                = false;
-        swapChainDesc.SampleDesc.Count      = 1; // don't use multi-sampling
-        swapChainDesc.SampleDesc.Quality    = 0;
-        swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChainDesc.BufferCount           = 2; // use double buffering to enable flip
-        swapChainDesc.Scaling               = DXGI_SCALING_NONE;
-        swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // all apps must use this SwapEffect
-        swapChainDesc.Flags                 = 0;
-
-        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
-        fullscreenDesc.Windowed                        = TRUE;
-
-        // Get the final swap chain for this window from the DXGI factory.
-        {
-          ZoneScopedN("IDXGIFactory2::CreateSwapChainForHwnd");
-          MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(pD3d11Device,    //
-                                                              hWnd,            //
-                                                              &swapChainDesc,  //
-                                                              &fullscreenDesc, //
-                                                              nullptr,         // allow on all displays
-                                                              &pSwapChain));
-        }
-      }
-    }
+    CreateID3D11DeviceContext* pContext;
+    mj::Task* pTask =
+        mj::ThreadpoolTaskAlloc(&pContext, CreateID3D11DeviceContext::ExecuteAsync, CreateID3D11DeviceContext::OnDone);
+    pContext->pMainWindow = this;
+    pTask->Submit();
   }
 
   // DirectWrite factory
