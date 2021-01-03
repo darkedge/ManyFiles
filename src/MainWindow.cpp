@@ -11,9 +11,49 @@
 #define MJ_WM_SIZE (WM_USER + 0)
 #define MJ_WM_TASK (WM_USER + 1)
 
+struct CreateIWICImagingFactoryContext
+{
+  mj::MainWindow* pMainWindow;
+  IWICImagingFactory* pWicFactory;
+
+  static void ExecuteAsync(CreateIWICImagingFactoryContext* pContext)
+  {
+    ZoneScopedN("CoCreateInstance IWICImagingFactory");
+    MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
+                                      (IID_PPV_ARGS(&pContext->pWicFactory))));
+  }
+
+  static void OnDone(const CreateIWICImagingFactoryContext* pContext)
+  {
+    svc::ProvideWicFactory(pContext->pWicFactory);
+  }
+};
+
 void mj::MainWindow::Init(HWND hWnd)
 {
   ZoneScoped;
+  this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
+
+  // Just run this in the main thread for now. WIC and ShellApi functions depend on this.
+  MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE));
+
+  // TODO: Don't use the virtual allocator for ServiceLocator
+  svc::Init(&this->allocator);
+
+  this->pDirectoryNavigationPanel = this->allocator.New<DirectoryNavigationPanel>();
+  this->pDirectoryNavigationPanel->Init(&this->allocator);
+
+  // Start a bunch of tasks
+
+  // Create WIC factory
+  {
+    CreateIWICImagingFactoryContext* pContext;
+    mj::Task* pTask       = mj::ThreadpoolTaskAlloc(&pContext, CreateIWICImagingFactoryContext::ExecuteAsync,
+                                              CreateIWICImagingFactoryContext::OnDone);
+    pContext->pMainWindow = this;
+    pTask->Submit();
+  }
+
   // This flag adds support for surfaces with a different color channel ordering than the API default.
   // You need it for compatibility with Direct2D.
 #ifdef _DEBUG
@@ -143,6 +183,7 @@ void mj::MainWindow::Init(HWND hWnd)
     svc::ProvideDWriteFactory(pDwriteFactory);
   }
 
+#if 0
   // WIC
   {
     MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE));
@@ -154,30 +195,34 @@ void mj::MainWindow::Init(HWND hWnd)
     }
     svc::ProvideWicFactory(pWicFactory);
   }
+#endif
 
-  this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
-  this->pDirectoryNavigationPanel = this->allocator.New<DirectoryNavigationPanel>();
-  this->pDirectoryNavigationPanel->Init(&this->allocator);
+  // this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
+  // this->pDirectoryNavigationPanel = this->allocator.New<DirectoryNavigationPanel>();
+  // this->pDirectoryNavigationPanel->Init(&this->allocator);
 
   // TODO: Put this somewhere else
-  DWORD dw      = ::GetLogicalDriveStringsW(0, nullptr);
-  wchar_t* pBuf = this->allocator.New<wchar_t>(dw);
-  MJ_DEFER(this->allocator.Free(pBuf));
-  dw           = ::GetLogicalDriveStringsW(dw, pBuf);
-  wchar_t* ptr = pBuf;
-  String str(nullptr);
-  while (ptr < pBuf + dw)
   {
-    if (*ptr != 0)
+    ZoneScopedN("GetLogicalDriveStringsW");
+    DWORD dw      = ::GetLogicalDriveStringsW(0, nullptr);
+    wchar_t* pBuf = this->allocator.New<wchar_t>(dw);
+    MJ_DEFER(this->allocator.Free(pBuf));
+    dw           = ::GetLogicalDriveStringsW(dw, pBuf);
+    wchar_t* ptr = pBuf;
+    String str(nullptr);
+    while (ptr < pBuf + dw)
     {
-      wchar_t* pBegin = ptr;
-      while (*ptr != 0)
+      if (*ptr != 0)
       {
-        ptr++;
+        wchar_t* pBegin = ptr;
+        while (*ptr != 0)
+        {
+          ptr++;
+        }
+        str = String(pBegin, ptr - pBegin);
       }
-      str = String(pBegin, ptr - pBegin);
+      ptr++;
     }
-    ptr++;
   }
 }
 
@@ -291,11 +336,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     break;
   }
 
-  return ::DefWindowProcW(hWnd, message, wParam, lParam);
-}
-
-static LRESULT CALLBACK TPWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
   return ::DefWindowProcW(hWnd, message, wParam, lParam);
 }
 

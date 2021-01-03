@@ -3,6 +3,7 @@
 #include "mj_common.h"
 #include "ErrorExit.h"
 #include "ServiceLocator.h"
+#include "../3rdparty/tracy/Tracy.hpp"
 
 static constexpr auto MAX_TASKS = 4096;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
@@ -42,6 +43,8 @@ namespace mj
 
 void mj::ThreadpoolInit(HWND hWnd, UINT msg)
 {
+  ZoneScoped;
+
   s_Hwnd = hWnd;
   s_Msg  = msg;
   ::InitializeThreadpoolEnvironment(&s_CallbackEnvironment);
@@ -89,13 +92,13 @@ static void TaskMain(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* p
   }
 };
 
-mj::Task* mj::detail::ThreadpoolTaskAlloc(TaskEndFn<mj::TaskContext> pInitContext, TaskEndFn<mj::TaskContext> pCallback,
+mj::Task* mj::detail::ThreadpoolTaskAlloc(mj::TaskContext** pInitContext, TaskEndFn<mj::TaskContext> pCallback,
                                           CTaskEndFn<mj::TaskContext> pMainThreadCallback)
 {
   mj::Task* pTask = mj::TaskAlloc();
   if (pInitContext)
   {
-    pInitContext(pTask->pContext);
+    *pInitContext = pTask->pContext;
   }
   pTask->pCallback           = pCallback;
   pTask->pMainThreadCallback = pMainThreadCallback;
@@ -105,14 +108,14 @@ mj::Task* mj::detail::ThreadpoolTaskAlloc(TaskEndFn<mj::TaskContext> pInitContex
 
 void mj::ThreadpoolTaskEnd(WPARAM wParam, LPARAM lParam)
 {
-  mj::Task* pTask   = reinterpret_cast<mj::Task*>(wParam);
-    mj::CTaskEndFn<mj::TaskContext> pFn = reinterpret_cast<mj::CTaskEndFn<mj::TaskContext>>(lParam);
-    if (pFn)
-    {
+  mj::Task* pTask                     = reinterpret_cast<mj::Task*>(wParam);
+  mj::CTaskEndFn<mj::TaskContext> pFn = reinterpret_cast<mj::CTaskEndFn<mj::TaskContext>>(lParam);
+  if (pFn)
+  {
     pFn(pTask->pContext);
-    }
+  }
 
-    mj::ThreadpoolTaskFree(pTask);
+  mj::ThreadpoolTaskFree(pTask);
 }
 
 void mj::ThreadpoolTaskFree(Task* pTask)

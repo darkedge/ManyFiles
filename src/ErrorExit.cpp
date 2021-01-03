@@ -54,7 +54,7 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
                         .Append(msgString)                //
                         .ToString();
 
-      static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
+      //static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
       DebugBreak();
     }
 
@@ -102,7 +102,7 @@ void mj::NullExit(const String& fileName, int lineNumber, const String& expressi
                       .Append(expression)               //
                       .ToString();
 
-    static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
+    //static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
     DebugBreak();
   }
 

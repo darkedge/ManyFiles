@@ -51,19 +51,24 @@ namespace mj
 
   namespace detail
   {
-    Task* ThreadpoolTaskAlloc(TaskEndFn<mj::TaskContext> pInitContext, TaskEndFn<mj::TaskContext> pCallback,
+    Task* ThreadpoolTaskAlloc(mj::TaskContext** pInitContext, TaskEndFn<mj::TaskContext> pCallback,
                               CTaskEndFn<mj::TaskContext> pMainThreadCallback = nullptr);
   }
 
+  /// <summary>
+  /// Initializes the threadpool system.
+  /// </summary>
+  /// <param name="hWnd">The window to send a message to once a task has finished</param>
+  /// <param name="msg">The message ID to send. Should be WM_USER + some number.</param>
   void ThreadpoolInit(HWND hWnd, UINT msg);
   template <class T>
-  Task* ThreadpoolTaskAlloc(TaskEndFn<T> pInitContext, TaskEndFn<T> pCallback,
+  Task* ThreadpoolTaskAlloc(T** pInitContext, TaskEndFn<T> pCallback,
                             CTaskEndFn<T> pMainThreadCallback = nullptr)
   {
     // Note: We are casting the function pointer to prevent having to cast a TaskContext
     // to a user-defined type on the user side.
     // This _should_ work on all systems, as long as the parameter types are "compatible".
-    return detail::ThreadpoolTaskAlloc(reinterpret_cast<TaskEndFn<mj::TaskContext>>(pInitContext),
+    return detail::ThreadpoolTaskAlloc(reinterpret_cast<mj::TaskContext**>(pInitContext),
                                        reinterpret_cast<TaskEndFn<mj::TaskContext>>(pCallback),
                                        reinterpret_cast<CTaskEndFn<mj::TaskContext>>(pMainThreadCallback));
   }
