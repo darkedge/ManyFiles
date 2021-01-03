@@ -41,6 +41,14 @@ namespace mj
   }
 } // namespace mj
 
+struct SetThreadpoolThreadMinimumTask
+{
+  static void ExecuteAsync(SetThreadpoolThreadMinimumTask* pTask)
+  {
+    MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
+  }
+};
+
 void mj::ThreadpoolInit(HWND hWnd, UINT msg)
 {
   ZoneScoped;
@@ -52,9 +60,6 @@ void mj::ThreadpoolInit(HWND hWnd, UINT msg)
   MJ_ERR_IF(s_pPool = ::CreateThreadpool(nullptr), nullptr);
 
   ::SetThreadpoolThreadMaximum(s_pPool, 8);
-  // Setting SetThreadpoolThreadMinimum will immediately create new threads,
-  // which takes multiple milliseconds per thread.
-  // MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
 
   MJ_ERR_IF(s_pCleanupGroup = ::CreateThreadpoolCleanupGroup(), nullptr);
 
@@ -74,6 +79,14 @@ void mj::ThreadpoolInit(HWND hWnd, UINT msg)
   }
 
   s_pTaskHead = &s_TaskFreeList[MAX_TASKS - 1];
+
+  // Set the thread pool minimum in an async task, so the main thread can
+  // continue while we create new threads.
+  {
+    mj::Task* pTask = mj::ThreadpoolTaskAlloc<SetThreadpoolThreadMinimumTask>(
+        nullptr, SetThreadpoolThreadMinimumTask::ExecuteAsync, nullptr);
+    pTask->Submit();
+  }
 }
 
 static void TaskMain(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* pWork)

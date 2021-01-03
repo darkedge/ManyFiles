@@ -38,6 +38,7 @@ struct CreateID3D11DeviceContext
 
   static void ExecuteAsync(CreateID3D11DeviceContext* pContext)
   {
+    ZoneScoped;
     // This flag adds support for surfaces with a different color channel ordering than the API default.
     // You need it for compatibility with Direct2D.
 #ifdef _DEBUG
@@ -60,20 +61,17 @@ struct CreateID3D11DeviceContext
 
     // Create the DX11 API device object, and get a corresponding context.
     MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
-    {
-      ZoneScopedN("D3D11CreateDevice");
-      MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,              // specify null to use the default adapter
-                                         D3D_DRIVER_TYPE_WARP, // Use the fast software driver which loads faster
-                                         nullptr,              //
-                                         creationFlags,        // optionally set debug and Direct2D compatibility flags
-                                         featureLevels,        // list of feature levels this app can support
-                                         ARRAYSIZE(featureLevels), // number of possible feature levels
-                                         D3D11_SDK_VERSION,        //
-                                         &pContext->pD3d11Device,  // returns the Direct3D device created
-                                         &featureLevel,            // returns feature level of device created
-                                         nullptr                   // No ID3D11DeviceContext will be returned.
-                                         ));
-    }
+    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
+                                       D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
+                                       nullptr,                  //
+                                       creationFlags, // optionally set debug and Direct2D compatibility flags
+                                       featureLevels, // list of feature levels this app can support
+                                       ARRAYSIZE(featureLevels), // number of possible feature levels
+                                       D3D11_SDK_VERSION,        //
+                                       &pContext->pD3d11Device,  // returns the Direct3D device created
+                                       &featureLevel,            // returns feature level of device created
+                                       nullptr                   // No ID3D11DeviceContext will be returned.
+                                       ));
 
     // Obtain the underlying DXGI device of the Direct3D11 device.
     MJ_ERR_HRESULT(pContext->pD3d11Device->QueryInterface<IDXGIDevice1>(&pContext->pDxgiDevice));
@@ -189,6 +187,7 @@ struct CreateID2D1DeviceContextContext
 
 void mj::MainWindow::OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevice1* pDxgiDevice)
 {
+  ZoneScoped;
   this->pD3d11Device = pD3d11Device;
   this->pDxgiDevice  = pDxgiDevice;
 
