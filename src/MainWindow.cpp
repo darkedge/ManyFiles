@@ -133,6 +133,26 @@ void mj::MainWindow::Init(HWND hWnd)
   this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
   this->pDirectoryNavigationPanel = this->allocator.New<DirectoryNavigationPanel>();
   this->pDirectoryNavigationPanel->Init(&this->allocator);
+
+  // TODO: Put this somewhere else
+  DWORD dw = ::GetLogicalDriveStringsW(0, nullptr);
+  wchar_t* pBuf = this->allocator.New<wchar_t>(dw);
+  MJ_DEFER(this->allocator.Free(pBuf));
+  dw = ::GetLogicalDriveStringsW(dw, pBuf);
+  wchar_t* ptr = pBuf;
+  String str(nullptr);
+  while (ptr < pBuf + dw)
+  {
+    if (*ptr != 0)
+    {
+      wchar_t* pBegin = ptr;
+      while (*ptr != 0) {
+        ptr++;
+      }
+      str = String(pBegin, ptr - pBegin);
+    }
+    ptr++;
+  }
 }
 
 void mj::MainWindow::Resize()
