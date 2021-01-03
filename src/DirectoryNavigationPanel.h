@@ -1,6 +1,5 @@
 #pragma once
 #include "IControl.h"
-#include "mj_allocator.h"
 #include "mj_common.h"
 #include "StringBuilder.h"
 #include <d2d1_1.h>

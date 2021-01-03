@@ -5,11 +5,13 @@
 #include <dwrite.h>
 #include <wincodec.h>
 #include <d3d11.h>
+#include "..\3rdparty\tracy\Tracy.hpp"
 
 #define MJ_WM_SIZE (WM_USER + 0)
 
 void mj::MainWindow::Init(HWND hWnd)
 {
+  ZoneScoped;
   // This flag adds support for surfaces with a different color channel ordering than the API default.
   // You need it for compatibility with Direct2D.
 #ifdef _DEBUG
@@ -33,17 +35,20 @@ void mj::MainWindow::Init(HWND hWnd)
   // Create the DX11 API device object, and get a corresponding context.
   MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
   MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
-  MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
-                                     D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
-                                     nullptr,                  //
-                                     creationFlags,            // optionally set debug and Direct2D compatibility flags
-                                     featureLevels,            // list of feature levels this app can support
-                                     ARRAYSIZE(featureLevels), // number of possible feature levels
-                                     D3D11_SDK_VERSION,        //
-                                     &pD3d11Device,            // returns the Direct3D device created
-                                     &featureLevel,            // returns feature level of device created
-                                     nullptr                   // No ID3D11DeviceContext will be returned.
-                                     ));
+  {
+    ZoneScopedN("D3D11CreateDevice");
+    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
+                                       D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
+                                       nullptr,                  //
+                                       creationFlags, // optionally set debug and Direct2D compatibility flags
+                                       featureLevels, // list of feature levels this app can support
+                                       ARRAYSIZE(featureLevels), // number of possible feature levels
+                                       D3D11_SDK_VERSION,        //
+                                       &pD3d11Device,            // returns the Direct3D device created
+                                       &featureLevel,            // returns feature level of device created
+                                       nullptr                   // No ID3D11DeviceContext will be returned.
+                                       ));
+  }
   MJ_DEFER(pD3d11Device->Release());
 
   // Obtain the underlying DXGI device of the Direct3D11 device.
@@ -58,16 +63,25 @@ void mj::MainWindow::Init(HWND hWnd)
     // Obtain the Direct2D device for 2-D rendering.
     {
       MJ_UNINITIALIZED ID2D1Factory1* pD2d1Factory;
-      MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2d1Factory));
+      {
+        ZoneScopedN("D2D1CreateFactory");
+        MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2d1Factory));
+      }
       MJ_DEFER(pD2d1Factory->Release());
 
       {
         MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
-        MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(pDxgiDevice, &pD2d1Device));
+        {
+          ZoneScopedN("ID2D1Factory1::CreateDevice");
+          MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(pDxgiDevice, &pD2d1Device));
+        }
         MJ_DEFER(pD2d1Device->Release());
 
         // Get Direct2D device's corresponding device context object.
-        MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
+        {
+          ZoneScopedN("ID2D1Device::CreateDeviceContext");
+          MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
+        }
         svc::ProvideD2D1DeviceContext(pDeviceContext);
       }
     }
@@ -102,12 +116,15 @@ void mj::MainWindow::Init(HWND hWnd)
         fullscreenDesc.Windowed                        = TRUE;
 
         // Get the final swap chain for this window from the DXGI factory.
-        MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(pD3d11Device,    //
-                                                            hWnd,            //
-                                                            &swapChainDesc,  //
-                                                            &fullscreenDesc, //
-                                                            nullptr,         // allow on all displays
-                                                            &pSwapChain));
+        {
+          ZoneScopedN("IDXGIFactory2::CreateSwapChainForHwnd");
+          MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(pD3d11Device,    //
+                                                              hWnd,            //
+                                                              &swapChainDesc,  //
+                                                              &fullscreenDesc, //
+                                                              nullptr,         // allow on all displays
+                                                              &pSwapChain));
+        }
       }
     }
   }
@@ -115,8 +132,11 @@ void mj::MainWindow::Init(HWND hWnd)
   // DirectWrite factory
   {
     MJ_UNINITIALIZED IDWriteFactory* pDwriteFactory;
-    MJ_ERR_HRESULT(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-                                       reinterpret_cast<IUnknown**>(&pDwriteFactory)));
+    {
+      ZoneScopedN("DWriteCreateFactory");
+      MJ_ERR_HRESULT(::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+                                           reinterpret_cast<IUnknown**>(&pDwriteFactory)));
+    }
     MJ_DEFER(pDwriteFactory->Release());
     svc::ProvideDWriteFactory(pDwriteFactory);
   }
@@ -125,8 +145,11 @@ void mj::MainWindow::Init(HWND hWnd)
   {
     MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE));
     MJ_UNINITIALIZED IWICImagingFactory* pWicFactory;
-    MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
-                                      (IID_PPV_ARGS(&pWicFactory))));
+    {
+      ZoneScopedN("CoCreateInstance IWICImagingFactory");
+      MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
+                                        (IID_PPV_ARGS(&pWicFactory))));
+    }
     svc::ProvideWicFactory(pWicFactory);
   }
 
@@ -135,10 +158,10 @@ void mj::MainWindow::Init(HWND hWnd)
   this->pDirectoryNavigationPanel->Init(&this->allocator);
 
   // TODO: Put this somewhere else
-  DWORD dw = ::GetLogicalDriveStringsW(0, nullptr);
+  DWORD dw      = ::GetLogicalDriveStringsW(0, nullptr);
   wchar_t* pBuf = this->allocator.New<wchar_t>(dw);
   MJ_DEFER(this->allocator.Free(pBuf));
-  dw = ::GetLogicalDriveStringsW(dw, pBuf);
+  dw           = ::GetLogicalDriveStringsW(dw, pBuf);
   wchar_t* ptr = pBuf;
   String str(nullptr);
   while (ptr < pBuf + dw)
@@ -146,7 +169,8 @@ void mj::MainWindow::Init(HWND hWnd)
     if (*ptr != 0)
     {
       wchar_t* pBegin = ptr;
-      while (*ptr != 0) {
+      while (*ptr != 0)
+      {
         ptr++;
       }
       str = String(pBegin, ptr - pBegin);
@@ -157,6 +181,7 @@ void mj::MainWindow::Init(HWND hWnd)
 
 void mj::MainWindow::Resize()
 {
+  ZoneScoped;
   // Detach target bitmap
   pDeviceContext->SetTarget(nullptr);
 
@@ -182,6 +207,7 @@ void mj::MainWindow::Resize()
 
 void mj::MainWindow::Paint()
 {
+  ZoneScoped;
   this->pDeviceContext->BeginDraw();
 
   this->pDeviceContext->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
@@ -193,6 +219,7 @@ void mj::MainWindow::Paint()
 
 void mj::MainWindow::Destroy()
 {
+  ZoneScoped;
   this->pDirectoryNavigationPanel->Destroy();
 
   if (pDeviceContext)
@@ -271,15 +298,19 @@ void mj::MainWindow::Run()
   MJ_ERR_ZERO(cls = ::RegisterClassExW(&wc));
   LPWSTR classAtom = MAKEINTATOM(cls);
 
-  HWND hWnd = ::CreateWindowExW(0,                                       // Optional window styles.
-                                classAtom,                               // Window class
-                                L"Window Title",                         // Window text
-                                WS_OVERLAPPEDWINDOW | WS_VISIBLE,        // Window style
-                                CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, // Size and pCurrent
-                                nullptr,                                 // Parent window
-                                nullptr,                                 // Menu
-                                HINST_THISCOMPONENT,                     // Instance handle
-                                this);                                   // Additional application data
+  MJ_UNINITIALIZED HWND hWnd;
+  {
+    ZoneScopedN("CreateWindowExW");
+    hWnd = ::CreateWindowExW(0,                                       // Optional window styles.
+                             classAtom,                               // Window class
+                             L"Window Title",                         // Window text
+                             WS_OVERLAPPEDWINDOW | WS_VISIBLE,        // Window style
+                             CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, // Size and pCurrent
+                             nullptr,                                 // Parent window
+                             nullptr,                                 // Menu
+                             HINST_THISCOMPONENT,                     // Instance handle
+                             this);                                   // Additional application data
+  }
 
   // Run the message loop.
   MJ_UNINITIALIZED MSG msg;

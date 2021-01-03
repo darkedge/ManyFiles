@@ -1,10 +1,12 @@
 #include "DirectoryNavigationPanel.h"
 #include "ErrorExit.h"
-#include <d2d1_1.h>
-#include <dwrite.h>
-#include "Everything.h"
 #include "ServiceLocator.h"
 #include <wincodec.h>
+#include "Everything.h"
+#include <d2d1_1.h>
+#include <dwrite.h>
+#include <shellapi.h>
+#include "..\3rdparty\tracy\Tracy.hpp"
 
 static float ConvertPointSizeToDIP(float points)
 {
@@ -13,6 +15,7 @@ static float ConvertPointSizeToDIP(float points)
 
 ID2D1Bitmap1* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 {
+  ZoneScoped;
   auto* pFactory = svc::WicFactory();
 
   MJ_UNINITIALIZED IWICBitmap* pWicBitmap;
@@ -40,6 +43,7 @@ ID2D1Bitmap1* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 
 void mj::DirectoryNavigationPanel::LoadIcons()
 {
+  ZoneScoped;
   MJ_UNINITIALIZED SHSTOCKICONINFO info;
   info.cbSize = sizeof(SHSTOCKICONINFO);
   MJ_ERR_HRESULT(::SHGetStockIconInfo(SIID_FOLDER, SHGSI_ICON | SHGSI_SMALLICON, &info));
@@ -49,6 +53,7 @@ void mj::DirectoryNavigationPanel::LoadIcons()
 
 void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 {
+  ZoneScoped;
   this->LoadIcons();
   auto* pContext = svc::D2D1DeviceContext();
   auto* pFactory = svc::DWriteFactory();
@@ -75,6 +80,7 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 
 void mj::DirectoryNavigationPanel::Navigate(const mj::String& directory)
 {
+  ZoneScoped;
   LinearAllocator alloc;
   alloc.Init(this->searchBuffer);
 
@@ -92,7 +98,10 @@ void mj::DirectoryNavigationPanel::Navigate(const mj::String& directory)
                       .ToString();
 
   Everything_SetSearchW(search.ptr);
-  static_cast<void>(Everything_QueryW(TRUE));
+  {
+    ZoneScopedN("Everything_QueryW");
+    static_cast<void>(Everything_QueryW(TRUE));
+  }
 
   // Display results.
   DWORD numResults = Everything_GetNumResults();
@@ -130,6 +139,7 @@ void mj::DirectoryNavigationPanel::Navigate(const mj::String& directory)
 
 void mj::DirectoryNavigationPanel::Paint()
 {
+  ZoneScoped;
   auto* pContext = svc::D2D1DeviceContext();
 
   auto point = D2D1::Point2F(16.0f, 0.0f);
@@ -151,6 +161,7 @@ void mj::DirectoryNavigationPanel::Paint()
 
 void mj::DirectoryNavigationPanel::Destroy()
 {
+  ZoneScoped;
   this->pAllocator->Free(this->searchBuffer.pAddress);
   this->pAllocator->Free(this->resultsBuffer.pAddress);
 

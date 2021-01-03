@@ -93,12 +93,12 @@
     <Link>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
+    <ClCompile />
     <ClCompile>
-      <PreprocessorDefinitions>TRACY_ENABLE;UNICODE;_UNICODE;_WIN32_WINNT=0x0601;_HAS_EXCEPTIONS=0</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\Common.h" />
     <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
     <ClInclude Include="..\src\IControl.h" />
