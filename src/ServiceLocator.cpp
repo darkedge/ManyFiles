@@ -110,3 +110,14 @@ void svc::RemoveWicFactoryObserver(IWICFactoryObserver* pObserver)
 {
   s_WicFactoryObservers.RemoveAll(pObserver);
 }
+
+HWND svc::MainWindowHandle()
+{
+  MJ_EXIT_NULL(hWnd);
+  return hWnd;
+}
+
+void svc::ProvideMainWindowHandle(HWND handle)
+{
+  hWnd = handle;
+}

@@ -16,7 +16,7 @@ namespace svc
   };
   void AddIDWriteFactoryObserver(IDWriteFactoryObserver* pObserver);
   void RemoveIDWriteFactoryObserver(IDWriteFactoryObserver* pObserver);
-  
+
   // ID2D1DeviceContext
   ID2D1DeviceContext* D2D1DeviceContext();
   class ID2D1DeviceContextObserver
@@ -36,4 +36,6 @@ namespace svc
   };
   void AddWicFactoryObserver(IWICFactoryObserver* pObserver);
   void RemoveWicFactoryObserver(IWICFactoryObserver* pObserver);
+
+  HWND MainWindowHandle();
 } // namespace svc

@@ -189,6 +189,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
       }
     }
   }
+  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
 }
 
 void mj::DirectoryNavigationPanel::Paint()

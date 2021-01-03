@@ -18,7 +18,7 @@ struct CreateIWICImagingFactoryContext
 
   static void ExecuteAsync(CreateIWICImagingFactoryContext* pContext)
   {
-    ZoneScopedN("CoCreateInstance IWICImagingFactory");
+    ZoneScoped;
     MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
                                       (IID_PPV_ARGS(&pContext->pWicFactory))));
   }
@@ -79,11 +79,11 @@ void mj::MainWindow::Init(HWND hWnd)
   MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
   {
     ZoneScopedN("D3D11CreateDevice");
-    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
-                                       D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
-                                       nullptr,                  //
-                                       creationFlags, // optionally set debug and Direct2D compatibility flags
-                                       featureLevels, // list of feature levels this app can support
+    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,              // specify null to use the default adapter
+                                       D3D_DRIVER_TYPE_WARP, // Use the fast software driver which loads faster
+                                       nullptr,              //
+                                       creationFlags,        // optionally set debug and Direct2D compatibility flags
+                                       featureLevels,        // list of feature levels this app can support
                                        ARRAYSIZE(featureLevels), // number of possible feature levels
                                        D3D11_SDK_VERSION,        //
                                        &pD3d11Device,            // returns the Direct3D device created
@@ -183,24 +183,6 @@ void mj::MainWindow::Init(HWND hWnd)
     svc::ProvideDWriteFactory(pDwriteFactory);
   }
 
-#if 0
-  // WIC
-  {
-    MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE));
-    MJ_UNINITIALIZED IWICImagingFactory* pWicFactory;
-    {
-      ZoneScopedN("CoCreateInstance IWICImagingFactory");
-      MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
-                                        (IID_PPV_ARGS(&pWicFactory))));
-    }
-    svc::ProvideWicFactory(pWicFactory);
-  }
-#endif
-
-  // this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
-  // this->pDirectoryNavigationPanel = this->allocator.New<DirectoryNavigationPanel>();
-  // this->pDirectoryNavigationPanel->Init(&this->allocator);
-
   // TODO: Put this somewhere else
   {
     ZoneScopedN("GetLogicalDriveStringsW");
@@ -230,53 +212,79 @@ void mj::MainWindow::Resize()
 {
   ZoneScoped;
   // Detach target bitmap
-  pDeviceContext->SetTarget(nullptr);
+  if (pDeviceContext)
+  {
+    pDeviceContext->SetTarget(nullptr);
 
-  // Resize
-  MJ_ERR_HRESULT(pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
+    // Resize
+    MJ_ERR_HRESULT(pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
 
-  // Create new bitmap from resized buffer
-  MJ_UNINITIALIZED IDXGISurface* pBuffer;
-  MJ_ERR_HRESULT(pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBuffer)));
-  MJ_DEFER(pBuffer->Release());
+    // Create new bitmap from resized buffer
+    MJ_UNINITIALIZED IDXGISurface* pBuffer;
+    MJ_ERR_HRESULT(pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBuffer)));
+    MJ_DEFER(pBuffer->Release());
 
-  MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
-  MJ_ERR_HRESULT(pDeviceContext->CreateBitmapFromDxgiSurface(
-      pBuffer,
-      D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-                              D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
-      &pBitmap));
-  MJ_DEFER(pBitmap->Release());
+    MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
+    MJ_ERR_HRESULT(pDeviceContext->CreateBitmapFromDxgiSurface(
+        pBuffer,
+        D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+                                D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
+        &pBitmap));
+    MJ_DEFER(pBitmap->Release());
 
-  // Attach target bitmap
-  pDeviceContext->SetTarget(pBitmap);
+    // Attach target bitmap
+    pDeviceContext->SetTarget(pBitmap);
+  }
 }
 
 void mj::MainWindow::Paint()
 {
   ZoneScoped;
-  this->pDeviceContext->BeginDraw();
+  if (this->pDeviceContext)
+  {
+    {
+      ZoneScopedN("BeginDraw");
+      this->pDeviceContext->BeginDraw();
+    }
 
-  this->pDeviceContext->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
-  this->pDirectoryNavigationPanel->Paint();
+    {
+      ZoneScopedN("Clear");
+      this->pDeviceContext->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
+    }
+    this->pDirectoryNavigationPanel->Paint();
 
-  MJ_ERR_HRESULT(this->pDeviceContext->EndDraw());
-  MJ_ERR_HRESULT(this->pSwapChain->Present(0, 0));
+    {
+      ZoneScopedN("EndDraw");
+      MJ_ERR_HRESULT(this->pDeviceContext->EndDraw());
+    }
+  }
+
+  if (this->pSwapChain)
+  {
+    ZoneScopedN("Present");
+    MJ_ERR_HRESULT(this->pSwapChain->Present(0, 0));
+  }
 }
 
 void mj::MainWindow::Destroy()
 {
   ZoneScoped;
-  this->pDirectoryNavigationPanel->Destroy();
+  if (this->pDirectoryNavigationPanel)
+  {
+    this->pDirectoryNavigationPanel->Destroy();
+    this->pDirectoryNavigationPanel = nullptr;
+  }
 
-  if (pDeviceContext)
+  if (this->pDeviceContext)
   {
     svc::ProvideD2D1DeviceContext(nullptr);
     static_cast<void>(pDeviceContext->Release());
+    this->pDeviceContext = nullptr;
   }
-  if (pSwapChain)
+  if (this->pSwapChain)
   {
     static_cast<void>(pSwapChain->Release());
+    this->pSwapChain = nullptr;
   }
 
   ::CoUninitialize();
@@ -299,6 +307,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     CREATESTRUCT* pcs = reinterpret_cast<CREATESTRUCT*>(lParam);
     pMainWindow       = reinterpret_cast<mj::MainWindow*>(pcs->lpCreateParams);
     MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
+    svc::ProvideMainWindowHandle(hWnd);
 
     mj::ThreadpoolInit(hWnd, MJ_WM_TASK);
     pMainWindow->Init(hWnd);
@@ -312,7 +321,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case MJ_WM_SIZE:
   {
     pMainWindow->Resize();
-    MJ_ERR_ZERO(InvalidateRect(hWnd, nullptr, TRUE));
+    MJ_ERR_ZERO(::InvalidateRect(hWnd, nullptr, FALSE));
     return 0;
   }
   case WM_DESTROY:
