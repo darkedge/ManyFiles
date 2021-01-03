@@ -13,6 +13,8 @@ static TP_CALLBACK_ENVIRON s_CallbackEnvironment;
 static TP_POOL* s_pPool;
 static TP_CLEANUP_GROUP* s_pCleanupGroup;
 static CRITICAL_SECTION s_CriticalSection;
+static HWND s_Hwnd;
+static UINT s_Msg;
 
 namespace mj
 {
@@ -38,14 +40,18 @@ namespace mj
   }
 } // namespace mj
 
-void mj::ThreadpoolInit()
+void mj::ThreadpoolInit(HWND hWnd, UINT msg)
 {
+  s_Hwnd = hWnd;
+  s_Msg  = msg;
   ::InitializeThreadpoolEnvironment(&s_CallbackEnvironment);
 
   MJ_ERR_IF(s_pPool = ::CreateThreadpool(nullptr), nullptr);
 
   ::SetThreadpoolThreadMaximum(s_pPool, 8);
-  MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
+  // Setting SetThreadpoolThreadMinimum will immediately create new threads,
+  // which takes multiple milliseconds per thread.
+  // MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
 
   MJ_ERR_IF(s_pCleanupGroup = ::CreateThreadpoolCleanupGroup(), nullptr);
 
@@ -78,18 +84,35 @@ static void TaskMain(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* p
 
   if (pTask->pMainThreadCallback)
   {
-    MJ_ERR_ZERO(::PostMessageW(svc::MainWindowHandle(), MJ_TASKEND, reinterpret_cast<WPARAM>(pTask),
+    MJ_ERR_ZERO(::PostMessageW(s_Hwnd, s_Msg, reinterpret_cast<WPARAM>(pTask),
                                reinterpret_cast<LPARAM>(pTask->pMainThreadCallback)));
   }
 };
 
-mj::Task* mj::ThreadpoolTaskAlloc(TaskEndFn pCallback, CTaskEndFn pMainThreadCallback)
+mj::Task* mj::detail::ThreadpoolTaskAlloc(TaskEndFn<mj::TaskContext> pInitContext, TaskEndFn<mj::TaskContext> pCallback,
+                                          CTaskEndFn<mj::TaskContext> pMainThreadCallback)
 {
-  mj::Task* pTask            = mj::TaskAlloc();
+  mj::Task* pTask = mj::TaskAlloc();
+  if (pInitContext)
+  {
+    pInitContext(pTask->pContext);
+  }
   pTask->pCallback           = pCallback;
   pTask->pMainThreadCallback = pMainThreadCallback;
   MJ_ERR_IF(pTask->pWork = ::CreateThreadpoolWork(TaskMain, pTask, &s_CallbackEnvironment), nullptr);
   return pTask;
+}
+
+void mj::ThreadpoolTaskEnd(WPARAM wParam, LPARAM lParam)
+{
+  mj::Task* pTask   = reinterpret_cast<mj::Task*>(wParam);
+    mj::CTaskEndFn<mj::TaskContext> pFn = reinterpret_cast<mj::CTaskEndFn<mj::TaskContext>>(lParam);
+    if (pFn)
+    {
+    pFn(pTask->pContext);
+    }
+
+    mj::ThreadpoolTaskFree(pTask);
 }
 
 void mj::ThreadpoolTaskFree(Task* pTask)

@@ -6,8 +6,10 @@
 #include <wincodec.h>
 #include <d3d11.h>
 #include "..\3rdparty\tracy\Tracy.hpp"
+#include "Threadpool.h"
 
 #define MJ_WM_SIZE (WM_USER + 0)
+#define MJ_WM_TASK (WM_USER + 1)
 
 void mj::MainWindow::Init(HWND hWnd)
 {
@@ -253,6 +255,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     pMainWindow       = reinterpret_cast<mj::MainWindow*>(pcs->lpCreateParams);
     MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
 
+    mj::ThreadpoolInit(hWnd, MJ_WM_TASK);
     pMainWindow->Init(hWnd);
 
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
@@ -268,6 +271,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     return 0;
   }
   case WM_DESTROY:
+    mj::ThreadpoolDestroy();
     ::PostQuitMessage(0);
     return 0;
   case WM_PAINT:
@@ -278,7 +282,11 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     static_cast<void>(::EndPaint(hWnd, &ps));
     return 0;
   }
-  break;
+  case MJ_WM_TASK:
+  {
+    mj::ThreadpoolTaskEnd(wParam, lParam);
+    return 0;
+  }
   default:
     break;
   }
@@ -286,8 +294,15 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   return ::DefWindowProcW(hWnd, message, wParam, lParam);
 }
 
+static LRESULT CALLBACK TPWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  return ::DefWindowProcW(hWnd, message, wParam, lParam);
+}
+
 void mj::MainWindow::Run()
 {
+  MJ_DEFER(this->Destroy());
+
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};
   wc.cbSize        = sizeof(WNDCLASSEX);
@@ -331,6 +346,4 @@ void mj::MainWindow::Run()
       MJ_ERR_ZERO(PostMessageW(hWnd, MJ_WM_SIZE, 0, 0));
     }
   }
-
-  this->Destroy();
 }

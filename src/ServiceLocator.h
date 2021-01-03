@@ -10,5 +10,4 @@ namespace svc
   IDWriteFactory* DWriteFactory();
   ID2D1DeviceContext* D2D1DeviceContext();
   IWICImagingFactory* WicFactory();
-  HWND MainWindowHandle();
 } // namespace svc

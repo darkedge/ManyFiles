@@ -41,14 +41,3 @@ void svc::ProvideWicFactory(IWICImagingFactory* pFactory)
 {
   pWicFactory = pFactory;
 }
-
-HWND svc::MainWindowHandle()
-{
-  MJ_EXIT_NULL(hWnd);
-  return hWnd;
-}
-
-void svc::ProvideMainWindowHandle(HWND handle)
-{
-  hWnd = handle;
-}

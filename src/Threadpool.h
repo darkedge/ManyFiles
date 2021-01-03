@@ -1,8 +1,6 @@
 #pragma once
 #include "ErrorExit.h"
 
-#define MJ_TASKEND (WM_USER + 0)
-
 namespace mj
 {
   // A cache line for work object context.
@@ -15,8 +13,10 @@ namespace mj
 
   struct Task;
 
-  typedef void (*TaskEndFn)(mj::TaskContext* pContext);
-  typedef void (*CTaskEndFn)(const mj::TaskContext* pContext);
+  template <class T>
+  using TaskEndFn = void (*)(T* pContext);
+  template <class T>
+  using CTaskEndFn = void (*)(const T* pContext);
 
   struct Task
   {
@@ -38,19 +38,37 @@ namespace mj
     /// <summary>
     /// Function that does the work for this task
     /// </summary>
-    TaskEndFn pCallback;
+    TaskEndFn<mj::TaskContext> pCallback;
 
     /// <summary>
     /// Optional function to call on the main thread after this task finishes
     /// </summary>
-    CTaskEndFn pMainThreadCallback;
+    CTaskEndFn<mj::TaskContext> pMainThreadCallback;
 
     void Submit();
     void Wait();
   };
 
-  void ThreadpoolInit();
-  Task* ThreadpoolTaskAlloc(TaskEndFn pCallback, CTaskEndFn pMainThreadCallback = nullptr);
+  namespace detail
+  {
+    Task* ThreadpoolTaskAlloc(TaskEndFn<mj::TaskContext> pInitContext, TaskEndFn<mj::TaskContext> pCallback,
+                              CTaskEndFn<mj::TaskContext> pMainThreadCallback = nullptr);
+  }
+
+  void ThreadpoolInit(HWND hWnd, UINT msg);
+  template <class T>
+  Task* ThreadpoolTaskAlloc(TaskEndFn<T> pInitContext, TaskEndFn<T> pCallback,
+                            CTaskEndFn<T> pMainThreadCallback = nullptr)
+  {
+    // Note: We are casting the function pointer to prevent having to cast a TaskContext
+    // to a user-defined type on the user side.
+    // This _should_ work on all systems, as long as the parameter types are "compatible".
+    return detail::ThreadpoolTaskAlloc(reinterpret_cast<TaskEndFn<mj::TaskContext>>(pInitContext),
+                                       reinterpret_cast<TaskEndFn<mj::TaskContext>>(pCallback),
+                                       reinterpret_cast<CTaskEndFn<mj::TaskContext>>(pMainThreadCallback));
+  }
+
+  void ThreadpoolTaskEnd(WPARAM wParam, LPARAM lParam);
   void ThreadpoolTaskFree(Task* pTask);
   void ThreadpoolDestroy();
 
