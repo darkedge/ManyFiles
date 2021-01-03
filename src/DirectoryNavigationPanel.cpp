@@ -142,6 +142,7 @@ void mj::DirectoryNavigationPanel::CheckFolderIconPrerequisites()
   {
     this->pFolderIcon = this->ConvertIcon(this->pFolderIconHandle);
     static_cast<void>(::DestroyIcon(this->pFolderIconHandle));
+    CheckEverythingQueryPrerequisites();
   }
 }
 
@@ -149,7 +150,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 {
   ZoneScoped;
   auto* pFactory = svc::DWriteFactory();
-  if (pFactory && queryDone)
+  if (pFactory && queryDone && this->pFolderIcon)
   {
     // Display results.
     DWORD numResults = Everything_GetNumResults();
@@ -175,7 +176,10 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
       {
         MJ_UNINITIALIZED SHFILEINFO fileInfo;
         Everything_GetResultFullPathNameW(i, fullPathName, MJ_COUNTOF(fullPathName));
-        MJ_ERR_ZERO(SHGetFileInfoW(fullPathName, 0, &fileInfo, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON));
+        {
+          ZoneScopedN("SHGetFileInfoW");
+          MJ_ERR_ZERO(SHGetFileInfoW(fullPathName, 0, &fileInfo, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON));
+        }
         MJ_DEFER(::DestroyIcon(fileInfo.hIcon));
         entry.pIcon = this->ConvertIcon(fileInfo.hIcon);
       }
