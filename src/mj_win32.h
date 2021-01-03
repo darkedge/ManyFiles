@@ -38,6 +38,7 @@ namespace mj
       this->pBaseAddress = pBaseAddress;
     }
 
+    [[nodiscard]]
     virtual void* Allocate(size_t size) override
     {
       return ::VirtualAlloc(nullptr,                  //
@@ -68,6 +69,7 @@ namespace mj
       pHeap = ::GetProcessHeap();
     }
 
+    [[nodiscard]]
     virtual void* Allocate(size_t size) override
     {
       return ::HeapAlloc(pHeap, HEAP_NO_SERIALIZE, size);
