@@ -244,7 +244,10 @@ void mj::MainWindow::Init(HWND hWnd)
   this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
 
   // Just run this in the main thread for now. WIC and ShellApi functions depend on this.
-  MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE));
+  {
+    ZoneScopedN("CoInitializeEx");
+    MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE));
+  }
 
   // TODO: Don't use the virtual allocator for ServiceLocator
   svc::Init(&this->allocator);
@@ -399,6 +402,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   {
   case WM_CREATE:
   {
+    ZoneScopedN("WM_CREATE");
     // Loaded DLLs: uxtheme, combase, msctf, oleaut32
 
     // Copy the lpParam from CreateWindowEx to this window's user data
