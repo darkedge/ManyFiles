@@ -460,7 +460,7 @@ void mj::MainWindow::Run()
   wc.lpfnWndProc   = mj::MainWindow::WindowProc;
   wc.hInstance     = HINST_THISCOMPONENT;
   wc.lpszClassName = L"Class Name";
-  wc.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+  wc.hCursor       = ::LoadCursorW(nullptr, IDC_ARROW);
   MJ_ERR_ZERO(cls = ::RegisterClassExW(&wc));
   LPWSTR classAtom = MAKEINTATOM(cls);
 

@@ -45,6 +45,7 @@ struct SetThreadpoolThreadMinimumTask
 {
   static void ExecuteAsync(SetThreadpoolThreadMinimumTask* pTask)
   {
+    ZoneScoped;
     MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
   }
 };
