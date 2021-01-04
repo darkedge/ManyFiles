@@ -23,7 +23,7 @@ namespace mj
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-    void Init(HWND hWnd);
+    void Init();
     void Resize();
     void Paint();
     void Destroy();

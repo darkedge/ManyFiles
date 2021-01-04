@@ -297,14 +297,14 @@ namespace mj
     /// <summary>
     /// Adds a new element. Can trigger a reallocation.
     /// </summary>
-    bool Add(const T& t)
+    T* Add(const T& t)
     {
       if (this->numElements < this->capacity)
       {
         T* ptr = this->pData + this->numElements;
         *ptr   = t;
         ++this->numElements;
-        return true;
+        return ptr;
       }
       else
       {

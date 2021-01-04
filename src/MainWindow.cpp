@@ -238,7 +238,7 @@ void mj::MainWindow::ReleaseUnusedObjects()
   }
 }
 
-void mj::MainWindow::Init(HWND hWnd)
+void mj::MainWindow::Init()
 {
   ZoneScoped;
   this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
@@ -412,7 +412,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     svc::ProvideMainWindowHandle(hWnd);
 
     mj::ThreadpoolInit(hWnd, MJ_WM_TASK);
-    pMainWindow->Init(hWnd);
+    pMainWindow->Init();
 
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
