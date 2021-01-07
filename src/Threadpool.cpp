@@ -5,51 +5,81 @@
 #include "ServiceLocator.h"
 #include "../3rdparty/tracy/Tracy.hpp"
 
-static constexpr auto MAX_TASKS = 4096;
+static constexpr auto MAX_TASKS   = 4096;
+static constexpr auto NUM_THREADS = 8;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
-static mj::Task s_TaskFreeList[MAX_TASKS];
-static mj::Task* s_pTaskHead;
-
-static TP_CALLBACK_ENVIRON s_CallbackEnvironment;
-static TP_POOL* s_pPool;
-static TP_CLEANUP_GROUP* s_pCleanupGroup;
-static CRITICAL_SECTION s_CriticalSection;
+static mj::TaskContext* s_pTaskHead;
 static HWND s_Hwnd;
 static UINT s_Msg;
+static HANDLE s_Threads[NUM_THREADS];
+static HANDLE s_Iocp;
+
+struct EThreadpoolEvent
+{
+  enum Enum
+  {
+    Quit,   // Manual reset event to notify all threads
+    NewJob, // Auto reset event to notify a single thread of a new job
+    Count,
+  };
+};
+
+// ThreadMain events
+static HANDLE s_Events[EThreadpoolEvent::Count];
+
+/// <summary>
+/// The return value of this function can be cast to anything you want
+/// (as long as its size is less or equal)
+/// </summary>
+mj::TaskContext* mj::detail::ThreadpoolAllocTaskContext()
+{
+  MJ_EXIT_NULL(s_pTaskHead);
+
+  mj::TaskContext* pTaskContext = s_pTaskHead;
+
+  s_pTaskHead = s_pTaskHead->pNextFreeNode;
+
+  return pTaskContext;
+}
 
 namespace mj
 {
-  static Task* TaskAlloc()
+  static void ThreadpoolFreeContext(TaskContext* pContext)
   {
-    MJ_EXIT_NULL(s_pTaskHead);
-
-    Task* pTask = s_pTaskHead;
-
-    ::EnterCriticalSection(&s_CriticalSection);
-    s_pTaskHead = s_pTaskHead->pNextFreeNode;
-    ::LeaveCriticalSection(&s_CriticalSection);
-
-    return pTask;
-  }
-
-  static void TaskFree(Task* pNode)
-  {
-    ::EnterCriticalSection(&s_CriticalSection);
+    // Write a new TaskContext over this piece of memory
+    TaskContext* pNode   = new (pContext) TaskContext;
     pNode->pNextFreeNode = s_pTaskHead;
     s_pTaskHead          = pNode;
-    ::LeaveCriticalSection(&s_CriticalSection);
   }
 } // namespace mj
 
-struct SetThreadpoolThreadMinimumTask
+static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
 {
-  static void ExecuteAsync(SetThreadpoolThreadMinimumTask* pTask)
+  static_cast<void>(lpThreadParameter);
+
+  while (true)
   {
-    ZoneScoped;
-    static_cast<void>(pTask);
-    MJ_ERR_ZERO(::SetThreadpoolThreadMinimum(s_pPool, 8));
+    MJ_UNINITIALIZED DWORD numBytes;
+    MJ_UNINITIALIZED mj::Task* pTask;
+    MJ_UNINITIALIZED LPOVERLAPPED pOverlapped;
+
+    BOOL ret =
+        ::GetQueuedCompletionStatus(s_Iocp, &numBytes, reinterpret_cast<PULONG_PTR>(&pTask), &pOverlapped, INFINITE);
+    if (ret == FALSE && ::GetLastError() == ERROR_ABANDONED_WAIT_0)
+    {
+      break;
+    }
+
+    if (pTask)
+    {
+      pTask->Execute();
+
+      MJ_ERR_ZERO(::PostMessageW(s_Hwnd, s_Msg, reinterpret_cast<WPARAM>(pTask), 0));
+    }
   }
-};
+
+  return 0;
+}
 
 void mj::ThreadpoolInit(HWND hWnd, UINT msg)
 {
@@ -57,104 +87,46 @@ void mj::ThreadpoolInit(HWND hWnd, UINT msg)
 
   s_Hwnd = hWnd;
   s_Msg  = msg;
-  ::InitializeThreadpoolEnvironment(&s_CallbackEnvironment);
-
-  MJ_ERR_IF(s_pPool = ::CreateThreadpool(nullptr), nullptr);
-
-  ::SetThreadpoolThreadMaximum(s_pPool, 8);
-
-  MJ_ERR_IF(s_pCleanupGroup = ::CreateThreadpoolCleanupGroup(), nullptr);
-
-  ::SetThreadpoolCallbackPool(&s_CallbackEnvironment, s_pPool);
-  ::SetThreadpoolCallbackCleanupGroup(&s_CallbackEnvironment, s_pCleanupGroup, nullptr);
-
-  ::InitializeCriticalSection(&s_CriticalSection);
+  MJ_ERR_IF(s_Iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
 
   // Initialize free list
-  Task* pNext = nullptr;
+  mj::TaskContext* pNext = nullptr;
   for (int i = 0; i < MAX_TASKS; i++)
   {
-    s_TaskFreeList[i].pNextFreeNode = pNext;
-    s_TaskFreeList[i].pContext      = &s_TaskContextArray[i];
-
-    pNext = &s_TaskFreeList[i];
+    s_TaskContextArray[i].pNextFreeNode = pNext;
+    pNext                               = &s_TaskContextArray[i];
   }
+  s_pTaskHead = &s_TaskContextArray[MAX_TASKS - 1];
 
-  s_pTaskHead = &s_TaskFreeList[MAX_TASKS - 1];
+  s_Events[EThreadpoolEvent::Quit]   = CreateEventW(nullptr, true, false, nullptr);
+  s_Events[EThreadpoolEvent::NewJob] = CreateEventW(nullptr, false, false, nullptr);
 
-  // Set the thread pool minimum in an async task, so the main thread can
-  // continue while we create new threads.
+  for (int i = 0; i < NUM_THREADS; i++)
   {
-    mj::Task* pTask = mj::ThreadpoolTaskAlloc<SetThreadpoolThreadMinimumTask>(
-        nullptr, SetThreadpoolThreadMinimumTask::ExecuteAsync, nullptr);
-    pTask->Submit();
+    MJ_ERR_IF(s_Threads[i] = CreateThread(nullptr,    // default security attributes
+                                          0,          // default stack size
+                                          ThreadMain, // entry point
+                                          nullptr,    // argument
+                                          0,          // default flags
+                                          nullptr),
+              nullptr);
   }
 }
 
-static void TaskMain(TP_CALLBACK_INSTANCE* pInstance, void* pContext, TP_WORK* pWork)
+void mj::ThreadpoolTaskEnd(WPARAM wParam)
 {
-  static_cast<void>(pInstance);
-  static_cast<void>(pWork);
-
-  mj::Task* pTask = static_cast<mj::Task*>(pContext);
-
-  pTask->pCallback(pTask->pContext);
-
-  if (pTask->pMainThreadCallback)
-  {
-    MJ_ERR_ZERO(::PostMessageW(s_Hwnd, s_Msg, reinterpret_cast<WPARAM>(pTask),
-                               reinterpret_cast<LPARAM>(pTask->pMainThreadCallback)));
-  }
-};
-
-mj::Task* mj::detail::ThreadpoolTaskAlloc(mj::TaskContext** pInitContext, TaskEndFn<mj::TaskContext> pCallback,
-                                          CTaskEndFn<mj::TaskContext> pMainThreadCallback)
-{
-  mj::Task* pTask = mj::TaskAlloc();
-  if (pInitContext)
-  {
-    *pInitContext = pTask->pContext;
-  }
-  pTask->pCallback           = pCallback;
-  pTask->pMainThreadCallback = pMainThreadCallback;
-  MJ_ERR_IF(pTask->pWork = ::CreateThreadpoolWork(TaskMain, pTask, &s_CallbackEnvironment), nullptr);
-  return pTask;
-}
-
-void mj::ThreadpoolTaskEnd(WPARAM wParam, LPARAM lParam)
-{
-  mj::Task* pTask                     = reinterpret_cast<mj::Task*>(wParam);
-  mj::CTaskEndFn<mj::TaskContext> pFn = reinterpret_cast<mj::CTaskEndFn<mj::TaskContext>>(lParam);
-  if (pFn)
-  {
-    pFn(pTask->pContext);
-  }
-
-  mj::ThreadpoolTaskFree(pTask);
-}
-
-void mj::ThreadpoolTaskFree(Task* pTask)
-{
-  ::CloseThreadpoolWork(pTask->pWork);
-  pTask->pWork = nullptr;
-  mj::TaskFree(pTask);
+  mj::Task* pTask = reinterpret_cast<mj::Task*>(wParam);
+  pTask->OnDone();
+  mj::ThreadpoolFreeContext(reinterpret_cast<mj::TaskContext*>(pTask));
 }
 
 void mj::ThreadpoolDestroy()
 {
-  ::CloseThreadpoolCleanupGroupMembers(s_pCleanupGroup, false, nullptr);
-  ::CloseThreadpoolCleanupGroup(s_pCleanupGroup);
-  ::CloseThreadpool(s_pPool);
-  ::DestroyThreadpoolEnvironment(&s_CallbackEnvironment);
-  ::DeleteCriticalSection(&s_CriticalSection);
+  ::CloseHandle(s_Iocp);
+  s_Iocp = nullptr;
 }
 
-void mj::Task::Submit()
+void mj::ThreadpoolSubmitTask(mj::Task* pTask)
 {
-  ::SubmitThreadpoolWork(this->pWork);
-}
-
-void mj::Task::Wait()
-{
-  ::WaitForThreadpoolWorkCallbacks(this->pWork, false);
+  ::PostQueuedCompletionStatus(s_Iocp, 0, reinterpret_cast<ULONG_PTR>(pTask), nullptr);
 }

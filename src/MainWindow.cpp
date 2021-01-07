@@ -10,25 +10,25 @@
 #define MJ_WM_SIZE (WM_USER + 0)
 #define MJ_WM_TASK (WM_USER + 1)
 
-struct CreateIWICImagingFactoryContext
+struct CreateIWICImagingFactoryContext : public mj::Task
 {
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
   MJ_UNINITIALIZED IWICImagingFactory* pWicFactory;
 
-  static void ExecuteAsync(CreateIWICImagingFactoryContext* pContext)
+  virtual void Execute() override
   {
     ZoneScoped;
     MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
-                                      (IID_PPV_ARGS(&pContext->pWicFactory))));
+                                      (IID_PPV_ARGS(&this->pWicFactory))));
   }
 
-  static void OnDone(const CreateIWICImagingFactoryContext* pContext)
+  virtual void OnDone() override
   {
-    svc::ProvideWicFactory(pContext->pWicFactory);
+    svc::ProvideWicFactory(this->pWicFactory);
   }
 };
 
-struct CreateID3D11DeviceContext
+struct CreateID3D11DeviceContext : public mj::Task
 {
   // In
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
@@ -36,7 +36,7 @@ struct CreateID3D11DeviceContext
   MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
   MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
 
-  static void ExecuteAsync(CreateID3D11DeviceContext* pContext)
+  virtual void Execute() override
   {
     ZoneScoped;
     // This flag adds support for surfaces with a different color channel ordering than the API default.
@@ -68,25 +68,25 @@ struct CreateID3D11DeviceContext
                                        featureLevels, // list of feature levels this app can support
                                        ARRAYSIZE(featureLevels), // number of possible feature levels
                                        D3D11_SDK_VERSION,        //
-                                       &pContext->pD3d11Device,  // returns the Direct3D device created
+                                       &this->pD3d11Device,      // returns the Direct3D device created
                                        &featureLevel,            // returns feature level of device created
                                        nullptr                   // No ID3D11DeviceContext will be returned.
                                        ));
 
     // Obtain the underlying DXGI device of the Direct3D11 device.
-    MJ_ERR_HRESULT(pContext->pD3d11Device->QueryInterface<IDXGIDevice1>(&pContext->pDxgiDevice));
+    MJ_ERR_HRESULT(this->pD3d11Device->QueryInterface<IDXGIDevice1>(&this->pDxgiDevice));
 
     // Ensure that DXGI doesn't queue more than one frame at a time.
-    MJ_ERR_HRESULT(pContext->pDxgiDevice->SetMaximumFrameLatency(1));
+    MJ_ERR_HRESULT(this->pDxgiDevice->SetMaximumFrameLatency(1));
   }
 
-  static void OnDone(const CreateID3D11DeviceContext* pContext)
+  virtual void OnDone() override
   {
-    pContext->pMainWindow->OnCreateID3D11Device(pContext->pD3d11Device, pContext->pDxgiDevice);
+    this->pMainWindow->OnCreateID3D11Device(this->pD3d11Device, this->pDxgiDevice);
   }
 };
 
-struct CreateIDXGISwapChain1Context
+struct CreateIDXGISwapChain1Context : public mj::Task
 {
   // In
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
@@ -95,12 +95,12 @@ struct CreateIDXGISwapChain1Context
   // Out
   MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
 
-  static void ExecuteAsync(CreateIDXGISwapChain1Context* pContext)
+  virtual void Execute() override
   {
     ZoneScoped;
     // Identify the physical adapter (GPU or card) this device is runs on.
     MJ_UNINITIALIZED IDXGIAdapter* pDxgiAdapter;
-    MJ_ERR_HRESULT(pContext->pDxgiDevice->GetAdapter(&pDxgiAdapter));
+    MJ_ERR_HRESULT(this->pDxgiDevice->GetAdapter(&pDxgiAdapter));
     MJ_DEFER(pDxgiAdapter->Release());
 
     // Get the factory object that created the DXGI device.
@@ -129,23 +129,23 @@ struct CreateIDXGISwapChain1Context
       // Get the final swap chain for this window from the DXGI factory.
       {
         ZoneScopedN("IDXGIFactory2::CreateSwapChainForHwnd");
-        MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(pContext->pD3d11Device,  //
+        MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(this->pD3d11Device,      //
                                                             svc::MainWindowHandle(), //
                                                             &swapChainDesc,          //
                                                             &fullscreenDesc,         //
                                                             nullptr,                 // allow on all displays
-                                                            &pContext->pSwapChain));
+                                                            &this->pSwapChain));
       }
     }
   }
 
-  static void OnDone(const CreateIDXGISwapChain1Context* pContext)
+  virtual void OnDone() override
   {
-    pContext->pMainWindow->OnCreateIDXGISwapChain1(pContext->pSwapChain);
+    this->pMainWindow->OnCreateIDXGISwapChain1(this->pSwapChain);
   }
 };
 
-struct CreateID2D1DeviceContextContext
+struct CreateID2D1DeviceContextContext : public mj::Task
 {
   // In
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
@@ -154,7 +154,7 @@ struct CreateID2D1DeviceContextContext
   // Out
   MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
 
-  static void ExecuteAsync(CreateID2D1DeviceContextContext* pContext)
+  virtual void Execute() override
   {
     ZoneScoped;
     // Obtain the Direct2D device for 2-D rendering.
@@ -168,20 +168,20 @@ struct CreateID2D1DeviceContextContext
     MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
     {
       ZoneScopedN("ID2D1Factory1::CreateDevice");
-      MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(pContext->pDxgiDevice, &pD2d1Device));
+      MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(this->pDxgiDevice, &pD2d1Device));
     }
     MJ_DEFER(pD2d1Device->Release());
 
     // Get Direct2D device's corresponding device context object.
     {
       ZoneScopedN("ID2D1Device::CreateDeviceContext");
-      MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pContext->pDeviceContext));
+      MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &this->pDeviceContext));
     }
   }
 
-  static void OnDone(const CreateID2D1DeviceContextContext* pContext)
+  virtual void OnDone() override
   {
-    pContext->pMainWindow->OnCreateID2D1DeviceContext(pContext->pDeviceContext);
+    this->pMainWindow->OnCreateID2D1DeviceContext(this->pDeviceContext);
   }
 };
 
@@ -192,22 +192,18 @@ void mj::MainWindow::OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevic
   this->pDxgiDevice  = pDxgiDevice;
 
   {
-    CreateIDXGISwapChain1Context* pContext;
-    mj::Task* pTask        = mj::ThreadpoolTaskAlloc(&pContext, CreateIDXGISwapChain1Context::ExecuteAsync,
-                                              CreateIDXGISwapChain1Context::OnDone);
-    pContext->pMainWindow  = this;
-    pContext->pD3d11Device = this->pD3d11Device;
-    pContext->pDxgiDevice  = this->pDxgiDevice;
-    pTask->Submit();
+    CreateIDXGISwapChain1Context* pTask = mj::ThreadpoolCreateTask<CreateIDXGISwapChain1Context>();
+    pTask->pMainWindow                  = this;
+    pTask->pD3d11Device                 = this->pD3d11Device;
+    pTask->pDxgiDevice                  = this->pDxgiDevice;
+    mj::ThreadpoolSubmitTask(pTask);
   }
 
   {
-    CreateID2D1DeviceContextContext* pContext;
-    mj::Task* pTask       = mj::ThreadpoolTaskAlloc(&pContext, CreateID2D1DeviceContextContext::ExecuteAsync,
-                                              CreateID2D1DeviceContextContext::OnDone);
-    pContext->pMainWindow = this;
-    pContext->pDxgiDevice = this->pDxgiDevice;
-    pTask->Submit();
+    CreateID2D1DeviceContextContext* pTask = mj::ThreadpoolCreateTask<CreateID2D1DeviceContextContext>();
+    pTask->pMainWindow                     = this;
+    pTask->pDxgiDevice                     = this->pDxgiDevice;
+    mj::ThreadpoolSubmitTask(pTask);
   }
 }
 
@@ -258,18 +254,14 @@ void mj::MainWindow::Init()
   // Start a bunch of tasks
 
   {
-    CreateIWICImagingFactoryContext* pContext;
-    mj::Task* pTask       = mj::ThreadpoolTaskAlloc(&pContext, CreateIWICImagingFactoryContext::ExecuteAsync,
-                                              CreateIWICImagingFactoryContext::OnDone);
-    pContext->pMainWindow = this;
-    pTask->Submit();
+    CreateIWICImagingFactoryContext* pTask = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
+    pTask->pMainWindow                     = this;
+    mj::ThreadpoolSubmitTask(pTask);
   }
   {
-    CreateID3D11DeviceContext* pContext;
-    mj::Task* pTask =
-        mj::ThreadpoolTaskAlloc(&pContext, CreateID3D11DeviceContext::ExecuteAsync, CreateID3D11DeviceContext::OnDone);
-    pContext->pMainWindow = this;
-    pTask->Submit();
+    CreateID3D11DeviceContext* pTask = mj::ThreadpoolCreateTask<CreateID3D11DeviceContext>();
+    pTask->pMainWindow               = this;
+    mj::ThreadpoolSubmitTask(pTask);
   }
 
   // DirectWrite factory
@@ -440,7 +432,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case MJ_WM_TASK:
   {
-    mj::ThreadpoolTaskEnd(wParam, lParam);
+    mj::ThreadpoolTaskEnd(wParam);
     return 0;
   }
   default:

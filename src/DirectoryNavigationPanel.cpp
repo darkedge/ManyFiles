@@ -42,49 +42,53 @@ ID2D1Bitmap1* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
   return pBitmap;
 }
 
-struct LoadFolderIconContext
+struct LoadFolderIconContext : public mj::Task
 {
   HICON hIcon;
   mj::DirectoryNavigationPanel* pParent;
 
-  static void ExecuteAsync(LoadFolderIconContext* pContext)
+  virtual void Execute() override
   {
     ZoneScoped;
     MJ_UNINITIALIZED SHSTOCKICONINFO info;
     info.cbSize = sizeof(SHSTOCKICONINFO);
     MJ_ERR_HRESULT(::SHGetStockIconInfo(SIID_FOLDER, SHGSI_ICON | SHGSI_SMALLICON, &info));
-    pContext->hIcon = info.hIcon;
+    this->hIcon = info.hIcon;
   }
 
-  static void OnDone(const LoadFolderIconContext* pContext)
+  virtual void OnDone() override
   {
-    pContext->pParent->OnLoadFolderIcon(pContext->hIcon);
+    this->pParent->OnLoadFolderIcon(this->hIcon);
   }
 };
 
-struct EverythingQueryContext
+struct EverythingQueryContext : public mj::Task
 {
   mj::DirectoryNavigationPanel* pParent;
   mj::String directory;
   mj::Allocation searchBuffer;
 
-  static void ExecuteAsync(EverythingQueryContext* pContext)
+  EverythingQueryContext() : directory(nullptr, 0)
+  {
+  }
+
+  virtual void Execute() override
   {
     ZoneScoped;
     mj::LinearAllocator alloc;
-    alloc.Init(pContext->searchBuffer);
+    alloc.Init(this->searchBuffer);
 
     mj::ArrayList<wchar_t> arrayList;
-    arrayList.Init(&alloc, pContext->searchBuffer.numBytes / sizeof(wchar_t));
+    arrayList.Init(&alloc, this->searchBuffer.numBytes / sizeof(wchar_t));
 
     mj::StringBuilder sb;
     sb.SetArrayList(&arrayList);
 
-    mj::String search = sb.Append(L"\"")                 //
-                            .Append(pContext->directory) //
-                            .Append(L"\" !\"")           //
-                            .Append(pContext->directory) //
-                            .Append(L"*\\*\"")           //
+    mj::String search = sb.Append(L"\"")             //
+                            .Append(this->directory) //
+                            .Append(L"\" !\"")       //
+                            .Append(this->directory) //
+                            .Append(L"*\\*\"")       //
                             .ToString();
 
     Everything_SetSearchW(search.ptr);
@@ -93,9 +97,9 @@ struct EverythingQueryContext
     }
   }
 
-  static void OnDone(const EverythingQueryContext* pContext)
+  virtual void OnDone() override
   {
-    pContext->pParent->OnEverythingQuery();
+    this->pParent->OnEverythingQuery();
   }
 };
 
@@ -116,22 +120,18 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 
   // Start tasks
   {
-    MJ_UNINITIALIZED LoadFolderIconContext* pContext;
-    mj::Task* pTask =
-        mj::ThreadpoolTaskAlloc(&pContext, LoadFolderIconContext::ExecuteAsync, LoadFolderIconContext::OnDone);
-    pContext->pParent = this;
-    pTask->Submit();
+    LoadFolderIconContext* pTask = mj::ThreadpoolCreateTask<LoadFolderIconContext>();
+    pTask->pParent               = this;
+    mj::ThreadpoolSubmitTask(pTask);
   }
 
   {
-    MJ_UNINITIALIZED EverythingQueryContext* pContext;
-    mj::Task* pTask =
-        mj::ThreadpoolTaskAlloc(&pContext, EverythingQueryContext::ExecuteAsync, EverythingQueryContext::OnDone);
-    pContext->pParent      = this;
-    pContext->directory    = mj::String(LR"(C:\)");
-    pContext->searchBuffer = this->searchBuffer;
-    this->queryDone        = false;
-    pTask->Submit();
+    EverythingQueryContext* pTask = mj::ThreadpoolCreateTask<EverythingQueryContext>();
+    pTask->pParent                = this;
+    pTask->directory              = mj::String(LR"(C:\)");
+    pTask->searchBuffer           = this->searchBuffer;
+    this->queryDone               = false;
+    mj::ThreadpoolSubmitTask(pTask);
   }
 }
 

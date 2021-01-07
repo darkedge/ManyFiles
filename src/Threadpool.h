@@ -8,51 +8,42 @@ namespace mj
 #pragma warning(disable : 4324) // structure was padded due to alignment specifier (Yes, we know. That's the point.)
   struct alignas(64) TaskContext
   {
+    /// <summary>
+    /// (Internal) Pointer to next available TaskContext node
+    /// </summary>
+    TaskContext* pNextFreeNode;
   };
 #pragma warning(pop)
 
-  struct Task;
+  class Task;
 
-  template <class T>
-  using TaskEndFn = void (*)(T* pContext);
-  template <class T>
-  using CTaskEndFn = void (*)(const T* pContext);
+  class ITaskCompletionHandler
+  {
+  public:
+    virtual void OnTaskCompletion(Task* pTask) = 0;
+  };
 
   struct Task
   {
     /// <summary>
-    /// (Internal) Pointer to next available Task node
+    /// Called from a threadpool thread.
     /// </summary>
-    Task* pNextFreeNode;
+    virtual void Execute() = 0;
 
     /// <summary>
-    /// Pointer to work object context (cache line)
+    /// Called in the main thread when the task is done.
     /// </summary>
-    mj::TaskContext* pContext;
+    virtual void OnDone()
+    {
+      // Optional
+    }
 
-    /// <summary>
-    /// Win32 threadpool work object handle
-    /// </summary>
-    TP_WORK* pWork;
-
-    /// <summary>
-    /// Function that does the work for this task
-    /// </summary>
-    TaskEndFn<mj::TaskContext> pCallback;
-
-    /// <summary>
-    /// Optional function to call on the main thread after this task finishes
-    /// </summary>
-    CTaskEndFn<mj::TaskContext> pMainThreadCallback;
-
-    void Submit();
-    void Wait();
+    ITaskCompletionHandler* pHandler;
   };
 
   namespace detail
   {
-    Task* ThreadpoolTaskAlloc(mj::TaskContext** pInitContext, TaskEndFn<mj::TaskContext> pCallback,
-                              CTaskEndFn<mj::TaskContext> pMainThreadCallback = nullptr);
+    TaskContext* ThreadpoolAllocTaskContext();
   }
 
   /// <summary>
@@ -61,20 +52,26 @@ namespace mj
   /// <param name="hWnd">The window to send a message to once a task has finished</param>
   /// <param name="msg">The message ID to send. Should be WM_USER + some number.</param>
   void ThreadpoolInit(HWND hWnd, UINT msg);
+
   template <class T>
-  Task* ThreadpoolTaskAlloc(T** pInitContext, TaskEndFn<T> pCallback,
-                            CTaskEndFn<T> pMainThreadCallback = nullptr)
+  T* ThreadpoolCreateTask(ITaskCompletionHandler* pHandler = nullptr)
   {
-    // Note: We are casting the function pointer to prevent having to cast a TaskContext
-    // to a user-defined type on the user side.
-    // This _should_ work on all systems, as long as the parameter types are "compatible".
-    return detail::ThreadpoolTaskAlloc(reinterpret_cast<mj::TaskContext**>(pInitContext),
-                                       reinterpret_cast<TaskEndFn<mj::TaskContext>>(pCallback),
-                                       reinterpret_cast<CTaskEndFn<mj::TaskContext>>(pMainThreadCallback));
+    static_assert(sizeof(T) <= sizeof(TaskContext));
+    static_assert(std::is_base_of<Task, T>::value);
+
+    TaskContext* pContext = detail::ThreadpoolAllocTaskContext();
+    T* pTask              = nullptr;
+
+    if (pContext)
+    {
+      pTask           = new (pContext) T;
+      pTask->pHandler = pHandler;
+    }
+
+    return pTask;
   }
 
-  void ThreadpoolTaskEnd(WPARAM wParam, LPARAM lParam);
-  void ThreadpoolTaskFree(Task* pTask);
+  void ThreadpoolTaskEnd(WPARAM wParam);
+  void ThreadpoolSubmitTask(Task* pTask);
   void ThreadpoolDestroy();
-
 } // namespace mj
