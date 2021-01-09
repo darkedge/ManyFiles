@@ -115,6 +115,7 @@
     <ClInclude Include="..\src\StringBuilder.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\TracyAllocatorWrapper.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest">
@@ -154,6 +155,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="FloatMagic.ruleset" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\res\Folder_6222.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include "..\3rdparty\tracy\Tracy.hpp"
 #include "Threadpool.h"
+#include "../vs/resource.h"
 
 static float ConvertPointSizeToDIP(float points)
 {
@@ -50,10 +51,7 @@ struct LoadFolderIconContext : public mj::Task
   virtual void Execute() override
   {
     ZoneScoped;
-    MJ_UNINITIALIZED SHSTOCKICONINFO info;
-    info.cbSize = sizeof(SHSTOCKICONINFO);
-    MJ_ERR_HRESULT(::SHGetStockIconInfo(SIID_FOLDER, SHGSI_ICON | SHGSI_SMALLICON, &info));
-    this->hIcon = info.hIcon;
+    this->hIcon = ::LoadIconW(HINST_THISCOMPONENT, MAKEINTRESOURCEW(IDI_FOLDER));
   }
 
   virtual void OnDone() override

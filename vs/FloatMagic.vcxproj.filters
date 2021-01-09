@@ -40,5 +40,12 @@
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="..\src\TracyAllocatorWrapper.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\res\Folder_6222.ico" />
   </ItemGroup>
 </Project>
