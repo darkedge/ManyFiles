@@ -51,7 +51,8 @@ struct LoadFolderIconContext : public mj::Task
   virtual void Execute() override
   {
     ZoneScoped;
-    this->hIcon = ::LoadIconW(HINST_THISCOMPONENT, MAKEINTRESOURCEW(IDI_FOLDER));
+    this->hIcon = static_cast<HICON>(
+        ::LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCEW(IDI_FOLDER), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR));
   }
 
   virtual void OnDone() override
