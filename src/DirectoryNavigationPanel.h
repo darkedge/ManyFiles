@@ -22,7 +22,10 @@ namespace mj
     ID2D1Bitmap1* pIcon;
   };
 
-  class DirectoryNavigationPanel : public IControl, public svc::IWICFactoryObserver, public svc::ID2D1DeviceContextObserver, public svc::IDWriteFactoryObserver
+  class DirectoryNavigationPanel : public IControl,
+                                   public svc::IWICFactoryObserver,
+                                   public svc::ID2D1DeviceContextObserver,
+                                   public svc::IDWriteFactoryObserver
   {
   private:
     ID2D1SolidColorBrush* pBlackBrush;

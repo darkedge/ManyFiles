@@ -64,7 +64,7 @@ struct LoadFolderIconContext : public mj::Task
 
 struct EverythingQueryContext : public mj::Task
 {
-  mj::DirectoryNavigationPanel* pParent;
+  mj::DirectoryNavigationPanel* pParent = nullptr;
   mj::String directory;
   mj::Allocation searchBuffer;
 
