@@ -22,6 +22,7 @@ struct CreateIWICImagingFactoryContext : public mj::Task
   virtual void Execute() override
   {
     ZoneScoped;
+    // TODO: Can cause exception c0000374?
     MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
                                       (IID_PPV_ARGS(&this->pWicFactory))));
   }

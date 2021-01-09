@@ -52,7 +52,15 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_FOLDER               ICON                    "C:\\Repositories\\FloatMagic\\res\\Folder_6222.ico"
+IDI_FOLDER              ICON                    "C:\\Repositories\\FloatMagic\\res\\Folder_6222.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_FOLDER                PNG                     "C:\\Repositories\\FloatMagic\\res\\FolderClosed_16x.png"
 
 #endif    // Dutch (Netherlands) resources
 /////////////////////////////////////////////////////////////////////////////

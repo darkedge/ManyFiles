@@ -47,5 +47,6 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\res\Folder_6222.ico" />
+    <Image Include="..\res\FolderClosed_16x.png" />
   </ItemGroup>
 </Project>
