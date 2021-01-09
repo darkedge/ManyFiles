@@ -7,6 +7,8 @@ static IDWriteFactory* pDWriteFactory;
 static ID2D1DeviceContext* pD2D1DeviceContext;
 static IWICImagingFactory* pWicFactory;
 static HWND hWnd;
+static mj::AllocatorBase* s_pGeneralPurposeAllocator;
+
 // TODO: These should be sets, not arrays
 static mj::ArrayList<svc::IWICFactoryObserver*> s_WicFactoryObservers;
 static mj::ArrayList<svc::ID2D1DeviceContextObserver*> s_ID2D1DeviceContextObservers;
@@ -19,6 +21,17 @@ void svc::Init(mj::AllocatorBase* pAllocator)
   s_WicFactoryObservers.Init(pAllocator);
   s_ID2D1DeviceContextObservers.Init(pAllocator);
   s_IDWriteFactoryObservers.Init(pAllocator);
+}
+
+mj::AllocatorBase* svc::GeneralPurposeAllocator()
+{
+  MJ_EXIT_NULL(s_pGeneralPurposeAllocator);
+  return s_pGeneralPurposeAllocator;
+}
+
+void svc::ProvideGeneralPurposeAllocator(mj::AllocatorBase* pAllocator)
+{
+  s_pGeneralPurposeAllocator = pAllocator;
 }
 
 IDWriteFactory* svc::DWriteFactory()

@@ -7,6 +7,10 @@
 #include "..\3rdparty\tracy\Tracy.hpp"
 #include "Threadpool.h"
 
+#ifdef TRACY_ENABLE
+#include "TracyAllocatorWrapper.h"
+#endif
+
 #define MJ_WM_SIZE (WM_USER + 0)
 #define MJ_WM_TASK (WM_USER + 1)
 
@@ -237,7 +241,8 @@ void mj::MainWindow::ReleaseUnusedObjects()
 void mj::MainWindow::Init()
 {
   ZoneScoped;
-  this->allocator.Init(reinterpret_cast<LPVOID>(Tebibytes(1)));
+
+  auto pAllocator = svc::GeneralPurposeAllocator();
 
   // Just run this in the main thread for now. WIC and ShellApi functions depend on this.
   {
@@ -245,11 +250,10 @@ void mj::MainWindow::Init()
     MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE));
   }
 
-  // TODO: Don't use the virtual allocator for ServiceLocator
-  svc::Init(&this->allocator);
+  svc::Init(svc::GeneralPurposeAllocator());
 
-  this->pDirectoryNavigationPanel = this->allocator.New<DirectoryNavigationPanel>();
-  this->pDirectoryNavigationPanel->Init(&this->allocator);
+  this->pDirectoryNavigationPanel = pAllocator->New<DirectoryNavigationPanel>();
+  this->pDirectoryNavigationPanel->Init(pAllocator);
 
   // Start a bunch of tasks
 
@@ -280,8 +284,8 @@ void mj::MainWindow::Init()
   {
     ZoneScopedN("GetLogicalDriveStringsW");
     DWORD dw      = ::GetLogicalDriveStringsW(0, nullptr);
-    wchar_t* pBuf = this->allocator.New<wchar_t>(dw);
-    MJ_DEFER(this->allocator.Free(pBuf));
+    wchar_t* pBuf = pAllocator->New<wchar_t>(dw);
+    MJ_DEFER(pAllocator->Free(pBuf));
     dw           = ::GetLogicalDriveStringsW(dw, pBuf);
     wchar_t* ptr = pBuf;
     String str(nullptr);
@@ -442,9 +446,31 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   return ::DefWindowProcW(hWnd, message, wParam, lParam);
 }
 
+template <typename T>
+static mj::AllocatorBase* CreateAllocator()
+{
+  static_assert(std::is_base_of<mj::AllocatorBase, T>::value);
+
+#ifdef TRACY_ENABLE
+
+#endif
+}
+
 void mj::MainWindow::Run()
 {
   MJ_DEFER(this->Destroy());
+
+  mj::HeapAllocator generalPurposeAllocator;
+  generalPurposeAllocator.Init();
+  MJ_UNINITIALIZED mj::AllocatorBase* pAllocator;
+#ifdef TRACY_ENABLE
+  mj::TracyAllocatorWrapper wrapper;
+  wrapper.Init(&generalPurposeAllocator, "GP HeapAlloc");
+  pAllocator = &wrapper;
+#else
+  pAllocator = &generalPurposeAllocator;
+#endif
+  svc::ProvideGeneralPurposeAllocator(pAllocator);
 
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};

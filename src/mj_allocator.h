@@ -17,18 +17,19 @@ namespace mj
 
   class AllocatorBase
   {
+#if 1 // Interface
   public:
-    [[nodiscard]]
-    virtual void* Allocate(size_t size) = 0;
-    virtual void Free(void* ptr)        = 0;
+    [[nodiscard]] virtual void* Allocate(size_t size) = 0;
+    virtual void Free(void* ptr)                      = 0;
+#endif
 
+  public:
     /// <summary>
     /// Default construction using placement new.
     /// You MUST use this when creating polymorphic types.
     /// </summary>
     template <typename T>
-    [[nodiscard]]
-    T* New(void)
+    [[nodiscard]] T* New(void)
     {
       return new (this->Allocate(sizeof(T))) T;
     }
@@ -38,8 +39,7 @@ namespace mj
     /// You MUST use this when creating polymorphic types.
     /// </summary>
     template <typename T>
-    [[nodiscard]]
-    T* New(size_t numInstances)
+    [[nodiscard]] T* New(size_t numInstances)
     {
       T* pAllocation = static_cast<T*>(this->Allocate(numInstances * sizeof(T)));
 
@@ -51,8 +51,7 @@ namespace mj
       return pAllocation;
     }
 
-    [[nodiscard]]
-    mj::Allocation Allocation(size_t size)
+    [[nodiscard]] mj::Allocation Allocation(size_t size)
     {
       return mj::Allocation{ this->Allocate(size), size };
     }
@@ -61,8 +60,7 @@ namespace mj
   class NullAllocator : public AllocatorBase
   {
   public:
-    [[nodiscard]]
-    virtual void* Allocate(size_t size) override
+    [[nodiscard]] virtual void* Allocate(size_t size) override
     {
       static_cast<void>(size);
       return nullptr;

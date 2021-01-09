@@ -14,6 +14,7 @@
     <ClCompile Include="..\src\StringBuilder.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\DirectoryNavigationPanel.cpp" />
+    <ClCompile Include="..\src\TracyAllocatorWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -27,7 +28,6 @@
     <ClInclude Include="..\src\IControl.h" />
     <ClInclude Include="..\src\MainWindow.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
-    <ClInclude Include="..\src\mj_allocatordebug.h" />
     <ClInclude Include="..\src\mj_common.h" />
     <ClInclude Include="..\src\mj_hashtable.h" />
     <ClInclude Include="..\src\mj_math.h" />
@@ -39,5 +39,6 @@
     <ClInclude Include="..\src\StringBuilder.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
+    <ClInclude Include="..\src\TracyAllocatorWrapper.h" />
   </ItemGroup>
 </Project>

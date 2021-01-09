@@ -150,7 +150,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 {
   ZoneScoped;
   auto* pFactory = svc::DWriteFactory();
-  if (pFactory && queryDone && this->pFolderIcon)
+  if (pFactory && queryDone && this->pFolderIcon && svc::D2D1DeviceContext())
   {
     // Display results.
     DWORD numResults = Everything_GetNumResults();

@@ -1,7 +1,6 @@
 #include "MainWindow.h"
 #include "mj_win32.h"
 #include "ErrorExit.h"
-#include "mj_allocatordebug.h"
 
 static void Main()
 {

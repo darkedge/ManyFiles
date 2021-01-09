@@ -15,7 +15,6 @@ namespace mj
     ID2D1DeviceContext* pDeviceContext  = nullptr;
     IDXGISwapChain1* pSwapChain         = nullptr;
     bool s_Resize                       = false;
-    VirtualAllocator allocator;
 
     // Temporary storage
     IDXGIDevice1* pDxgiDevice  = nullptr;

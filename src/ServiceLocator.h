@@ -1,4 +1,5 @@
 #pragma once
+#include "mj_allocator.h"
 #include <Windows.h>
 
 struct IDWriteFactory;
@@ -38,4 +39,5 @@ namespace svc
   void RemoveWicFactoryObserver(IWICFactoryObserver* pObserver);
 
   HWND MainWindowHandle();
+  mj::AllocatorBase* GeneralPurposeAllocator();
 } // namespace svc
