@@ -15,7 +15,7 @@ namespace mj
   };
 #pragma warning(pop)
 
-  class Task;
+  struct Task;
 
   class ITaskCompletionHandler
   {

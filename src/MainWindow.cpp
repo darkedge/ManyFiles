@@ -254,13 +254,13 @@ void mj::MainWindow::Init()
   // Start a bunch of tasks
 
   {
-    CreateIWICImagingFactoryContext* pTask = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
-    pTask->pMainWindow                     = this;
+    auto* pTask        = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
+    pTask->pMainWindow = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
   {
-    CreateID3D11DeviceContext* pTask = mj::ThreadpoolCreateTask<CreateID3D11DeviceContext>();
-    pTask->pMainWindow               = this;
+    auto* pTask        = mj::ThreadpoolCreateTask<CreateID3D11DeviceContext>();
+    pTask->pMainWindow = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
 
