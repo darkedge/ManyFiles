@@ -35,6 +35,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\3rdparty\Everything</AdditionalIncludeDirectories>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalOptions>/Gs9999999 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -43,6 +44,8 @@
       <AdditionalDependencies>WindowsCodecs.lib;Everything64.lib;dwrite.lib;d2d1.lib;d3d11.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\3rdparty\Everything</AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <StackCommitSize>1048576</StackCommitSize>
+      <StackReserveSize>1048576</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />

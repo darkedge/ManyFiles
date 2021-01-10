@@ -10,6 +10,29 @@
 #include "Threadpool.h"
 #include "../vs/resource.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_NO_STDIO
+#define STBI_ONLY_PNG
+#define STBI_NO_FAILURE_STRINGS
+#define STBI_NO_THREAD_LOCALS
+#define STBI_NO_LINEAR
+#define STBI_NO_HDR
+#define STBI_ASSERT(x)
+
+#include "ncrt_memory.h"
+
+#define STBI_MALLOC(sz)        mj::malloc(sz)
+#define STBI_REALLOC(p, newsz) mj::realloc(p, newsz)
+#define STBI_FREE(p)           mj::free(p)
+
+#pragma function(abs)
+int abs(int a)
+{
+  return a > 0 ? a : -a;
+}
+
+#include "stb_image.h"
+
 static float ConvertPointSizeToDIP(float points)
 {
   return ((points / 72.0f) * 96.0f);
@@ -240,6 +263,62 @@ namespace mj
 
     return pBitmap;
   }
+
+  static ID2D1Bitmap1* WicLess()
+  {
+    ZoneScoped;
+
+    // Resource management.
+    HRSRC imageResHandle       = NULL;
+    HGLOBAL imageResDataHandle = NULL;
+    void* pImageFile           = NULL;
+
+    // Locate the resource in the application's executable.
+    // imageResHandle = FindResourceW(NULL, L"IDB_FOLDER", L"Image");
+    imageResHandle = FindResourceW(NULL, MAKEINTRESOURCEW(IDB_FOLDER), L"PNG");
+
+    HRESULT hr = (imageResHandle ? S_OK : E_FAIL);
+
+    // Load the resource to the HGLOBAL.
+    if (SUCCEEDED(hr))
+    {
+      ZoneScopedN("LoadResource");
+      imageResDataHandle = LoadResource(NULL, imageResHandle);
+      hr                 = (imageResDataHandle ? S_OK : E_FAIL);
+    }
+
+    auto size = ::SizeofResource(nullptr, imageResHandle);
+
+    // Lock the resource to retrieve memory pointer.
+    if (SUCCEEDED(hr))
+    {
+      ZoneScopedN("LockResource");
+      pImageFile = LockResource(imageResDataHandle);
+      hr         = (pImageFile ? S_OK : E_FAIL);
+    }
+
+    int numComponents = 4;
+    int x, y, n;
+    // ... process data if not NULL ...
+    // ... x = width, y = height, n = # 8-bit components per pixel ...
+    // ... replace '0' with '1'..'4' to force that many components per pixel
+    // ... but 'n' will always be the number that it would have been if you said 0
+    uint32_t* data = reinterpret_cast<uint32_t*>(
+        stbi_load_from_memory(static_cast<stbi_uc*>(pImageFile), size, &x, &y, &n, numComponents));
+    MJ_DEFER(stbi_image_free(data));
+
+    auto* pContext = svc::D2D1DeviceContext();
+
+    MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
+    hr = pContext->CreateBitmap(
+        D2D1::SizeU(x, y), data, x * numComponents,
+        D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE,
+                                D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)),
+        &pBitmap);
+
+    return pBitmap;
+  }
+
 } // namespace mj
 
 void mj::DirectoryNavigationPanel::CheckFolderIconPrerequisites()
@@ -248,7 +327,7 @@ void mj::DirectoryNavigationPanel::CheckFolderIconPrerequisites()
   if (this->pFolderIconHandle && svc::WicFactory() && svc::D2D1DeviceContext())
   {
     // this->pFolderIcon = this->ConvertIcon(this->pFolderIconHandle);
-    this->pFolderIcon = DoSomethingAlready();
+    this->pFolderIcon = WicLess();
     static_cast<void>(::DestroyIcon(this->pFolderIconHandle));
     CheckEverythingQueryPrerequisites();
   }

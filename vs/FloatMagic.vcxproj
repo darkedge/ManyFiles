@@ -98,6 +98,12 @@
       <PreprocessorDefinitions>TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile />
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
@@ -112,6 +118,7 @@
     <ClInclude Include="..\src\ServiceLocator.h" />
     <ClInclude Include="..\src\ServiceProvider.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
+    <ClInclude Include="..\src\stb_image.h" />
     <ClInclude Include="..\src\StringBuilder.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\TracyAllocatorWrapper.h" />

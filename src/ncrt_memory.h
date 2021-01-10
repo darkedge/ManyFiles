@@ -1,3 +1,5 @@
+#pragma once
+
 extern "C" void* __cdecl memset(void* dest, int c, size_t num);
 #pragma intrinsic(memset)
 
@@ -9,3 +11,10 @@ extern "C" int memcmp(const void* buf1, const void* buf2, size_t count);
 
 extern "C" void* memmove(void* dest, const void* src, size_t n);
 #pragma intrinsic(memmove)
+
+namespace mj
+{
+  void* malloc(size_t sz);
+  void* realloc(void* p, size_t newsz);
+  void free(void* p);
+} // namespace mj

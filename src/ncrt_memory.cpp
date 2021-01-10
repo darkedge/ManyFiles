@@ -1,5 +1,5 @@
 #include "ncrt_memory.h"
-#include <Windows.h>
+#include "ErrorExit.h"
 
 extern "C"
 {
@@ -103,4 +103,32 @@ void operator delete(void* p, size_t sz)
 void operator delete[](void* p)
 {
   static_cast<void>(HeapFree(GetProcessHeap(), 0, p));
+}
+
+void* mj::malloc(size_t sz)
+{
+  auto p = HeapAlloc(GetProcessHeap(), 0, sz);
+  // HeapAlloc does not call SetLastError.
+  MJ_EXIT_NULL(p);
+  return p;
+}
+
+void* mj::realloc(void* p, size_t newsz)
+{
+  if (p)
+  {
+    auto ptr = HeapReAlloc(GetProcessHeap(), 0, p, newsz);
+    // HeapReAlloc does not call SetLastError.
+    MJ_EXIT_NULL(ptr);
+    return ptr;
+  }
+  else
+  {
+    return mj::malloc(newsz);
+  }
+}
+
+void mj::free(void* p)
+{
+  HeapFree(GetProcessHeap(), 0, p);
 }
