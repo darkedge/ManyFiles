@@ -96,10 +96,6 @@ struct CreateDWriteFactoryTask : public mj::Task
 
 void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarget)
 {
-  MJ_UNINITIALIZED RECT clientArea;
-  ::GetClientRect(svc::MainWindowHandle(), &clientArea);
-  MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(svc::MainWindowHandle()), &clientArea));
-
   this->pRenderTarget = pRenderTarget;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
 }
@@ -160,33 +156,13 @@ void mj::MainWindow::Init()
 
 void mj::MainWindow::Resize()
 {
-#if 0
   ZoneScoped;
-  // Detach target bitmap
   if (pRenderTarget)
   {
-    pRenderTarget->SetTarget(nullptr);
-
-    // Resize
-    MJ_ERR_HRESULT(pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
-
-    // Create new bitmap from resized buffer
-    MJ_UNINITIALIZED IDXGISurface* pBuffer;
-    MJ_ERR_HRESULT(pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBuffer)));
-    MJ_DEFER(pBuffer->Release());
-
-    MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
-    MJ_ERR_HRESULT(pRenderTarget->CreateBitmapFromDxgiSurface(
-        pBuffer,
-        D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-                                D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
-        &pBitmap));
-    MJ_DEFER(pBitmap->Release());
-
-    // Attach target bitmap
-    pRenderTarget->SetTarget(pBitmap);
+    MJ_UNINITIALIZED RECT clientArea;
+    ::GetClientRect(svc::MainWindowHandle(), &clientArea);
+    MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(svc::MainWindowHandle()), &clientArea));
   }
-#endif
 }
 
 void mj::MainWindow::Paint()
