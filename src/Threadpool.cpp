@@ -87,11 +87,10 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
   return 0;
 }
 
-void mj::ThreadpoolInit(HWND hWnd, UINT msg)
+void mj::ThreadpoolInit(UINT msg)
 {
   ZoneScoped;
 
-  s_Hwnd = hWnd;
   s_Msg  = msg;
   MJ_ERR_IF(s_Iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
 
@@ -118,6 +117,11 @@ void mj::ThreadpoolInit(HWND hWnd, UINT msg)
                                             nullptr),
               nullptr);
   }
+}
+
+void mj::ThreadpoolSetWindowHandle(HWND hWnd)
+{
+  s_Hwnd = hWnd;
 }
 
 void mj::ThreadpoolTaskEnd(WPARAM wParam)

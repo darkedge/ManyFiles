@@ -257,7 +257,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
         Everything_GetResultFullPathNameW(i, fullPathName, MJ_COUNTOF(fullPathName));
         {
           ZoneScopedN("SHGetFileInfoW");
-          MJ_ERR_ZERO(SHGetFileInfoW(fullPathName, 0, &fileInfo, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON));
+          MJ_ERR_ZERO(::SHGetFileInfoW(fullPathName, 0, &fileInfo, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON));
         }
         MJ_DEFER(::DestroyIcon(fileInfo.hIcon));
         entry.pIcon = this->ConvertIcon(fileInfo.hIcon);

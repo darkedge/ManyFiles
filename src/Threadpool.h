@@ -49,9 +49,8 @@ namespace mj
   /// <summary>
   /// Initializes the threadpool system.
   /// </summary>
-  /// <param name="hWnd">The window to send a message to once a task has finished</param>
   /// <param name="msg">The message ID to send. Should be WM_USER + some number.</param>
-  void ThreadpoolInit(HWND hWnd, UINT msg);
+  void ThreadpoolInit(UINT msg);
 
   template <class T>
   T* ThreadpoolCreateTask(ITaskCompletionHandler* pHandler = nullptr)
@@ -70,6 +69,12 @@ namespace mj
 
     return pTask;
   }
+
+  /// <summary>
+  /// Do not start any tasks before calling this function,
+  /// otherwise task completion will fail.
+  /// </summary>
+  void ThreadpoolSetWindowHandle(HWND hWnd);
 
   void ThreadpoolTaskEnd(WPARAM wParam);
   void ThreadpoolSubmitTask(Task* pTask);

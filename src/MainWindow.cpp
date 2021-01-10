@@ -227,7 +227,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
     svc::ProvideMainWindowHandle(hWnd);
 
-    mj::ThreadpoolInit(hWnd, MJ_WM_TASK);
+    mj::ThreadpoolSetWindowHandle(hWnd);
     pMainWindow->Init();
 
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
@@ -279,6 +279,7 @@ static mj::AllocatorBase* CreateAllocator()
 void mj::MainWindow::Run()
 {
   MJ_DEFER(this->Destroy());
+  mj::ThreadpoolInit(MJ_WM_TASK);
 
   mj::HeapAllocator generalPurposeAllocator;
   generalPurposeAllocator.Init();
