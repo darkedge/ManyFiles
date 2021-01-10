@@ -22,9 +22,18 @@ struct CreateIWICImagingFactoryContext : public mj::Task
   virtual void Execute() override
   {
     ZoneScoped;
-    // TODO: Can cause exception c0000374?
-    MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
-                                      (IID_PPV_ARGS(&this->pWicFactory))));
+
+    {
+      ZoneScopedN("CoInitializeEx");
+      MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE));
+    }
+
+    {
+      ZoneScopedN("CoCreateInstance");
+      // TODO: Can cause exception c0000374?
+      MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
+                                        (IID_PPV_ARGS(&this->pWicFactory))));
+    }
   }
 
   virtual void OnDone() override
@@ -62,6 +71,29 @@ struct CreateID2D1RenderTargetContext : public mj::Task
   }
 };
 
+struct CreateDWriteFactoryTask : public mj::Task
+{
+  // In
+  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+
+  // Out
+  MJ_UNINITIALIZED IDWriteFactory* pDWriteFactory;
+
+  virtual void Execute() override
+  {
+    ZoneScoped;
+
+    MJ_ERR_HRESULT(::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+                                         reinterpret_cast<IUnknown**>(&pDWriteFactory)));
+  }
+
+  virtual void OnDone() override
+  {
+    svc::ProvideDWriteFactory(pDWriteFactory);
+    pDWriteFactory->Release();
+  }
+};
+
 void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarget)
 {
   MJ_UNINITIALIZED RECT clientArea;
@@ -77,12 +109,6 @@ void mj::MainWindow::Init()
   ZoneScoped;
 
   auto pAllocator = svc::GeneralPurposeAllocator();
-
-  // Just run this in the main thread for now. WIC and ShellApi functions depend on this.
-  {
-    ZoneScopedN("CoInitializeEx");
-    MJ_ERR_HRESULT(::CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE));
-  }
 
   svc::Init(svc::GeneralPurposeAllocator());
 
@@ -101,17 +127,10 @@ void mj::MainWindow::Init()
     pTask->pMainWindow = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
-
-  // DirectWrite factory
   {
-    MJ_UNINITIALIZED IDWriteFactory* pDwriteFactory;
-    {
-      ZoneScopedN("DWriteCreateFactory");
-      MJ_ERR_HRESULT(::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
-                                           reinterpret_cast<IUnknown**>(&pDwriteFactory)));
-    }
-    MJ_DEFER(pDwriteFactory->Release());
-    svc::ProvideDWriteFactory(pDwriteFactory);
+    auto pTask         = mj::ThreadpoolCreateTask<CreateDWriteFactoryTask>();
+    pTask->pMainWindow = this;
+    mj::ThreadpoolSubmitTask(pTask);
   }
 
   // TODO: Put this somewhere else

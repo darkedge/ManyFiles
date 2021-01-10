@@ -70,12 +70,12 @@ namespace mj
     [[nodiscard]]
     virtual void* Allocate(size_t size) override
     {
-      return ::HeapAlloc(pHeap, HEAP_NO_SERIALIZE, size);
+      return ::HeapAlloc(pHeap, 0, size);
     }
 
     virtual void Free(void* ptr) override
     {
-      ::HeapFree(pHeap, HEAP_NO_SERIALIZE, ptr);
+      ::HeapFree(pHeap, 0, ptr);
     }
   };
 
