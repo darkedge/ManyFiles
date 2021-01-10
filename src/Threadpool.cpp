@@ -14,19 +14,6 @@ static UINT s_Msg;
 static HANDLE s_Threads[NUM_THREADS];
 static HANDLE s_Iocp;
 
-struct EThreadpoolEvent
-{
-  enum Enum
-  {
-    Quit,   // Manual reset event to notify all threads
-    NewJob, // Auto reset event to notify a single thread of a new job
-    Count,
-  };
-};
-
-// ThreadMain events
-static HANDLE s_Events[EThreadpoolEvent::Count];
-
 /// <summary>
 /// The return value of this function can be cast to anything you want
 /// (as long as its size is less or equal)
@@ -102,9 +89,6 @@ void mj::ThreadpoolInit(UINT msg)
     pNext                               = &s_TaskContextArray[i];
   }
   s_pTaskHead = &s_TaskContextArray[MAX_TASKS - 1];
-
-  s_Events[EThreadpoolEvent::Quit]   = CreateEventW(nullptr, true, false, nullptr);
-  s_Events[EThreadpoolEvent::NewJob] = CreateEventW(nullptr, false, false, nullptr);
 
   for (int i = 0; i < NUM_THREADS; i++)
   {
