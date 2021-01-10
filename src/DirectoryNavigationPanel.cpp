@@ -6,7 +6,7 @@
 #include <d2d1_1.h>
 #include <dwrite.h>
 #include <shellapi.h>
-#include "..\3rdparty\tracy\Tracy.hpp"
+#include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "../vs/resource.h"
 

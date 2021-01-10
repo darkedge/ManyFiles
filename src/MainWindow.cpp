@@ -4,7 +4,7 @@
 #include "DirectoryNavigationPanel.h"
 #include <dwrite.h>
 #include <wincodec.h>
-#include "..\3rdparty\tracy\Tracy.hpp"
+#include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 
 #ifdef TRACY_ENABLE
@@ -221,9 +221,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
 
   switch (message)
   {
-  case WM_CREATE:
+  case WM_NCCREATE:
   {
-    ZoneScopedN("WM_CREATE");
+    ZoneScopedN("WM_NCCREATE");
     // Loaded DLLs: uxtheme, combase, msctf, oleaut32
 
     // Copy the lpParam from CreateWindowEx to this window's user data
