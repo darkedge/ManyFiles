@@ -92,13 +92,13 @@ void mj::MainWindow::Init()
   // Start a bunch of tasks
 
   {
-    auto* pTask        = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
+    auto pTask         = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
     pTask->pMainWindow = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
   {
-    CreateID2D1RenderTargetContext* pTask = mj::ThreadpoolCreateTask<CreateID2D1RenderTargetContext>();
-    pTask->pMainWindow                    = this;
+    auto pTask         = mj::ThreadpoolCreateTask<CreateID2D1RenderTargetContext>();
+    pTask->pMainWindow = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
 

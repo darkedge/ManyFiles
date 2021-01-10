@@ -159,111 +159,6 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 
 namespace mj
 {
-  static ID2D1Bitmap* DoSomethingAlready()
-  {
-    ZoneScoped;
-    ID2D1Bitmap* pBitmap;
-    auto pFactory = svc::WicFactory();
-
-    MJ_UNINITIALIZED IWICBitmapDecoder* pDecoder;
-    MJ_DEFER(pDecoder->Release());
-    MJ_UNINITIALIZED IWICBitmapFrameDecode* pSource;
-    MJ_DEFER(pSource->Release());
-    MJ_UNINITIALIZED IWICFormatConverter* pConverter;
-    MJ_DEFER(pConverter->Release());
-
-    // Resource management.
-    HRSRC imageResHandle       = NULL;
-    HGLOBAL imageResDataHandle = NULL;
-    void* pImageFile           = NULL;
-    DWORD imageFileSize        = 0;
-
-    // Locate the resource in the application's executable.
-    // imageResHandle = FindResourceW(NULL, L"IDB_FOLDER", L"Image");
-    imageResHandle = FindResourceW(NULL, MAKEINTRESOURCEW(IDB_FOLDER), L"PNG");
-
-    HRESULT hr = (imageResHandle ? S_OK : E_FAIL);
-
-    // Load the resource to the HGLOBAL.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("LoadResource");
-      imageResDataHandle = LoadResource(NULL, imageResHandle);
-      hr                 = (imageResDataHandle ? S_OK : E_FAIL);
-    }
-
-    // Lock the resource to retrieve memory pointer.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("LockResource");
-      pImageFile = LockResource(imageResDataHandle);
-      hr         = (pImageFile ? S_OK : E_FAIL);
-    }
-
-    // Calculate the size.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("SizeofResource");
-      imageFileSize = SizeofResource(NULL, imageResHandle);
-      hr            = (imageFileSize ? S_OK : E_FAIL);
-    }
-
-    IWICStream* pIWICStream = NULL;
-    // Create a WIC stream to map onto the memory.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("CreateStream");
-      hr = pFactory->CreateStream(&pIWICStream);
-    }
-
-    // Initialize the stream with the memory pointer and size.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("InitializeFromMemory");
-      hr = pIWICStream->InitializeFromMemory(reinterpret_cast<BYTE*>(pImageFile), imageFileSize);
-    }
-
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("CreateDecoderFromStream");
-      hr = pFactory->CreateDecoderFromStream(pIWICStream, NULL, WICDecodeMetadataCacheOnLoad, &pDecoder);
-    }
-
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("GetFrame");
-      // Create the initial frame.
-      hr = pDecoder->GetFrame(0, &pSource);
-    }
-
-    if (SUCCEEDED(hr))
-    {
-
-      ZoneScopedN("CreateFormatConverter");
-      // Convert the image format to 32bppPBGRA
-      // (DXGI_FORMAT_B8G8R8A8_UNORM + D2D1_ALPHA_MODE_PREMULTIPLIED).
-      hr = pFactory->CreateFormatConverter(&pConverter);
-    }
-
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("Initialize");
-      hr = pConverter->Initialize(pSource, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.f,
-                                  WICBitmapPaletteTypeMedianCut);
-
-      if (SUCCEEDED(hr))
-      {
-
-        ZoneScopedN("CreateBitmapFromWicBitmap");
-        auto* pContext = svc::D2D1RenderTarget();
-        // Create a Direct2D bitmap from the WIC bitmap.
-        hr = pContext->CreateBitmapFromWicBitmap(pConverter, NULL, &pBitmap);
-      }
-    }
-
-    return pBitmap;
-  }
-
   static ID2D1Bitmap* WicLess()
   {
     ZoneScoped;
@@ -324,7 +219,6 @@ void mj::DirectoryNavigationPanel::CheckFolderIconPrerequisites()
   ZoneScoped;
   if (this->pFolderIconHandle && svc::WicFactory() && svc::D2D1RenderTarget())
   {
-    // this->pFolderIcon = this->ConvertIcon(this->pFolderIconHandle);
     this->pFolderIcon = WicLess();
     static_cast<void>(::DestroyIcon(this->pFolderIconHandle));
     CheckEverythingQueryPrerequisites();
