@@ -55,7 +55,7 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
                         .ToString();
 
       //static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
-      DebugBreak();
+      ::DebugBreak();
     }
 
     static_cast<void>(::LocalFree(lpMsgBuf));
@@ -103,7 +103,7 @@ void mj::NullExit(const String& fileName, int lineNumber, const String& expressi
                       .ToString();
 
     //static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
-    DebugBreak();
+    ::DebugBreak();
   }
 
   ::ExitProcess(EXCEPTION_ACCESS_VIOLATION);

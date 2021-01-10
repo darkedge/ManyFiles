@@ -28,12 +28,12 @@ namespace mj
                                    public svc::IDWriteFactoryObserver
   {
   private:
-    ID2D1SolidColorBrush* pBlackBrush;
-    IDWriteTextFormat* pTextFormat;
-    ID2D1Bitmap* pFolderIcon;
-    HICON pFolderIconHandle;
+    ID2D1SolidColorBrush* pBlackBrush = nullptr;
+    IDWriteTextFormat* pTextFormat    = nullptr;
+    ID2D1Bitmap* pFolderIcon          = nullptr;
+    HICON pFolderIconHandle           = nullptr;
 
-    AllocatorBase* pAllocator;
+    AllocatorBase* pAllocator = nullptr;
     ArrayList<Entry> entries;
     Allocation searchBuffer;
     Allocation resultsBuffer;

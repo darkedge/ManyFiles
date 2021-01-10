@@ -284,10 +284,13 @@ void mj::DirectoryNavigationPanel::Paint()
       MJ_UNINITIALIZED UINT32 count;
       MJ_ERR_HRESULT(entry.pTextLayout->GetLineMetrics(&metrics, 1, &count));
       pContext->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
-      auto iconSize = entry.pIcon->GetPixelSize();
-      float width   = static_cast<float>(iconSize.width);
-      float height  = static_cast<float>(iconSize.height);
-      pContext->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
+      if (entry.pIcon)
+      {
+        auto iconSize = entry.pIcon->GetPixelSize();
+        float width   = static_cast<float>(iconSize.width);
+        float height  = static_cast<float>(iconSize.height);
+        pContext->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
+      }
 
       // Always draw images on integer coordinates
       point.y += static_cast<int>(metrics.height);

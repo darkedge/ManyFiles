@@ -63,18 +63,24 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
     MJ_UNINITIALIZED mj::Task* pTask;
     MJ_UNINITIALIZED LPOVERLAPPED pOverlapped;
 
-    BOOL ret =
-        ::GetQueuedCompletionStatus(s_Iocp, &numBytes, reinterpret_cast<PULONG_PTR>(&pTask), &pOverlapped, INFINITE);
-    if (ret == FALSE && ::GetLastError() == ERROR_ABANDONED_WAIT_0)
     {
-      break;
+      ZoneScopedNC("Sleeping", 0x21231C);
+      BOOL ret =
+          ::GetQueuedCompletionStatus(s_Iocp, &numBytes, reinterpret_cast<PULONG_PTR>(&pTask), &pOverlapped, INFINITE);
+      if (ret == FALSE && ::GetLastError() == ERROR_ABANDONED_WAIT_0)
+      {
+        break;
+      }
     }
 
     if (pTask)
     {
       pTask->Execute();
 
-      MJ_ERR_ZERO(::PostMessageW(s_Hwnd, s_Msg, reinterpret_cast<WPARAM>(pTask), 0));
+      {
+        ZoneScopedNC("PostMessageW", 0x31332C);
+        MJ_ERR_ZERO(::PostMessageW(s_Hwnd, s_Msg, reinterpret_cast<WPARAM>(pTask), 0));
+      }
     }
   }
 
@@ -103,12 +109,13 @@ void mj::ThreadpoolInit(HWND hWnd, UINT msg)
 
   for (int i = 0; i < NUM_THREADS; i++)
   {
-    MJ_ERR_IF(s_Threads[i] = CreateThread(nullptr,    // default security attributes
-                                          0,          // default stack size
-                                          ThreadMain, // entry point
-                                          nullptr,    // argument
-                                          0,          // default flags
-                                          nullptr),
+    ZoneScopedN("CreateThread");
+    MJ_ERR_IF(s_Threads[i] = ::CreateThread(nullptr,    // default security attributes
+                                            0,          // default stack size
+                                            ThreadMain, // entry point
+                                            nullptr,    // argument
+                                            0,          // default flags
+                                            nullptr),
               nullptr);
   }
 }
