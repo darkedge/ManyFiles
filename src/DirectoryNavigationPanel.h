@@ -19,18 +19,18 @@ namespace mj
   {
     EEntryType type;
     IDWriteTextLayout* pTextLayout;
-    ID2D1Bitmap1* pIcon;
+    ID2D1Bitmap* pIcon;
   };
 
   class DirectoryNavigationPanel : public IControl,
                                    public svc::IWICFactoryObserver,
-                                   public svc::ID2D1DeviceContextObserver,
+                                   public svc::ID2D1RenderTargetObserver,
                                    public svc::IDWriteFactoryObserver
   {
   private:
     ID2D1SolidColorBrush* pBlackBrush;
     IDWriteTextFormat* pTextFormat;
-    ID2D1Bitmap1* pFolderIcon;
+    ID2D1Bitmap* pFolderIcon;
     HICON pFolderIconHandle;
 
     AllocatorBase* pAllocator;
@@ -43,7 +43,7 @@ namespace mj
     /// </summary>
     bool queryDone;
 
-    ID2D1Bitmap1* ConvertIcon(HICON hIcon);
+    ID2D1Bitmap* ConvertIcon(HICON hIcon);
     void CheckFolderIconPrerequisites();
     void CheckEverythingQueryPrerequisites();
 
@@ -57,7 +57,7 @@ namespace mj
     void OnEverythingQuery();
 
     virtual void OnWICFactoryAvailable(IWICImagingFactory* pFactory) override;
-    virtual void OnID2D1DeviceContextAvailable(ID2D1DeviceContext* pContext) override;
+    virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
   };
 } // namespace mj

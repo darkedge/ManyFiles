@@ -38,7 +38,7 @@ static float ConvertPointSizeToDIP(float points)
   return ((points / 72.0f) * 96.0f);
 }
 
-ID2D1Bitmap1* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
+ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 {
   ZoneScoped;
   auto* pFactory = svc::WicFactory();
@@ -59,8 +59,8 @@ ID2D1Bitmap1* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
                                         0.0f,                          //
                                         WICBitmapPaletteTypeCustom));
 
-  auto* pContext = svc::D2D1DeviceContext();
-  MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
+  auto* pContext = svc::D2D1RenderTarget();
+  MJ_UNINITIALIZED ID2D1Bitmap* pBitmap;
   MJ_ERR_HRESULT(pContext->CreateBitmapFromWicBitmap(pConverter, nullptr, &pBitmap));
 
   return pBitmap;
@@ -129,7 +129,7 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 {
   ZoneScoped;
   svc::AddWicFactoryObserver(this);
-  svc::AddID2D1DeviceContextObserver(this);
+  svc::AddID2D1RenderTargetObserver(this);
   svc::AddIDWriteFactoryObserver(this);
 
   // Allocator setup
@@ -159,10 +159,10 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 
 namespace mj
 {
-  static ID2D1Bitmap1* DoSomethingAlready()
+  static ID2D1Bitmap* DoSomethingAlready()
   {
     ZoneScoped;
-    ID2D1Bitmap1* pBitmap;
+    ID2D1Bitmap* pBitmap;
     auto pFactory = svc::WicFactory();
 
     MJ_UNINITIALIZED IWICBitmapDecoder* pDecoder;
@@ -255,7 +255,7 @@ namespace mj
       {
 
         ZoneScopedN("CreateBitmapFromWicBitmap");
-        auto* pContext = svc::D2D1DeviceContext();
+        auto* pContext = svc::D2D1RenderTarget();
         // Create a Direct2D bitmap from the WIC bitmap.
         hr = pContext->CreateBitmapFromWicBitmap(pConverter, NULL, &pBitmap);
       }
@@ -264,7 +264,7 @@ namespace mj
     return pBitmap;
   }
 
-  static ID2D1Bitmap1* WicLess()
+  static ID2D1Bitmap* WicLess()
   {
     ZoneScoped;
 
@@ -307,14 +307,12 @@ namespace mj
         stbi_load_from_memory(static_cast<stbi_uc*>(pImageFile), size, &x, &y, &n, numComponents));
     MJ_DEFER(stbi_image_free(data));
 
-    auto* pContext = svc::D2D1DeviceContext();
+    auto* pContext = svc::D2D1RenderTarget();
 
-    MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
+    MJ_UNINITIALIZED ID2D1Bitmap* pBitmap;
     hr = pContext->CreateBitmap(
         D2D1::SizeU(x, y), data, x * numComponents,
-        D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE,
-                                D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)),
-        &pBitmap);
+        D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
 
     return pBitmap;
   }
@@ -324,7 +322,7 @@ namespace mj
 void mj::DirectoryNavigationPanel::CheckFolderIconPrerequisites()
 {
   ZoneScoped;
-  if (this->pFolderIconHandle && svc::WicFactory() && svc::D2D1DeviceContext())
+  if (this->pFolderIconHandle && svc::WicFactory() && svc::D2D1RenderTarget())
   {
     // this->pFolderIcon = this->ConvertIcon(this->pFolderIconHandle);
     this->pFolderIcon = WicLess();
@@ -337,7 +335,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 {
   ZoneScoped;
   auto* pFactory = svc::DWriteFactory();
-  if (pFactory && queryDone && this->pFolderIcon && svc::D2D1DeviceContext())
+  if (pFactory && queryDone && this->pFolderIcon && svc::D2D1RenderTarget())
   {
     // Display results.
     DWORD numResults = Everything_GetNumResults();
@@ -382,7 +380,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 void mj::DirectoryNavigationPanel::Paint()
 {
   ZoneScoped;
-  auto* pContext = svc::D2D1DeviceContext();
+  auto* pContext = svc::D2D1RenderTarget();
   if (pContext)
   {
     auto point = D2D1::Point2F(16.0f, 0.0f);
@@ -426,7 +424,7 @@ void mj::DirectoryNavigationPanel::Destroy()
     this->pFolderIcon->Release();
 
   svc::RemoveWicFactoryObserver(this);
-  svc::RemoveID2D1DeviceContextObserver(this);
+  svc::RemoveID2D1RenderTargetObserver(this);
   svc::RemoveIDWriteFactoryObserver(this);
 }
 
@@ -447,7 +445,7 @@ void mj::DirectoryNavigationPanel::OnWICFactoryAvailable(IWICImagingFactory* pFa
   this->CheckFolderIconPrerequisites();
 }
 
-void mj::DirectoryNavigationPanel::OnID2D1DeviceContextAvailable(ID2D1DeviceContext* pContext)
+void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext)
 {
   ZoneScoped;
   this->CheckFolderIconPrerequisites();

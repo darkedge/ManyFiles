@@ -12,13 +12,8 @@ namespace mj
   {
   private:
     IControl* pDirectoryNavigationPanel = nullptr;
-    ID2D1DeviceContext* pDeviceContext  = nullptr;
-    IDXGISwapChain1* pSwapChain         = nullptr;
+    ID2D1RenderTarget* pRenderTarget    = nullptr;
     bool s_Resize                       = false;
-
-    // Temporary storage
-    IDXGIDevice1* pDxgiDevice  = nullptr;
-    ID3D11Device* pD3d11Device = nullptr;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -32,7 +27,7 @@ namespace mj
   public:
     void Run();
     void OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevice1* pDxgiDevice);
-    void OnCreateID2D1DeviceContext(ID2D1DeviceContext* pDeviceContext);
+    void OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarget);
     void OnCreateIDXGISwapChain1(IDXGISwapChain1* pSwapChain);
   };
 

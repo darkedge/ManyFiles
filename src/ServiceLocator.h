@@ -3,7 +3,7 @@
 #include <Windows.h>
 
 struct IDWriteFactory;
-struct ID2D1DeviceContext;
+struct ID2D1RenderTarget;
 struct IWICImagingFactory;
 
 namespace svc
@@ -18,15 +18,15 @@ namespace svc
   void AddIDWriteFactoryObserver(IDWriteFactoryObserver* pObserver);
   void RemoveIDWriteFactoryObserver(IDWriteFactoryObserver* pObserver);
 
-  // ID2D1DeviceContext
-  ID2D1DeviceContext* D2D1DeviceContext();
-  class ID2D1DeviceContextObserver
+  // ID2D1RenderTarget
+  ID2D1RenderTarget* D2D1RenderTarget();
+  class ID2D1RenderTargetObserver
   {
   public:
-    virtual void OnID2D1DeviceContextAvailable(ID2D1DeviceContext* pContext) = 0;
+    virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) = 0;
   };
-  void AddID2D1DeviceContextObserver(ID2D1DeviceContextObserver* pObserver);
-  void RemoveID2D1DeviceContextObserver(ID2D1DeviceContextObserver* pObserver);
+  void AddID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver);
+  void RemoveID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver);
 
   // IWICImagingFactory
   IWICImagingFactory* WicFactory();

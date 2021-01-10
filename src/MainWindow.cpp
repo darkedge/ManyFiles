@@ -33,210 +33,43 @@ struct CreateIWICImagingFactoryContext : public mj::Task
   }
 };
 
-struct CreateID3D11DeviceContext : public mj::Task
+struct CreateID2D1RenderTargetContext : public mj::Task
 {
   // In
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+
   // Out
-  MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
-  MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
+  MJ_UNINITIALIZED ID2D1DCRenderTarget* pRenderTarget;
 
   virtual void Execute() override
   {
     ZoneScoped;
-    // This flag adds support for surfaces with a different color channel ordering than the API default.
-    // You need it for compatibility with Direct2D.
-#ifdef _DEBUG
-    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-#else
-    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#endif
+    // Create a DC render target.
+    D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+        D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE), 0, 0,
+        D2D1_RENDER_TARGET_USAGE_NONE, D2D1_FEATURE_LEVEL_DEFAULT);
 
-    // This array defines the set of DirectX hardware feature levels this app  supports.
-    // The ordering is important and you should  preserve it.
-    // Don't forget to declare your app's minimum required feature level in its
-    // description.  All apps are assumed to support 9.1 unless otherwise stated.
-    D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_1, //
-                                          D3D_FEATURE_LEVEL_11_0, //
-                                          D3D_FEATURE_LEVEL_10_1, //
-                                          D3D_FEATURE_LEVEL_10_0, //
-                                          D3D_FEATURE_LEVEL_9_3,  //
-                                          D3D_FEATURE_LEVEL_9_2,  //
-                                          D3D_FEATURE_LEVEL_9_1 };
+    MJ_UNINITIALIZED ID2D1Factory* pFactory;
+    // Create a Direct2D factory.
 
-    // Create the DX11 API device object, and get a corresponding context.
-    MJ_UNINITIALIZED D3D_FEATURE_LEVEL featureLevel;
-    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
-                                       D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
-                                       nullptr,                  //
-                                       creationFlags, // optionally set debug and Direct2D compatibility flags
-                                       featureLevels, // list of feature levels this app can support
-                                       ARRAYSIZE(featureLevels), // number of possible feature levels
-                                       D3D11_SDK_VERSION,        //
-                                       &this->pD3d11Device,      // returns the Direct3D device created
-                                       &featureLevel,            // returns feature level of device created
-                                       nullptr                   // No ID3D11DeviceContext will be returned.
-                                       ));
-
-    // Obtain the underlying DXGI device of the Direct3D11 device.
-    MJ_ERR_HRESULT(this->pD3d11Device->QueryInterface<IDXGIDevice1>(&this->pDxgiDevice));
-
-    // Ensure that DXGI doesn't queue more than one frame at a time.
-    MJ_ERR_HRESULT(this->pDxgiDevice->SetMaximumFrameLatency(1));
+    MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory));
+    MJ_ERR_HRESULT(pFactory->CreateDCRenderTarget(&props, &this->pRenderTarget));
   }
 
   virtual void OnDone() override
   {
-    this->pMainWindow->OnCreateID3D11Device(this->pD3d11Device, this->pDxgiDevice);
+    this->pMainWindow->OnCreateID2D1RenderTarget(this->pRenderTarget);
   }
 };
 
-struct CreateIDXGISwapChain1Context : public mj::Task
+void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarget)
 {
-  // In
-  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
-  MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
-  MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
-  // Out
-  MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
+  MJ_UNINITIALIZED RECT clientArea;
+  ::GetClientRect(svc::MainWindowHandle(), &clientArea);
+  MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(svc::MainWindowHandle()), &clientArea));
 
-  virtual void Execute() override
-  {
-    ZoneScoped;
-    // Identify the physical adapter (GPU or card) this device is runs on.
-    MJ_UNINITIALIZED IDXGIAdapter* pDxgiAdapter;
-    MJ_ERR_HRESULT(this->pDxgiDevice->GetAdapter(&pDxgiAdapter));
-    MJ_DEFER(pDxgiAdapter->Release());
-
-    // Get the factory object that created the DXGI device.
-    {
-      MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
-      MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
-      MJ_DEFER(pDxgiFactory->Release());
-
-      // Allocate a descriptor.
-      DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-      swapChainDesc.Width                 = 0; // use automatic sizing
-      swapChainDesc.Height                = 0;
-      swapChainDesc.Format                = DXGI_FORMAT_B8G8R8A8_UNORM; // this is the most common swapchain format
-      swapChainDesc.Stereo                = false;
-      swapChainDesc.SampleDesc.Count      = 1; // don't use multi-sampling
-      swapChainDesc.SampleDesc.Quality    = 0;
-      swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-      swapChainDesc.BufferCount           = 2; // use double buffering to enable flip
-      swapChainDesc.Scaling               = DXGI_SCALING_NONE;
-      swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // all apps must use this SwapEffect
-      swapChainDesc.Flags                 = 0;
-
-      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
-      fullscreenDesc.Windowed                        = TRUE;
-
-      // Get the final swap chain for this window from the DXGI factory.
-      {
-        ZoneScopedN("IDXGIFactory2::CreateSwapChainForHwnd");
-        MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForHwnd(this->pD3d11Device,      //
-                                                            svc::MainWindowHandle(), //
-                                                            &swapChainDesc,          //
-                                                            &fullscreenDesc,         //
-                                                            nullptr,                 // allow on all displays
-                                                            &this->pSwapChain));
-      }
-    }
-  }
-
-  virtual void OnDone() override
-  {
-    this->pMainWindow->OnCreateIDXGISwapChain1(this->pSwapChain);
-  }
-};
-
-struct CreateID2D1DeviceContextContext : public mj::Task
-{
-  // In
-  MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
-  MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
-
-  // Out
-  MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
-
-  virtual void Execute() override
-  {
-    ZoneScoped;
-    // Obtain the Direct2D device for 2-D rendering.
-    MJ_UNINITIALIZED ID2D1Factory1* pD2d1Factory;
-    {
-      ZoneScopedN("D2D1CreateFactory");
-      MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2d1Factory));
-    }
-    MJ_DEFER(pD2d1Factory->Release());
-
-    MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
-    {
-      ZoneScopedN("ID2D1Factory1::CreateDevice");
-      MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(this->pDxgiDevice, &pD2d1Device));
-    }
-    MJ_DEFER(pD2d1Device->Release());
-
-    // Get Direct2D device's corresponding device context object.
-    {
-      ZoneScopedN("ID2D1Device::CreateDeviceContext");
-      MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &this->pDeviceContext));
-    }
-  }
-
-  virtual void OnDone() override
-  {
-    this->pMainWindow->OnCreateID2D1DeviceContext(this->pDeviceContext);
-  }
-};
-
-void mj::MainWindow::OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevice1* pDxgiDevice)
-{
-  ZoneScoped;
-  this->pD3d11Device = pD3d11Device;
-  this->pDxgiDevice  = pDxgiDevice;
-
-  {
-    CreateIDXGISwapChain1Context* pTask = mj::ThreadpoolCreateTask<CreateIDXGISwapChain1Context>();
-    pTask->pMainWindow                  = this;
-    pTask->pD3d11Device                 = this->pD3d11Device;
-    pTask->pDxgiDevice                  = this->pDxgiDevice;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-
-  {
-    CreateID2D1DeviceContextContext* pTask = mj::ThreadpoolCreateTask<CreateID2D1DeviceContextContext>();
-    pTask->pMainWindow                     = this;
-    pTask->pDxgiDevice                     = this->pDxgiDevice;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-}
-
-void mj::MainWindow::OnCreateID2D1DeviceContext(ID2D1DeviceContext* pDeviceContext)
-{
-  this->pDeviceContext = pDeviceContext;
-  svc::ProvideD2D1DeviceContext(pDeviceContext);
-  this->ReleaseUnusedObjects();
-}
-
-void mj::MainWindow::OnCreateIDXGISwapChain1(IDXGISwapChain1* pSwapChain)
-{
-  this->pSwapChain = pSwapChain;
-  this->ReleaseUnusedObjects();
-}
-
-void mj::MainWindow::ReleaseUnusedObjects()
-{
-  if (this->pDeviceContext && this->pSwapChain)
-  {
-    this->Resize();
-
-    this->pD3d11Device->Release();
-    this->pD3d11Device = nullptr;
-
-    this->pDxgiDevice->Release();
-    this->pDxgiDevice = nullptr;
-  }
+  this->pRenderTarget = pRenderTarget;
+  svc::ProvideD2D1RenderTarget(pRenderTarget);
 }
 
 void mj::MainWindow::Init()
@@ -264,8 +97,8 @@ void mj::MainWindow::Init()
     mj::ThreadpoolSubmitTask(pTask);
   }
   {
-    auto* pTask        = mj::ThreadpoolCreateTask<CreateID3D11DeviceContext>();
-    pTask->pMainWindow = this;
+    CreateID2D1RenderTargetContext* pTask = mj::ThreadpoolCreateTask<CreateID2D1RenderTargetContext>();
+    pTask->pMainWindow                    = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
 
@@ -308,11 +141,12 @@ void mj::MainWindow::Init()
 
 void mj::MainWindow::Resize()
 {
+#if 0
   ZoneScoped;
   // Detach target bitmap
-  if (pDeviceContext)
+  if (pRenderTarget)
   {
-    pDeviceContext->SetTarget(nullptr);
+    pRenderTarget->SetTarget(nullptr);
 
     // Resize
     MJ_ERR_HRESULT(pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
@@ -323,7 +157,7 @@ void mj::MainWindow::Resize()
     MJ_DEFER(pBuffer->Release());
 
     MJ_UNINITIALIZED ID2D1Bitmap1* pBitmap;
-    MJ_ERR_HRESULT(pDeviceContext->CreateBitmapFromDxgiSurface(
+    MJ_ERR_HRESULT(pRenderTarget->CreateBitmapFromDxgiSurface(
         pBuffer,
         D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
                                 D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE)),
@@ -331,36 +165,31 @@ void mj::MainWindow::Resize()
     MJ_DEFER(pBitmap->Release());
 
     // Attach target bitmap
-    pDeviceContext->SetTarget(pBitmap);
+    pRenderTarget->SetTarget(pBitmap);
   }
+#endif
 }
 
 void mj::MainWindow::Paint()
 {
   ZoneScoped;
-  if (this->pDeviceContext)
+  if (this->pRenderTarget)
   {
     {
       ZoneScopedN("BeginDraw");
-      this->pDeviceContext->BeginDraw();
+      this->pRenderTarget->BeginDraw();
     }
 
     {
       ZoneScopedN("Clear");
-      this->pDeviceContext->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
+      this->pRenderTarget->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
     }
     this->pDirectoryNavigationPanel->Paint();
 
     {
       ZoneScopedN("EndDraw");
-      MJ_ERR_HRESULT(this->pDeviceContext->EndDraw());
+      MJ_ERR_HRESULT(this->pRenderTarget->EndDraw());
     }
-  }
-
-  if (this->pSwapChain)
-  {
-    ZoneScopedN("Present");
-    MJ_ERR_HRESULT(this->pSwapChain->Present(0, 0));
   }
 }
 
@@ -373,16 +202,11 @@ void mj::MainWindow::Destroy()
     this->pDirectoryNavigationPanel = nullptr;
   }
 
-  if (this->pDeviceContext)
+  if (this->pRenderTarget)
   {
-    svc::ProvideD2D1DeviceContext(nullptr);
-    static_cast<void>(pDeviceContext->Release());
-    this->pDeviceContext = nullptr;
-  }
-  if (this->pSwapChain)
-  {
-    static_cast<void>(pSwapChain->Release());
-    this->pSwapChain = nullptr;
+    svc::ProvideD2D1RenderTarget(nullptr);
+    static_cast<void>(pRenderTarget->Release());
+    this->pRenderTarget = nullptr;
   }
 
   ::CoUninitialize();

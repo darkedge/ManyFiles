@@ -4,14 +4,14 @@
 #include "mj_common.h"
 
 static IDWriteFactory* pDWriteFactory;
-static ID2D1DeviceContext* pD2D1DeviceContext;
+static ID2D1RenderTarget* pD2D1RenderTarget;
 static IWICImagingFactory* pWicFactory;
 static HWND hWnd;
 static mj::AllocatorBase* s_pGeneralPurposeAllocator;
 
 // TODO: These should be sets, not arrays
 static mj::ArrayList<svc::IWICFactoryObserver*> s_WicFactoryObservers;
-static mj::ArrayList<svc::ID2D1DeviceContextObserver*> s_ID2D1DeviceContextObservers;
+static mj::ArrayList<svc::ID2D1RenderTargetObserver*> s_ID2D1RenderTargetObservers;
 static mj::ArrayList<svc::IDWriteFactoryObserver*> s_IDWriteFactoryObservers;
 
 // TODO: Provide fallback if a service is null
@@ -19,7 +19,7 @@ static mj::ArrayList<svc::IDWriteFactoryObserver*> s_IDWriteFactoryObservers;
 void svc::Init(mj::AllocatorBase* pAllocator)
 {
   s_WicFactoryObservers.Init(pAllocator);
-  s_ID2D1DeviceContextObservers.Init(pAllocator);
+  s_ID2D1RenderTargetObservers.Init(pAllocator);
   s_IDWriteFactoryObservers.Init(pAllocator);
 }
 
@@ -63,33 +63,33 @@ void svc::RemoveIDWriteFactoryObserver(IDWriteFactoryObserver* pObserver)
   s_IDWriteFactoryObservers.RemoveAll(pObserver);
 }
 
-ID2D1DeviceContext* svc::D2D1DeviceContext()
+ID2D1RenderTarget* svc::D2D1RenderTarget()
 {
-  return pD2D1DeviceContext;
+  return pD2D1RenderTarget;
 }
 
-void svc::ProvideD2D1DeviceContext(ID2D1DeviceContext* pContext)
+void svc::ProvideD2D1RenderTarget(ID2D1RenderTarget* pRenderTarget)
 {
-  pD2D1DeviceContext = pContext;
-  for (auto pObserver : s_ID2D1DeviceContextObservers)
+  pD2D1RenderTarget = pRenderTarget;
+  for (auto pObserver : s_ID2D1RenderTargetObservers)
   {
-    pObserver->OnID2D1DeviceContextAvailable(pD2D1DeviceContext);
+    pObserver->OnID2D1RenderTargetAvailable(pD2D1RenderTarget);
   }
 }
 
-void svc::AddID2D1DeviceContextObserver(ID2D1DeviceContextObserver* pObserver)
+void svc::AddID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver)
 {
-  s_ID2D1DeviceContextObservers.Add(pObserver);
+  s_ID2D1RenderTargetObservers.Add(pObserver);
   // Immediately notify the observer if the service is provided
-  if (pD2D1DeviceContext)
+  if (pD2D1RenderTarget)
   {
-    pObserver->OnID2D1DeviceContextAvailable(pD2D1DeviceContext);
+    pObserver->OnID2D1RenderTargetAvailable(pD2D1RenderTarget);
   }
 }
 
-void svc::RemoveID2D1DeviceContextObserver(ID2D1DeviceContextObserver* pObserver)
+void svc::RemoveID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver)
 {
-  s_ID2D1DeviceContextObservers.RemoveAll(pObserver);
+  s_ID2D1RenderTargetObservers.RemoveAll(pObserver);
 }
 
 IWICImagingFactory* svc::WicFactory()
