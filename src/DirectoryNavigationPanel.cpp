@@ -125,6 +125,86 @@ struct EverythingQueryContext : public mj::Task
   }
 };
 
+struct ListFolderContentsTask : public mj::Task
+{
+  // In
+  mj::DirectoryNavigationPanel* pParent = nullptr;
+  mj::String directory;
+
+  // Out
+  mj::ArrayList<mj::FolderContentItem> items;
+  mj::StringCache stringCache;
+
+  // Private
+  mj::HeapAllocator allocator;
+
+  ListFolderContentsTask() : directory(nullptr, 0)
+  {
+  }
+
+  virtual void Execute() override
+  {
+    ZoneScoped;
+
+    allocator.Init();
+    items.Init(&allocator);
+    stringCache.Init(&allocator);
+
+    MJ_UNINITIALIZED WIN32_FIND_DATA findData;
+    HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
+    MJ_ERR_IF(hFind, INVALID_HANDLE_VALUE);
+
+#if 0 // Do this later in a different task
+      MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
+                                                static_cast<UINT32>(string.len), //
+                                                this->pTextFormat,               //
+                                                1024.0f,                         //
+                                                1024.0f,                         //
+                                                &pItem->pTextLayout));
+#endif
+
+    do
+    {
+      mj::FolderContentItem* pItem = items.Emplace(1);
+      if (!pItem)
+      {
+        items.Destroy();
+        stringCache.Destroy();
+        break;
+      }
+
+      if (!stringCache.Add(findData.cFileName))
+      {
+        items.Destroy();
+        stringCache.Destroy();
+        break;
+      }
+
+      if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+      {
+        pItem->type = mj::EEntryType::Directory;
+      }
+      else
+      {
+        pItem->type = mj::EEntryType::File;
+      }
+    } while (::FindNextFileW(hFind, &findData) != 0);
+
+    ::FindClose(hFind);
+
+    // Assign strings
+    for (int i = 0; i < items.Size(); i++)
+    {
+      // Copy the string object by value
+      items[i].pName = stringCache[i];
+    }
+  }
+
+  virtual void OnDone() override
+  {
+  }
+};
+
 void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 {
   ZoneScoped;
@@ -142,19 +222,27 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 
   // Start tasks
   {
-    LoadFolderIconContext* pTask = mj::ThreadpoolCreateTask<LoadFolderIconContext>();
+    auto* pTask = mj::ThreadpoolCreateTask<LoadFolderIconContext>();
     pTask->pParent               = this;
     mj::ThreadpoolSubmitTask(pTask);
   }
+  {
+    auto* pTask = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
+    pTask->pParent = this;
+    pTask->directory = mj::String(LR"(C:\*)");
+    mj::ThreadpoolSubmitTask(pTask);
+  }
 
+#if 0
   {
     EverythingQueryContext* pTask = mj::ThreadpoolCreateTask<EverythingQueryContext>();
     pTask->pParent                = this;
-    pTask->directory              = mj::String(LR"(C:\)");
+    pTask->directory              = mj::String(LR"(C:\*)");
     pTask->searchBuffer           = this->searchBuffer;
     this->queryDone               = false;
     mj::ThreadpoolSubmitTask(pTask);
   }
+#endif
 }
 
 namespace mj
@@ -235,7 +323,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
     DWORD numResults = Everything_GetNumResults();
 
     this->entries.Clear();
-    Entry* pEntries = this->entries.Reserve(numResults);
+    Entry* pEntries = this->entries.Emplace(numResults);
 
     wchar_t fullPathName[MAX_PATH];
     for (DWORD i = 0; i < numResults; i++)

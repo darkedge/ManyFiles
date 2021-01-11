@@ -5,7 +5,7 @@
 #include "ServiceLocator.h"
 #include "../3rdparty/tracy/Tracy.hpp"
 
-static constexpr auto MAX_TASKS   = 4096;
+static constexpr auto MAX_TASKS   = 1024;
 static constexpr auto NUM_THREADS = 8;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
 static mj::TaskContext* s_pTaskHead;

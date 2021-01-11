@@ -17,9 +17,15 @@ namespace mj
   };
   struct Entry
   {
-    EEntryType type;
+    EEntryType::Enum type;
     IDWriteTextLayout* pTextLayout;
     ID2D1Bitmap* pIcon;
+  };
+
+  struct FolderContentItem
+  {
+    EEntryType::Enum type;
+    String pName;
   };
 
   class DirectoryNavigationPanel : public IControl,

@@ -1,7 +1,8 @@
 #pragma once
+#include "mj_allocator.h"
 #include <string.h>
 #include <stdint.h>
-#include "mj_allocator.h"
+#include <strsafe.h>
 
 // Annotation macros
 
@@ -115,8 +116,6 @@ namespace mj
     /// <summary>
     /// ArrayList with an initial capacity, allocated using the provided allocator.
     /// </summary>
-    /// <param name="capacity"></param>
-    /// <returns></returns>
     bool Init(AllocatorBase* pAllocator, size_t capacity)
     {
       this->Destroy();
@@ -141,24 +140,50 @@ namespace mj
       this->capacity    = 0;
     }
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <returns></returns>
-    template <typename U = T>
-    ArrayListView<U> ToView()
+    ArrayListView<T> CreateView()
     {
-      return ArrayListView<U>(*this);
+      return ArrayListView<T>(*this);
     }
 
     /// <summary>
-    /// Reserves additional memory for new objects.
-    /// Only performs an allocation if the current capacity is insufficient.
+    /// Checks if we can add more elements.
+    /// Will attempt to allocate more memory if there isn't enough capacity
+    /// and allocateIfNecessary is true (default).
+    /// Does not increase element count.
     /// </summary>
-    /// <param name="num">Amount of objects</param>
+    /// <param name="num">Amount of elements</param>
+    /// <param name="allocateIfNecessary">If set to false, do not try to allocate more memory</param>
+    /// <returns>True if there is memory for the specified amount of objects, otherwise false</returns>
+    bool Reserve(size_t num, bool allocateIfNecessary = true)
+    {
+      if (num == 0)
+      {
+        return nullptr;
+      }
+
+      if (numElements + num <= capacity)
+      {
+        return true;
+      }
+      else
+      {
+        if (allocateIfNecessary && Expand(numElements + num))
+        {
+          return Reserve(num);
+        }
+        else
+        {
+          return false;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Increases element count if successful.
+    /// </summary>
+    /// <param name="num"></param>
     /// <returns>Pointer to the newly reserved range, or nullptr if there is no more space.</returns>
-    T* Reserve(size_t num)
+    T* Emplace(size_t num)
     {
       if (num == 0)
       {
@@ -175,7 +200,7 @@ namespace mj
       {
         if (Expand(numElements + num))
         {
-          return Reserve(num);
+          return Emplace(num);
         }
         else
         {
