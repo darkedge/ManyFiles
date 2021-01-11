@@ -1,5 +1,5 @@
 #include "ErrorExit.h"
-#include "StringBuilder.h"
+#include "mj_string.h"
 
 /// <summary>
 /// We do not recurse into this as it is an exit function.

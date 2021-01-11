@@ -1,4 +1,4 @@
-#include "StringBuilder.h"
+#include "mj_string.h"
 #include "ErrorExit.h"
 #define STRSAFE_NO_CB_FUNCTIONS
 #include <strsafe.h>

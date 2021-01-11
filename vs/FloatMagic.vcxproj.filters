@@ -11,10 +11,10 @@
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\ServiceLocator.cpp" />
-    <ClCompile Include="..\src\StringBuilder.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\DirectoryNavigationPanel.cpp" />
     <ClCompile Include="..\src\TracyAllocatorWrapper.cpp" />
+    <ClCompile Include="..\src\mj_string.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -36,12 +36,12 @@
     <ClInclude Include="..\src\ServiceLocator.h" />
     <ClInclude Include="..\src\ServiceProvider.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
-    <ClInclude Include="..\src\StringBuilder.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="..\src\TracyAllocatorWrapper.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\src\stb_image.h" />
+    <ClInclude Include="..\src\mj_string.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

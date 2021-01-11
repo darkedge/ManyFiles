@@ -1,7 +1,7 @@
 #pragma once
 #include "IControl.h"
 #include "mj_common.h"
-#include "StringBuilder.h"
+#include "mj_string.h"
 #include "ServiceLocator.h"
 #include <d2d1_1.h>
 

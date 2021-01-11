@@ -1,6 +1,6 @@
 #pragma once
 #include "mj_win32.h"
-#include "StringBuilder.h"
+#include "mj_string.h"
 
 // Note MJ: We might want to put these in a more general header file.
 #define WSTR(x)      L##x

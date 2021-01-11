@@ -119,7 +119,7 @@
     <ClInclude Include="..\src\ServiceProvider.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
     <ClInclude Include="..\src\stb_image.h" />
-    <ClInclude Include="..\src\StringBuilder.h" />
+    <ClInclude Include="..\src\mj_string.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\TracyAllocatorWrapper.h" />
     <ClInclude Include="resource.h" />
@@ -149,7 +149,7 @@
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\ServiceLocator.cpp" />
-    <ClCompile Include="..\src\StringBuilder.cpp" />
+    <ClCompile Include="..\src\mj_string.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\TracyAllocatorWrapper.cpp" />
   </ItemGroup>
