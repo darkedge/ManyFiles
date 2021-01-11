@@ -66,24 +66,6 @@ ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
   return pBitmap;
 }
 
-struct LoadFolderIconContext : public mj::Task
-{
-  HICON hIcon;
-  mj::DirectoryNavigationPanel* pParent;
-
-  virtual void Execute() override
-  {
-    ZoneScoped;
-    this->hIcon = static_cast<HICON>(
-        ::LoadImageW(HINST_THISCOMPONENT, MAKEINTRESOURCEW(IDI_FOLDER), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR));
-  }
-
-  virtual void OnDone() override
-  {
-    this->pParent->OnLoadFolderIcon(this->hIcon);
-  }
-};
-
 struct EverythingQueryContext : public mj::Task
 {
   mj::DirectoryNavigationPanel* pParent = nullptr;
@@ -122,6 +104,71 @@ struct EverythingQueryContext : public mj::Task
   virtual void OnDone() override
   {
     this->pParent->OnEverythingQuery();
+  }
+};
+
+// Requires: D2D1RenderTarget
+struct LoadBitmapFromResourceTask : public mj::Task
+{
+  // In
+  mj::DirectoryNavigationPanel* pParent = nullptr;
+  ID2D1Bitmap** pOutBitmap              = nullptr;
+  WORD resource                         = 0;
+
+  // Private
+  ID2D1Bitmap* pBitmap = nullptr;
+
+  virtual void Execute() override
+  {
+    ZoneScoped;
+
+    // Resource management.
+    HGLOBAL imageResDataHandle = nullptr;
+    void* pImageFile           = nullptr;
+
+    // Locate the resource in the application's executable.
+    HRSRC imageResHandle = ::FindResourceW(nullptr, MAKEINTRESOURCEW(resource), L"PNG");
+
+    HRESULT hr = (imageResHandle ? S_OK : E_FAIL);
+
+    // Load the resource to the HGLOBAL.
+    if (SUCCEEDED(hr))
+    {
+      ZoneScopedN("LoadResource");
+      imageResDataHandle = ::LoadResource(nullptr, imageResHandle);
+      hr                 = (imageResDataHandle ? S_OK : E_FAIL);
+    }
+
+    auto size = ::SizeofResource(nullptr, imageResHandle);
+
+    // Lock the resource to retrieve memory pointer.
+    if (SUCCEEDED(hr))
+    {
+      ZoneScopedN("LockResource");
+      pImageFile = ::LockResource(imageResDataHandle);
+      hr         = (pImageFile ? S_OK : E_FAIL);
+    }
+
+    int numComponents = 4;
+    int x, y, n;
+    // ... process data if not NULL ...
+    // ... x = width, y = height, n = # 8-bit components per pixel ...
+    // ... replace '0' with '1'..'4' to force that many components per pixel
+    // ... but 'n' will always be the number that it would have been if you said 0
+    uint32_t* data = reinterpret_cast<uint32_t*>(
+        ::stbi_load_from_memory(static_cast<stbi_uc*>(pImageFile), size, &x, &y, &n, numComponents));
+    MJ_DEFER(::stbi_image_free(data));
+
+    auto* pContext = svc::D2D1RenderTarget();
+
+    hr = pContext->CreateBitmap(
+        D2D1::SizeU(x, y), data, x * numComponents,
+        D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
+  }
+
+  virtual void OnDone() override
+  {
+    *this->pOutBitmap = this->pBitmap;
   }
 };
 
@@ -202,13 +249,13 @@ struct ListFolderContentsTask : public mj::Task
 
   virtual void OnDone() override
   {
+    // Get icon, get TextFormat in another task
   }
 };
 
 void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 {
   ZoneScoped;
-  svc::AddWicFactoryObserver(this);
   svc::AddID2D1RenderTargetObserver(this);
   svc::AddIDWriteFactoryObserver(this);
 
@@ -222,13 +269,8 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 
   // Start tasks
   {
-    auto* pTask = mj::ThreadpoolCreateTask<LoadFolderIconContext>();
-    pTask->pParent               = this;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-  {
-    auto* pTask = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
-    pTask->pParent = this;
+    auto* pTask      = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
+    pTask->pParent   = this;
     pTask->directory = mj::String(LR"(C:\*)");
     mj::ThreadpoolSubmitTask(pTask);
   }
@@ -243,74 +285,6 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
     mj::ThreadpoolSubmitTask(pTask);
   }
 #endif
-}
-
-namespace mj
-{
-  static ID2D1Bitmap* WicLess()
-  {
-    ZoneScoped;
-
-    // Resource management.
-    HRSRC imageResHandle       = NULL;
-    HGLOBAL imageResDataHandle = NULL;
-    void* pImageFile           = NULL;
-
-    // Locate the resource in the application's executable.
-    // imageResHandle = FindResourceW(NULL, L"IDB_FOLDER", L"Image");
-    imageResHandle = FindResourceW(NULL, MAKEINTRESOURCEW(IDB_FOLDER), L"PNG");
-
-    HRESULT hr = (imageResHandle ? S_OK : E_FAIL);
-
-    // Load the resource to the HGLOBAL.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("LoadResource");
-      imageResDataHandle = LoadResource(NULL, imageResHandle);
-      hr                 = (imageResDataHandle ? S_OK : E_FAIL);
-    }
-
-    auto size = ::SizeofResource(nullptr, imageResHandle);
-
-    // Lock the resource to retrieve memory pointer.
-    if (SUCCEEDED(hr))
-    {
-      ZoneScopedN("LockResource");
-      pImageFile = LockResource(imageResDataHandle);
-      hr         = (pImageFile ? S_OK : E_FAIL);
-    }
-
-    int numComponents = 4;
-    int x, y, n;
-    // ... process data if not NULL ...
-    // ... x = width, y = height, n = # 8-bit components per pixel ...
-    // ... replace '0' with '1'..'4' to force that many components per pixel
-    // ... but 'n' will always be the number that it would have been if you said 0
-    uint32_t* data = reinterpret_cast<uint32_t*>(
-        stbi_load_from_memory(static_cast<stbi_uc*>(pImageFile), size, &x, &y, &n, numComponents));
-    MJ_DEFER(stbi_image_free(data));
-
-    auto* pContext = svc::D2D1RenderTarget();
-
-    MJ_UNINITIALIZED ID2D1Bitmap* pBitmap;
-    hr = pContext->CreateBitmap(
-        D2D1::SizeU(x, y), data, x * numComponents,
-        D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), &pBitmap);
-
-    return pBitmap;
-  }
-
-} // namespace mj
-
-void mj::DirectoryNavigationPanel::CheckFolderIconPrerequisites()
-{
-  ZoneScoped;
-  if (this->pFolderIconHandle && svc::WicFactory() && svc::D2D1RenderTarget())
-  {
-    this->pFolderIcon = WicLess();
-    static_cast<void>(::DestroyIcon(this->pFolderIconHandle));
-    CheckEverythingQueryPrerequisites();
-  }
 }
 
 void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
@@ -408,15 +382,8 @@ void mj::DirectoryNavigationPanel::Destroy()
   if (this->pFolderIcon)
     this->pFolderIcon->Release();
 
-  svc::RemoveWicFactoryObserver(this);
   svc::RemoveID2D1RenderTargetObserver(this);
   svc::RemoveIDWriteFactoryObserver(this);
-}
-
-void mj::DirectoryNavigationPanel::OnLoadFolderIcon(HICON hIcon)
-{
-  this->pFolderIconHandle = hIcon;
-  this->CheckFolderIconPrerequisites();
 }
 
 void mj::DirectoryNavigationPanel::OnEverythingQuery()
@@ -425,15 +392,18 @@ void mj::DirectoryNavigationPanel::OnEverythingQuery()
   this->CheckEverythingQueryPrerequisites();
 }
 
-void mj::DirectoryNavigationPanel::OnWICFactoryAvailable(IWICImagingFactory* pFactory)
-{
-  this->CheckFolderIconPrerequisites();
-}
-
 void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext)
 {
   ZoneScoped;
-  this->CheckFolderIconPrerequisites();
+
+  {
+    auto* pTask       = mj::ThreadpoolCreateTask<LoadBitmapFromResourceTask>();
+    pTask->pParent    = this;
+    pTask->pOutBitmap = &this->pFolderIcon;
+    pTask->resource   = IDB_FOLDER;
+    mj::ThreadpoolSubmitTask(pTask);
+  }
+
   MJ_ERR_HRESULT(pContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pBlackBrush));
 }
 

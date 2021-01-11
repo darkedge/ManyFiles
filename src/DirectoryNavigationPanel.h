@@ -29,7 +29,6 @@ namespace mj
   };
 
   class DirectoryNavigationPanel : public IControl,
-                                   public svc::IWICFactoryObserver,
                                    public svc::ID2D1RenderTargetObserver,
                                    public svc::IDWriteFactoryObserver
   {
@@ -37,7 +36,6 @@ namespace mj
     ID2D1SolidColorBrush* pBlackBrush = nullptr;
     IDWriteTextFormat* pTextFormat    = nullptr;
     ID2D1Bitmap* pFolderIcon          = nullptr;
-    HICON pFolderIconHandle           = nullptr;
 
     AllocatorBase* pAllocator = nullptr;
     ArrayList<Entry> entries;
@@ -50,7 +48,6 @@ namespace mj
     bool queryDone;
 
     ID2D1Bitmap* ConvertIcon(HICON hIcon);
-    void CheckFolderIconPrerequisites();
     void CheckEverythingQueryPrerequisites();
 
   public:
@@ -59,10 +56,8 @@ namespace mj
     void Destroy() override;
 
     // Event callbacks
-    void OnLoadFolderIcon(HICON hIcon);
     void OnEverythingQuery();
 
-    virtual void OnWICFactoryAvailable(IWICImagingFactory* pFactory) override;
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
   };
