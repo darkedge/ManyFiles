@@ -4,6 +4,7 @@
 #include "ErrorExit.h"
 #include "ServiceLocator.h"
 #include "../3rdparty/tracy/Tracy.hpp"
+#include "../3rdparty/tracy/common/TracySystem.hpp"
 
 static constexpr auto MAX_TASKS   = 1024;
 static constexpr auto NUM_THREADS = 8;
@@ -42,6 +43,7 @@ namespace mj
 
 static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
 {
+  tracy::SetThreadName("Threadpool thread");
   static_cast<void>(lpThreadParameter);
 
   while (true)
@@ -78,7 +80,7 @@ void mj::ThreadpoolInit(UINT msg)
 {
   ZoneScoped;
 
-  s_Msg  = msg;
+  s_Msg = msg;
   MJ_ERR_IF(s_Iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
 
   // Initialize free list

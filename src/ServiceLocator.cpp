@@ -23,6 +23,13 @@ void svc::Init(mj::AllocatorBase* pAllocator)
   s_IDWriteFactoryObservers.Init(pAllocator);
 }
 
+void svc::Destroy()
+{
+  s_WicFactoryObservers.Destroy();
+  s_ID2D1RenderTargetObservers.Destroy();
+  s_IDWriteFactoryObservers.Destroy();
+}
+
 mj::AllocatorBase* svc::GeneralPurposeAllocator()
 {
   MJ_EXIT_NULL(s_pGeneralPurposeAllocator);

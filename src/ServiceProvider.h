@@ -8,6 +8,7 @@ struct IWICImagingFactory;
 namespace svc
 {
   void Init(mj::AllocatorBase* pAllocator);
+  void Destroy();
   void ProvideGeneralPurposeAllocator(mj::AllocatorBase* pAllocator);
   void ProvideDWriteFactory(IDWriteFactory* pFactory);
   void ProvideD2D1RenderTarget(ID2D1RenderTarget* pContext);

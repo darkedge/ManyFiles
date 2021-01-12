@@ -189,6 +189,7 @@ void mj::MainWindow::Destroy()
   if (this->pDirectoryNavigationPanel)
   {
     this->pDirectoryNavigationPanel->Destroy();
+    svc::GeneralPurposeAllocator()->Free(this->pDirectoryNavigationPanel);
     this->pDirectoryNavigationPanel = nullptr;
   }
 
@@ -198,6 +199,8 @@ void mj::MainWindow::Destroy()
     static_cast<void>(pRenderTarget->Release());
     this->pRenderTarget = nullptr;
   }
+  
+  svc::Destroy();
 
   ::CoUninitialize();
 }
@@ -259,16 +262,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
 
   return ::DefWindowProcW(hWnd, message, wParam, lParam);
-}
-
-template <typename T>
-static mj::AllocatorBase* CreateAllocator()
-{
-  static_assert(std::is_base_of<mj::AllocatorBase, T>::value);
-
-#ifdef TRACY_ENABLE
-
-#endif
 }
 
 void mj::MainWindow::Run()
