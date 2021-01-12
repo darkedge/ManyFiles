@@ -139,9 +139,9 @@ void mj::StringCache::Destroy()
   this->buffer.Destroy();
 }
 
-mj::ArrayListView<mj::String> mj::StringCache::CreateView()
+mj::ArrayListView<const mj::String> mj::StringCache::CreateView()
 {
-  return ArrayListView<String>(*this);
+  return ArrayListView<const String>(*this);
 }
 
 bool mj::StringCache::Add(const wchar_t* pStringLiteral)
@@ -152,8 +152,8 @@ bool mj::StringCache::Add(const wchar_t* pStringLiteral)
   // Note: We are assuming that ArrayList reallocation will always return a new pointer
   // This should hold because we never free the old memory before allocating the new memory
   // and the null address is already caught by ArrayList
-  wchar_t* pDataOld = this->buffer.Get();
-  size_t destSize = string.len + 1; // Include null terminator
+  const wchar_t* pDataOld = this->buffer.Get();
+  size_t destSize         = string.len + 1; // Include null terminator
   if (this->strings.Reserve(1) && this->buffer.Reserve(destSize))
   {
     // These pointers should always be valid after calling Reserve
@@ -184,6 +184,32 @@ bool mj::StringCache::Add(const wchar_t* pStringLiteral)
   return false;
 }
 
+bool mj::StringCache::Copy(const StringCache& other)
+{
+  // Check if the other array fits (allocate if necessary)
+  if (this->strings.Capacity() < other.strings.Size() &&
+      !this->strings.Reserve(other.strings.Size() - this->strings.Size()))
+  {
+    return false;
+  }
+
+  if (this->buffer.Copy(other.buffer))
+  {
+    // Should always succeed
+    this->strings.Copy(other.strings);
+
+    // Update string addresses
+    auto pDataNew = this->buffer.Get();
+    for (auto& str : this->strings)
+    {
+      str.ptr = pDataNew;
+      pDataNew += str.len + 1;
+    }
+  }
+
+  return true;
+}
+
 void mj::StringCache::Clear()
 {
   this->strings.Clear();
@@ -198,11 +224,6 @@ size_t mj::StringCache::Size() const
 size_t mj::StringCache::Capacity() const
 {
   return this->strings.Capacity();
-}
-
-mj::String* mj::StringCache::Get() const
-{
-  return this->strings.Get();
 }
 
 mj::String* mj::StringCache::begin() const
@@ -220,7 +241,7 @@ mj::String& mj::StringCache::operator[](size_t index)
   return this->strings[index];
 }
 
-mj::StringCache::operator mj::ArrayListView<mj::String>()
+mj::StringCache::operator mj::ArrayListView<const mj::String>()
 {
   return mj::ArrayListView(this->strings.Get(), this->strings.Size());
 }

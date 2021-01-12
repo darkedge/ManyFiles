@@ -59,8 +59,8 @@ namespace mj
 
   /// <summary>
   /// Uses HeapAlloc/HeapFree.
-  /// Does not initialize memory ot zero.
-  /// Is NOT thread-safe.
+  /// Does not initialize memory to zero.
+  /// Is thread-safe.
   /// </summary>
   class HeapAllocator : public AllocatorBase
   {

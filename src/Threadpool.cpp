@@ -43,7 +43,9 @@ namespace mj
 
 static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
 {
+#ifdef TRACY_ENABLE
   tracy::SetThreadName("Threadpool thread");
+#endif
   static_cast<void>(lpThreadParameter);
 
   while (true)
@@ -113,7 +115,11 @@ void mj::ThreadpoolSetWindowHandle(HWND hWnd)
 void mj::ThreadpoolTaskEnd(WPARAM wParam)
 {
   mj::Task* pTask = reinterpret_cast<mj::Task*>(wParam);
-  pTask->OnDone();
+  if (!pTask->cancelled)
+  {
+    pTask->OnDone();
+  }
+  pTask->Destroy();
   mj::ThreadpoolFreeContext(reinterpret_cast<mj::TaskContext*>(pTask));
 }
 

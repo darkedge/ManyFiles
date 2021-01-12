@@ -150,34 +150,17 @@ struct LoadBitmapFromResourceTask : public mj::Task
   }
 };
 
-struct ListFolderContentsTask : public mj::Task
+void mj::ListFolderContentsTask::Execute()
 {
-  // In
-  mj::DirectoryNavigationPanel* pParent = nullptr;
-  mj::String directory;
+  ZoneScoped;
 
-  // Out
-  mj::ArrayList<mj::FolderContentItem> items;
-  mj::StringCache stringCache;
+  this->allocator.Init();
+  this->items.Init(&this->allocator);
+  this->stringCache.Init(&this->allocator);
 
-  // Private
-  mj::HeapAllocator allocator;
-
-  ListFolderContentsTask() : directory(nullptr, 0)
-  {
-  }
-
-  virtual void Execute() override
-  {
-    ZoneScoped;
-
-    allocator.Init();
-    items.Init(&allocator);
-    stringCache.Init(&allocator);
-
-    MJ_UNINITIALIZED WIN32_FIND_DATA findData;
-    HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
-    MJ_ERR_IF(hFind, INVALID_HANDLE_VALUE);
+  MJ_UNINITIALIZED WIN32_FIND_DATA findData;
+  HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
+  MJ_ERR_IF(hFind, INVALID_HANDLE_VALUE);
 
 #if 0 // Do this later in a different task
       MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
@@ -188,48 +171,46 @@ struct ListFolderContentsTask : public mj::Task
                                                 &pItem->pTextLayout));
 #endif
 
-    do
-    {
-      mj::FolderContentItem* pItem = items.Emplace(1);
-      if (!pItem)
-      {
-        items.Destroy();
-        stringCache.Destroy();
-        break;
-      }
-
-      if (!stringCache.Add(findData.cFileName))
-      {
-        items.Destroy();
-        stringCache.Destroy();
-        break;
-      }
-
-      if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-      {
-        pItem->type = mj::EEntryType::Directory;
-      }
-      else
-      {
-        pItem->type = mj::EEntryType::File;
-      }
-    } while (::FindNextFileW(hFind, &findData) != 0);
-
-    ::FindClose(hFind);
-
-    // Assign strings
-    for (int i = 0; i < items.Size(); i++)
-    {
-      // Copy the string object by value
-      items[i].pName = stringCache[i];
-    }
-  }
-
-  virtual void OnDone() override
+  do
   {
-    // Get icon, get TextFormat in another task
-  }
-};
+    mj::EEntryType::Enum* pItem = items.Emplace(1);
+    if (!pItem)
+    {
+      this->items.Destroy();
+      this->stringCache.Destroy();
+      break;
+    }
+
+    if (!this->stringCache.Add(findData.cFileName))
+    {
+      this->items.Destroy();
+      this->stringCache.Destroy();
+      break;
+    }
+
+    if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+      *pItem = mj::EEntryType::Directory;
+    }
+    else
+    {
+      *pItem = mj::EEntryType::File;
+    }
+  } while (::FindNextFileW(hFind, &findData) != 0);
+
+  ::FindClose(hFind);
+}
+
+void mj::ListFolderContentsTask::OnDone()
+{
+  pParent->OnListFolderContentsDone(this);
+}
+
+void mj::ListFolderContentsTask::Destroy()
+{
+  this->items.Destroy();
+  this->stringCache.Destroy();
+}
 
 void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
 {
@@ -245,12 +226,16 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
   MJ_EXIT_NULL(this->resultsBuffer.pAddress);
   this->entries.Init(this->pAllocator);
 
+  this->listFolderContentsTaskResult.items.Init(this->pAllocator);
+  this->listFolderContentsTaskResult.stringCache.Init(this->pAllocator);
+
   // Start tasks
+  if (!this->pListFolderContentsTask)
   {
-    auto* pTask      = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
-    pTask->pParent   = this;
-    pTask->directory = mj::String(LR"(C:\*)");
-    mj::ThreadpoolSubmitTask(pTask);
+    this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
+    this->pListFolderContentsTask->pParent   = this;
+    this->pListFolderContentsTask->directory = mj::String(LR"(C:\*)");
+    mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
   }
 
 #if 0
@@ -360,6 +345,9 @@ void mj::DirectoryNavigationPanel::Destroy()
   if (this->pFolderIcon)
     this->pFolderIcon->Release();
 
+  this->listFolderContentsTaskResult.items.Destroy();
+  this->listFolderContentsTaskResult.stringCache.Destroy();
+
   svc::RemoveID2D1RenderTargetObserver(this);
   svc::RemoveIDWriteFactoryObserver(this);
 }
@@ -368,6 +356,16 @@ void mj::DirectoryNavigationPanel::OnEverythingQuery()
 {
   queryDone = true;
   this->CheckEverythingQueryPrerequisites();
+}
+
+void mj::DirectoryNavigationPanel::OnListFolderContentsDone(ListFolderContentsTask* pTask)
+{
+  if (this->listFolderContentsTaskResult.items.Copy(pTask->items) &&
+      this->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
+  {
+    // TODO: Start icon, TextFormat tasks if preconditions are met
+  }
+  this->pListFolderContentsTask = nullptr;
 }
 
 void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext)

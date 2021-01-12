@@ -47,7 +47,7 @@ namespace mj
     /// </summary>
     void Destroy();
 
-    ArrayListView<String> CreateView();
+    ArrayListView<const String> CreateView();
 
     /// <summary>
     /// Inserts a copy of this string into the buffer.
@@ -60,13 +60,13 @@ namespace mj
     /// </returns>
     bool Add(const wchar_t* pStringLiteral);
 
+    bool Copy(const StringCache& other);
+
     void Clear();
 
     size_t Size() const;
 
     size_t Capacity() const;
-
-    String* Get() const;
 
     String* begin() const;
 
@@ -74,6 +74,6 @@ namespace mj
 
     String& operator[](size_t index);
 
-    operator mj::ArrayListView<String>();
+    operator mj::ArrayListView<const String>();
   };
 } // namespace mj

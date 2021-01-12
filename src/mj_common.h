@@ -219,7 +219,7 @@ namespace mj
       // Note: These first checks are redundant after we recurse
       if (num == 0)
       {
-        return end();
+        return this->end();
       }
       if (!pSrc)
       {
@@ -235,13 +235,13 @@ namespace mj
         // Number of elements to move right
         size_t numMove = this->numElements - pCurrent;
 
-        T* ptr = begin() + pCurrent;
+        T* ptr = this->begin() + pCurrent;
 
         // Move elements right
-        memmove(end() + num - numMove, ptr, numMove * TSize);
+        static_cast<void>(::memmove(end() + num - numMove, ptr, numMove * TSize));
 
         // Copy new elements into pCurrent
-        memcpy(ptr, pSrc, num * TSize);
+        static_cast<void>(::memcpy(ptr, pSrc, num * TSize));
 
         this->numElements += num;
 
@@ -249,9 +249,9 @@ namespace mj
       }
       else
       {
-        if (Expand(this->numElements + num))
+        if (this->Expand(this->numElements + num))
         {
-          return Insert(pCurrent, pSrc, num);
+          return this->Insert(pCurrent, pSrc, num);
         }
         else
         {
@@ -364,6 +364,21 @@ namespace mj
       }
     }
 
+    bool Copy(const ArrayList<T>& other)
+    {
+      // Check if the other array fits (allocate if necessary)
+      if (this->Capacity() < other.Size() && !this->Reserve(other.Size() - this->Size()))
+      {
+        return false;
+      }
+
+      // Here, capacity >= numElements
+      this->numElements = other.Size();
+      static_cast<void>(::memcpy(this->pData, other.Get(), other.ByteWidth()));
+
+      return true;
+    }
+
     /// <summary>
     /// Sets number of elements to zero.
     /// Keeps current allocation.
@@ -393,7 +408,7 @@ namespace mj
       return this->Size() * this->ElemSize();
     }
 
-    T* Get() const
+    const T* Get() const
     {
       return this->pData;
     }
@@ -442,7 +457,7 @@ namespace mj
       {
         if (this->pData)
         {
-          ::memcpy(ptr, this->pData, this->numElements * this->ElemSize());
+          static_cast<void>(::memcpy(ptr, this->pData, this->numElements * this->ElemSize()));
           this->pAllocator->Free(this->pData);
         }
         this->capacity = newCapacity;

@@ -3,6 +3,7 @@
 #include "mj_common.h"
 #include "mj_string.h"
 #include "ServiceLocator.h"
+#include "Threadpool.h"
 #include <d2d1_1.h>
 
 namespace mj
@@ -22,11 +23,7 @@ namespace mj
     ID2D1Bitmap* pIcon;
   };
 
-  struct FolderContentItem
-  {
-    EEntryType::Enum type;
-    String pName;
-  };
+  struct ListFolderContentsTask;
 
   class DirectoryNavigationPanel : public IControl,
                                    public svc::ID2D1RenderTargetObserver,
@@ -41,6 +38,14 @@ namespace mj
     ArrayList<Entry> entries;
     Allocation searchBuffer;
     Allocation resultsBuffer;
+
+    // ListFolderContentsTask results
+    struct
+    {
+      mj::ArrayList<mj::EEntryType::Enum> items;
+      mj::StringCache stringCache;
+    } listFolderContentsTaskResult;
+    ListFolderContentsTask* pListFolderContentsTask = nullptr;
 
     /// <summary>
     /// Dumb flag variable to check if the Everything query is done
@@ -57,8 +62,35 @@ namespace mj
 
     // Event callbacks
     void OnEverythingQuery();
+    void OnListFolderContentsDone(ListFolderContentsTask* pTask);
 
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
+  };
+
+  
+
+  struct ListFolderContentsTask : public mj::Task
+  {
+    // In
+    mj::DirectoryNavigationPanel* pParent = nullptr;
+    mj::String directory;
+
+    // Out
+    mj::ArrayList<mj::EEntryType::Enum> items;
+    mj::StringCache stringCache;
+
+    // Private
+    mj::HeapAllocator allocator;
+
+    ListFolderContentsTask() : directory(nullptr, 0)
+    {
+    }
+
+    virtual void Execute() override;
+
+    virtual void OnDone() override;
+
+    virtual void Destroy() override;
   };
 } // namespace mj

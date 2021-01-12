@@ -23,6 +23,9 @@ namespace mj
     virtual void OnTaskCompletion(Task* pTask) = 0;
   };
 
+  /// <summary>
+  /// There is no Init (not needed, we can do it in Execute).
+  /// </summary>
   struct Task
   {
     /// <summary>
@@ -38,7 +41,16 @@ namespace mj
       // Optional
     }
 
+    /// <summary>
+    /// Override when a task manages its own memory.
+    /// </summary>
+    virtual void Destroy()
+    {
+      // Optional
+    }
+
     ITaskCompletionHandler* pHandler;
+    bool cancelled;
   };
 
   namespace detail
@@ -63,8 +75,9 @@ namespace mj
 
     if (pContext)
     {
-      pTask           = new (pContext) T;
-      pTask->pHandler = pHandler;
+      pTask            = new (pContext) T;
+      pTask->pHandler  = pHandler;
+      pTask->cancelled = false;
     }
 
     return pTask;
