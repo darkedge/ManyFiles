@@ -147,6 +147,7 @@
     <ClCompile Include="..\src\mj_allocator.cpp" />
     <ClCompile Include="..\src\mj_common.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
+    <ClCompile Include="..\src\mj_stb_image.cpp" />
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\ServiceLocator.cpp" />

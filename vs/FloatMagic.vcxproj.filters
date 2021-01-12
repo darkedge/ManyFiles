@@ -15,6 +15,7 @@
     <ClCompile Include="..\src\DirectoryNavigationPanel.cpp" />
     <ClCompile Include="..\src\mj_string.cpp" />
     <ClCompile Include="..\src\mj_allocator.cpp" />
+    <ClCompile Include="..\src\mj_stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
