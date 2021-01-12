@@ -1,5 +1,6 @@
 #pragma once
 #include "mj_allocator.h"
+#include "mj_macro.h"
 #include <string.h>
 #include <stdint.h>
 #include <strsafe.h>
@@ -714,14 +715,20 @@ namespace mj
       this->memoryBuffer = MemoryBuffer(allocation.pAddress, allocation.numBytes);
     }
 
-    void* Allocate(size_t numBytes) override
+  protected:
+    void* AllocateInternal(size_t numBytes) override
     {
       return this->memoryBuffer.NewArrayUnaligned<char>(numBytes);
     }
 
-    void Free(void* ptr) override
+    void FreeInternal(void* ptr) override
     {
       static_cast<void>(ptr);
+    }
+
+    virtual const char* GetName() override
+    {
+      return STR(LinearAllocator);
     }
   };
 } // namespace mj

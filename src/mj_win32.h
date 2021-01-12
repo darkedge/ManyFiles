@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include "mj_allocator.h"
+#include "mj_macro.h"
 
 // __ImageBase is better than GetCurrentModule()
 // Can be cast to a HINSTANCE
@@ -36,8 +37,8 @@ namespace mj
       this->pBaseAddress = pBaseAddress;
     }
 
-    [[nodiscard]]
-    virtual void* Allocate(size_t size) override
+  protected:
+    [[nodiscard]] virtual void* AllocateInternal(size_t size) override
     {
       return ::VirtualAlloc(nullptr,                  //
                             size,                     //
@@ -45,9 +46,14 @@ namespace mj
                             PAGE_READWRITE);
     }
 
-    virtual void Free(void* ptr) override
+    virtual void FreeInternal(void* ptr) override
     {
       ::VirtualFree(ptr, 0, MEM_RELEASE);
+    }
+
+    virtual const char* GetName() override
+    {
+      return STR(VirtualAllocator);
     }
   };
 
@@ -67,15 +73,20 @@ namespace mj
       pHeap = ::GetProcessHeap();
     }
 
-    [[nodiscard]]
-    virtual void* Allocate(size_t size) override
+  protected:
+    [[nodiscard]] virtual void* AllocateInternal(size_t size) override
     {
       return ::HeapAlloc(pHeap, 0, size);
     }
 
-    virtual void Free(void* ptr) override
+    virtual void FreeInternal(void* ptr) override
     {
       ::HeapFree(pHeap, 0, ptr);
+    }
+
+    virtual const char* GetName() override
+    {
+      return STR(HeapAllocator);
     }
   };
 

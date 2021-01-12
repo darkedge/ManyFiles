@@ -2,12 +2,6 @@
 #include "mj_win32.h"
 #include "mj_string.h"
 
-// Note MJ: We might want to put these in a more general header file.
-#define WSTR(x)      L##x
-#define XWSTR(x)     WSTR(x)
-#define WFILE        XWSTR(__FILE__)
-#define __FILENAME__ WFILE
-
 // Macros for use with Win32 functions that set GetLastError
 #define MJ_ERR_ZERO(expr)                                                                            \
   do                                                                                                 \

@@ -9,18 +9,23 @@ namespace mj
     void* pAddress  = nullptr;
     size_t numBytes = 0;
 
-    bool Ok()
-    {
-      return pAddress != nullptr;
-    }
+    bool Ok();
   };
 
   class AllocatorBase
   {
-#if 1 // Interface
   public:
-    [[nodiscard]] virtual void* Allocate(size_t size) = 0;
-    virtual void Free(void* ptr)                      = 0;
+    [[nodiscard]] void* Allocate(size_t size);
+    void Free(void* ptr);
+
+#if 1 // Interface
+  protected:
+    [[nodiscard]] virtual void* AllocateInternal(size_t size) = 0;
+    virtual void FreeInternal(void* ptr)                      = 0;
+    /// <summary>
+    /// Return an ASCII string literal for Tracy.
+    /// </summary>
+    virtual const char* GetName()                             = 0;
 #endif
 
   public:
@@ -51,24 +56,16 @@ namespace mj
       return pAllocation;
     }
 
-    [[nodiscard]] mj::Allocation Allocation(size_t size)
-    {
-      return mj::Allocation{ this->Allocate(size), size };
-    }
+    [[nodiscard]] mj::Allocation Allocation(size_t size);
   };
 
   class NullAllocator : public AllocatorBase
   {
   public:
-    [[nodiscard]] virtual void* Allocate(size_t size) override
-    {
-      static_cast<void>(size);
-      return nullptr;
-    }
+    [[nodiscard]] virtual void* AllocateInternal(size_t size) override;
 
-    virtual void Free(void* ptr) override
-    {
-      static_cast<void>(ptr);
-    }
+    virtual void FreeInternal(void* ptr) override;
+
+    virtual const char* GetName() override;
   };
 } // namespace mj

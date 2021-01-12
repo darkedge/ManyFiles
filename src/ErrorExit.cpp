@@ -34,13 +34,13 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
     if (allocation.Ok())
     {
       MJ_DEFER(alloc.Free(allocation.pAddress));
-      LinearAllocator sbAlloc;
+      mj::LinearAllocator sbAlloc;
       sbAlloc.Init(allocation);
 
-      ArrayList<wchar_t> arrayList;
+      mj::ArrayList<wchar_t> arrayList;
       arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
 
-      StringBuilder sb;
+      mj::StringBuilder sb;
       sb.SetArrayList(&arrayList);
 
       auto string = sb.Append(fileName)                   //
@@ -82,17 +82,17 @@ void mj::NullExit(const String& fileName, int lineNumber, const String& expressi
   // LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
   mj::VirtualAllocator alloc;
   alloc.Init(0);
-  Allocation allocation = alloc.Allocation(displayStringLength * sizeof(wchar_t));
+  mj::Allocation allocation = alloc.Allocation(displayStringLength * sizeof(wchar_t));
   if (allocation.Ok())
   {
     MJ_DEFER(alloc.Free(allocation.pAddress));
-    LinearAllocator sbAlloc;
+    mj::LinearAllocator sbAlloc;
     sbAlloc.Init(allocation);
 
-    ArrayList<wchar_t> arrayList;
+    mj::ArrayList<wchar_t> arrayList;
     arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
 
-    StringBuilder sb;
+    mj::StringBuilder sb;
     sb.SetArrayList(&arrayList);
 
     auto string = sb.Append(fileName)                   //

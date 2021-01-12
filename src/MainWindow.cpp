@@ -7,10 +7,6 @@
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 
-#ifdef TRACY_ENABLE
-#include "TracyAllocatorWrapper.h"
-#endif
-
 #define MJ_WM_SIZE (WM_USER + 0)
 #define MJ_WM_TASK (WM_USER + 1)
 
@@ -59,10 +55,9 @@ struct CreateID2D1RenderTargetContext : public mj::Task
         D2D1_RENDER_TARGET_USAGE_NONE, D2D1_FEATURE_LEVEL_DEFAULT);
 
     MJ_UNINITIALIZED ID2D1Factory* pFactory;
-    // Create a Direct2D factory.
-
     MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory));
     MJ_ERR_HRESULT(pFactory->CreateDCRenderTarget(&props, &this->pRenderTarget));
+    pFactory->Release();
   }
 
   virtual void OnDone() override
@@ -284,13 +279,7 @@ void mj::MainWindow::Run()
   mj::HeapAllocator generalPurposeAllocator;
   generalPurposeAllocator.Init();
   MJ_UNINITIALIZED mj::AllocatorBase* pAllocator;
-#ifdef TRACY_ENABLE
-  mj::TracyAllocatorWrapper wrapper;
-  wrapper.Init(&generalPurposeAllocator, "GP HeapAlloc");
-  pAllocator = &wrapper;
-#else
   pAllocator = &generalPurposeAllocator;
-#endif
   svc::ProvideGeneralPurposeAllocator(pAllocator);
 
   MJ_UNINITIALIZED ATOM cls;
@@ -333,7 +322,7 @@ void mj::MainWindow::Run()
     if (s_Resize)
     {
       s_Resize = false;
-      MJ_ERR_ZERO(PostMessageW(hWnd, MJ_WM_SIZE, 0, 0));
+      MJ_ERR_ZERO(::PostMessageW(hWnd, MJ_WM_SIZE, 0, 0));
     }
   }
 }
