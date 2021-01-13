@@ -47,12 +47,8 @@ ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 struct EverythingQueryContext : public mj::Task
 {
   mj::DirectoryNavigationPanel* pParent = nullptr;
-  mj::String directory;
-  mj::Allocation searchBuffer;
-
-  EverythingQueryContext() : directory(nullptr, 0)
-  {
-  }
+  MJ_UNINITIALIZED mj::String directory;
+  MJ_UNINITIALIZED mj::Allocation searchBuffer;
 
   virtual void Execute() override
   {
@@ -234,7 +230,7 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
   {
     this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
     this->pListFolderContentsTask->pParent   = this;
-    this->pListFolderContentsTask->directory = mj::String(LR"(C:\*)");
+    this->pListFolderContentsTask->directory.Init(LR"(C:\*)");
     mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
   }
 
@@ -267,7 +263,8 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
     {
       auto& entry = pEntries[i];
 
-      String string(Everything_GetResultFileNameW(i));
+      MJ_UNINITIALIZED String string;
+      string.Init(Everything_GetResultFileNameW(i));
       MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
                                                 static_cast<UINT32>(string.len), //
                                                 this->pTextFormat,               //

@@ -73,19 +73,15 @@ namespace mj
   struct ListFolderContentsTask : public mj::Task
   {
     // In
-    mj::DirectoryNavigationPanel* pParent = nullptr;
-    mj::String directory;
+    MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
+    MJ_UNINITIALIZED mj::String directory;
 
     // Out
     mj::ArrayList<mj::EEntryType::Enum> items;
     mj::StringCache stringCache;
 
     // Private
-    mj::HeapAllocator allocator;
-
-    ListFolderContentsTask() : directory(nullptr, 0)
-    {
-    }
+    MJ_UNINITIALIZED mj::HeapAllocator allocator;
 
     virtual void Execute() override;
 

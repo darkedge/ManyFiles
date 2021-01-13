@@ -8,14 +8,16 @@
 static const wchar_t s_IntToWideChar[] = { L'0', L'1', L'2', L'3', L'4', L'5', L'6', L'7',
                                            L'8', L'9', L'A', L'B', L'C', L'D', L'E', L'F' };
 
-mj::String::String(const wchar_t* pString, size_t numChars) : ptr(pString), len(numChars)
+void mj::String::Init(const wchar_t* pString, size_t numChars)
 {
+  this->ptr = pString;
+  this->len = numChars;
 }
 
-mj::String::String(const wchar_t* pString)
+void mj::String::Init(const wchar_t* pString)
 {
   MJ_UNINITIALIZED size_t length;
-  if (SUCCEEDED(StringCchLengthW(pString, STRSAFE_MAX_CCH, &length)))
+  if (SUCCEEDED(::StringCchLengthW(pString, STRSAFE_MAX_CCH, &length)))
   {
     ptr = pString;
     len = length;
@@ -56,7 +58,8 @@ mj::StringBuilder& mj::StringBuilder::Append(int32_t integer)
   }
 
   ptrdiff_t numChars = pEnd - pHead;
-  String string(pHead, numChars);
+  MJ_UNINITIALIZED String string;
+  string.Init(pHead, numChars);
   return this->Append(string);
 }
 
@@ -74,7 +77,8 @@ mj::StringBuilder& mj::StringBuilder::AppendHex32(uint32_t dw)
   }
 
   ptrdiff_t numChars = pEnd - pHead;
-  String string(pHead, numChars);
+  MJ_UNINITIALIZED String string;
+  string.Init(pHead, numChars);
   return this->Append(string);
 }
 
@@ -85,7 +89,7 @@ mj::StringBuilder& mj::StringBuilder::Append(const String& string)
   if (pDest)
   {
     // Use memcpy instead of strcpy to prevent copying the null terminator
-    static_cast<void>(memcpy(pDest, string.ptr, string.len * sizeof(wchar_t)));
+    static_cast<void>(::memcpy(pDest, string.ptr, string.len * sizeof(wchar_t)));
   }
 
   return *this;
@@ -94,9 +98,11 @@ mj::StringBuilder& mj::StringBuilder::Append(const String& string)
 mj::StringBuilder& mj::StringBuilder::Append(const wchar_t* pStringLiteral)
 {
   MJ_UNINITIALIZED size_t numChars;
-  if (SUCCEEDED(StringCchLengthW(pStringLiteral, STRSAFE_MAX_CCH, &numChars)))
+  if (SUCCEEDED(::StringCchLengthW(pStringLiteral, STRSAFE_MAX_CCH, &numChars)))
   {
-    return this->Append(String(pStringLiteral, numChars));
+    MJ_UNINITIALIZED String string;
+    string.Init(pStringLiteral, numChars);
+    return this->Append(string);
   }
 
   return *this;
@@ -120,9 +126,11 @@ mj::String mj::StringBuilder::ToString()
   }
 
   MJ_UNINITIALIZED size_t length;
-  MJ_ERR_HRESULT(StringCchLengthW(this->pArrayList->Get(), STRSAFE_MAX_CCH, &length));
+  MJ_ERR_HRESULT(::StringCchLengthW(this->pArrayList->Get(), STRSAFE_MAX_CCH, &length));
 
-  return String(this->pArrayList->begin(), length);
+  MJ_UNINITIALIZED String string;
+  string.Init(this->pArrayList->begin(), length);
+  return string;
 }
 
 void mj::StringCache::Init(AllocatorBase* pAllocator)
@@ -146,7 +154,8 @@ mj::ArrayListView<const mj::String> mj::StringCache::CreateView()
 
 bool mj::StringCache::Add(const wchar_t* pStringLiteral)
 {
-  String string(pStringLiteral);
+  MJ_UNINITIALIZED String string;
+  string.Init(pStringLiteral);
 
   // Store old buffer pointer to track reallocation
   // Note: We are assuming that ArrayList reallocation will always return a new pointer

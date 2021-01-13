@@ -5,13 +5,14 @@ namespace mj
 {
   /// <summary>
   /// Wide string with known length
+  /// TODO: Rename this to StringView (as we do not handle any memory)
   /// </summary>
   struct String
   {
-    const wchar_t* ptr = nullptr;
-    size_t len         = 0; // Number of characters, compatible with DirectWrite "string length"
-    String(const wchar_t* pString, size_t numChars);
-    String(const wchar_t* pString);
+    MJ_UNINITIALIZED const wchar_t* ptr;
+    MJ_UNINITIALIZED size_t len; // Number of characters, compatible with DirectWrite "string length"
+    void Init(const wchar_t* pString, size_t numChars);
+    void Init(const wchar_t* pString);
   };
 
   class StringBuilder

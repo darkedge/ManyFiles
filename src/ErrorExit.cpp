@@ -19,7 +19,8 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
   if (lpMsgBuf)
   {
     // Display the error message and exit the process
-    String msgString(lpMsgBuf);
+    String msgString;
+    msgString.Init(lpMsgBuf);
 
     // Calculate display string size
     size_t displayStringLength = fileName.len     //
