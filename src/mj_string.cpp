@@ -8,13 +8,13 @@
 static const wchar_t s_IntToWideChar[] = { L'0', L'1', L'2', L'3', L'4', L'5', L'6', L'7',
                                            L'8', L'9', L'A', L'B', L'C', L'D', L'E', L'F' };
 
-void mj::String::Init(const wchar_t* pString, size_t numChars)
+void mj::StringView::Init(const wchar_t* pString, size_t numChars)
 {
   this->ptr = pString;
   this->len = numChars;
 }
 
-void mj::String::Init(const wchar_t* pString)
+void mj::StringView::Init(const wchar_t* pString)
 {
   MJ_UNINITIALIZED size_t length;
   if (SUCCEEDED(::StringCchLengthW(pString, STRSAFE_MAX_CCH, &length)))
@@ -58,7 +58,7 @@ mj::StringBuilder& mj::StringBuilder::Append(int32_t integer)
   }
 
   ptrdiff_t numChars = pEnd - pHead;
-  MJ_UNINITIALIZED String string;
+  MJ_UNINITIALIZED StringView string;
   string.Init(pHead, numChars);
   return this->Append(string);
 }
@@ -77,12 +77,12 @@ mj::StringBuilder& mj::StringBuilder::AppendHex32(uint32_t dw)
   }
 
   ptrdiff_t numChars = pEnd - pHead;
-  MJ_UNINITIALIZED String string;
+  MJ_UNINITIALIZED StringView string;
   string.Init(pHead, numChars);
   return this->Append(string);
 }
 
-mj::StringBuilder& mj::StringBuilder::Append(const String& string)
+mj::StringBuilder& mj::StringBuilder::Append(const StringView& string)
 {
   wchar_t* pDest = this->pArrayList->Emplace(string.len);
 
@@ -100,7 +100,7 @@ mj::StringBuilder& mj::StringBuilder::Append(const wchar_t* pStringLiteral)
   MJ_UNINITIALIZED size_t numChars;
   if (SUCCEEDED(::StringCchLengthW(pStringLiteral, STRSAFE_MAX_CCH, &numChars)))
   {
-    MJ_UNINITIALIZED String string;
+    MJ_UNINITIALIZED StringView string;
     string.Init(pStringLiteral, numChars);
     return this->Append(string);
   }
@@ -108,7 +108,7 @@ mj::StringBuilder& mj::StringBuilder::Append(const wchar_t* pStringLiteral)
   return *this;
 }
 
-mj::String mj::StringBuilder::ToString()
+mj::StringView mj::StringBuilder::ToString()
 {
   // Make sure the string is null-terminated
   wchar_t* pLast = this->pArrayList->Emplace(1);
@@ -128,7 +128,7 @@ mj::String mj::StringBuilder::ToString()
   MJ_UNINITIALIZED size_t length;
   MJ_ERR_HRESULT(::StringCchLengthW(this->pArrayList->Get(), STRSAFE_MAX_CCH, &length));
 
-  MJ_UNINITIALIZED String string;
+  MJ_UNINITIALIZED StringView string;
   string.Init(this->pArrayList->begin(), length);
   return string;
 }
@@ -147,14 +147,14 @@ void mj::StringCache::Destroy()
   this->buffer.Destroy();
 }
 
-mj::ArrayListView<const mj::String> mj::StringCache::CreateView()
+mj::ArrayListView<const mj::StringView> mj::StringCache::CreateView()
 {
-  return ArrayListView<const String>(*this);
+  return ArrayListView<const StringView>(*this);
 }
 
 bool mj::StringCache::Add(const wchar_t* pStringLiteral)
 {
-  MJ_UNINITIALIZED String string;
+  MJ_UNINITIALIZED StringView string;
   string.Init(pStringLiteral);
 
   // Store old buffer pointer to track reallocation
@@ -166,8 +166,8 @@ bool mj::StringCache::Add(const wchar_t* pStringLiteral)
   if (this->strings.Reserve(1) && this->buffer.Reserve(destSize))
   {
     // These pointers should always be valid after calling Reserve
-    String* pString = this->strings.Emplace(1);
-    wchar_t* pDest  = this->buffer.Emplace(destSize);
+    StringView* pString = this->strings.Emplace(1);
+    wchar_t* pDest      = this->buffer.Emplace(destSize);
 
     // Update string objects if reallocation occurred
     auto pDataNew = this->buffer.Get();
@@ -235,22 +235,22 @@ size_t mj::StringCache::Capacity() const
   return this->strings.Capacity();
 }
 
-mj::String* mj::StringCache::begin() const
+mj::StringView* mj::StringCache::begin() const
 {
   return this->strings.begin();
 }
 
-mj::String* mj::StringCache::end() const
+mj::StringView* mj::StringCache::end() const
 {
   return this->strings.end();
 }
 
-mj::String& mj::StringCache::operator[](size_t index)
+mj::StringView& mj::StringCache::operator[](size_t index)
 {
   return this->strings[index];
 }
 
-mj::StringCache::operator mj::ArrayListView<const mj::String>()
+mj::StringCache::operator mj::ArrayListView<const mj::StringView>()
 {
   return mj::ArrayListView(this->strings.Get(), this->strings.Size());
 }

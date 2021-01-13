@@ -47,7 +47,7 @@ ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 struct EverythingQueryContext : public mj::Task
 {
   mj::DirectoryNavigationPanel* pParent = nullptr;
-  MJ_UNINITIALIZED mj::String directory;
+  MJ_UNINITIALIZED mj::StringView directory;
   MJ_UNINITIALIZED mj::Allocation searchBuffer;
 
   virtual void Execute() override
@@ -62,12 +62,12 @@ struct EverythingQueryContext : public mj::Task
     mj::StringBuilder sb;
     sb.SetArrayList(&arrayList);
 
-    mj::String search = sb.Append(L"\"")             //
-                            .Append(this->directory) //
-                            .Append(L"\" !\"")       //
-                            .Append(this->directory) //
-                            .Append(L"*\\*\"")       //
-                            .ToString();
+    mj::StringView search = sb.Append(L"\"")             //
+                                .Append(this->directory) //
+                                .Append(L"\" !\"")       //
+                                .Append(this->directory) //
+                                .Append(L"*\\*\"")       //
+                                .ToString();
 
     Everything_SetSearchW(search.ptr);
     {
@@ -228,8 +228,8 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
   // Start tasks
   if (!this->pListFolderContentsTask)
   {
-    this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
-    this->pListFolderContentsTask->pParent   = this;
+    this->pListFolderContentsTask          = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
+    this->pListFolderContentsTask->pParent = this;
     this->pListFolderContentsTask->directory.Init(LR"(C:\*)");
     mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
   }
@@ -238,7 +238,7 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
   {
     EverythingQueryContext* pTask = mj::ThreadpoolCreateTask<EverythingQueryContext>();
     pTask->pParent                = this;
-    pTask->directory              = mj::String(LR"(C:\*)");
+    pTask->directory              = mj::StringView(LR"(C:\*)");
     pTask->searchBuffer           = this->searchBuffer;
     this->queryDone               = false;
     mj::ThreadpoolSubmitTask(pTask);
@@ -263,7 +263,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
     {
       auto& entry = pEntries[i];
 
-      MJ_UNINITIALIZED String string;
+      MJ_UNINITIALIZED StringView string;
       string.Init(Everything_GetResultFileNameW(i));
       MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
                                                 static_cast<UINT32>(string.len), //

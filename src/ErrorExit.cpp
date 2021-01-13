@@ -8,7 +8,7 @@
 /// <param name="fileName"></param>
 /// <param name="lineNumber"></param>
 /// <param name="expression"></param>
-void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const String& expression)
+void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const StringView& expression)
 {
   // We specify FORMAT_MESSAGE_ALLOCATE_BUFFER so we need to LocalFree the returned string.
   LPWSTR lpMsgBuf = {};
@@ -19,7 +19,7 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
   if (lpMsgBuf)
   {
     // Display the error message and exit the process
-    String msgString;
+    StringView msgString;
     msgString.Init(lpMsgBuf);
 
     // Calculate display string size
@@ -55,7 +55,7 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
                         .Append(msgString)                //
                         .ToString();
 
-      //static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
+      // static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
       ::DebugBreak();
     }
 
@@ -71,7 +71,7 @@ void mj::ErrorExit(DWORD dw, const String& fileName, int lineNumber, const Strin
 /// <param name="fileName"></param>
 /// <param name="lineNumber"></param>
 /// <param name="expression"></param>
-void mj::NullExit(const String& fileName, int lineNumber, const String& expression)
+void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& expression)
 {
   // Display the error message and exit the process
 
@@ -103,7 +103,7 @@ void mj::NullExit(const String& fileName, int lineNumber, const String& expressi
                       .Append(expression)               //
                       .ToString();
 
-    //static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
+    // static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
     ::DebugBreak();
   }
 

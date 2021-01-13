@@ -8,8 +8,8 @@
   {                                                                \
     if ((expr) == 0)                                               \
     {                                                              \
-      MJ_UNINITIALIZED mj::String _fileName;                       \
-      MJ_UNINITIALIZED mj::String _expr;                           \
+      MJ_UNINITIALIZED mj::StringView _fileName;                   \
+      MJ_UNINITIALIZED mj::StringView _expr;                       \
       _fileName.Init(__FILENAME__);                                \
       _expr.Init(XWSTR(#expr));                                    \
       mj::ErrorExit(::GetLastError(), _fileName, __LINE__, _expr); \
@@ -21,8 +21,8 @@
   {                                                                \
     if ((expr) == (x))                                             \
     {                                                              \
-      MJ_UNINITIALIZED mj::String _fileName;                       \
-      MJ_UNINITIALIZED mj::String _expr;                           \
+      MJ_UNINITIALIZED mj::StringView _fileName;                   \
+      MJ_UNINITIALIZED mj::StringView _expr;                       \
       _fileName.Init(__FILENAME__);                                \
       _expr.Init(XWSTR(#expr));                                    \
       mj::ErrorExit(::GetLastError(), _fileName, __LINE__, _expr); \
@@ -34,8 +34,8 @@
   {                                                                \
     if (expr)                                                      \
     {                                                              \
-      MJ_UNINITIALIZED mj::String _fileName;                       \
-      MJ_UNINITIALIZED mj::String _expr;                           \
+      MJ_UNINITIALIZED mj::StringView _fileName;                   \
+      MJ_UNINITIALIZED mj::StringView _expr;                       \
       _fileName.Init(__FILENAME__);                                \
       _expr.Init(XWSTR(#expr));                                    \
       mj::ErrorExit(::GetLastError(), _fileName, __LINE__, _expr); \
@@ -51,8 +51,8 @@
       const DWORD _hr = ::GetLastError();               \
       if (_hr)                                          \
       {                                                 \
-        MJ_UNINITIALIZED mj::String _fileName;          \
-        MJ_UNINITIALIZED mj::String _expr;              \
+        MJ_UNINITIALIZED mj::StringView _fileName;      \
+        MJ_UNINITIALIZED mj::StringView _expr;          \
         _fileName.Init(__FILENAME__);                   \
         _expr.Init(XWSTR(#expr));                       \
         mj::ErrorExit(_hr, _fileName, __LINE__, _expr); \
@@ -65,8 +65,8 @@
   {                                                                \
     if (expr)                                                      \
     {                                                              \
-      MJ_UNINITIALIZED mj::String _fileName;                       \
-      MJ_UNINITIALIZED mj::String _expr;                           \
+      MJ_UNINITIALIZED mj::StringView _fileName;                   \
+      MJ_UNINITIALIZED mj::StringView _expr;                       \
       _fileName.Init(__FILENAME__);                                \
       _expr.Init(XWSTR(#expr));                                    \
       mj::ErrorExit(::GetLastError(), _fileName, __LINE__, _expr); \
@@ -79,29 +79,29 @@
     const HRESULT _hr = (expr);                       \
     if (_hr != S_OK)                                  \
     {                                                 \
-      MJ_UNINITIALIZED mj::String _fileName;          \
-      MJ_UNINITIALIZED mj::String _expr;              \
+      MJ_UNINITIALIZED mj::StringView _fileName;      \
+      MJ_UNINITIALIZED mj::StringView _expr;          \
       _fileName.Init(__FILENAME__);                   \
       _expr.Init(XWSTR(#expr));                       \
       mj::ErrorExit(_hr, _fileName, __LINE__, _expr); \
     }                                                 \
   } while (0)
 
-#define MJ_EXIT_NULL(expr)                      \
-  do                                            \
-  {                                             \
-    if (!expr)                                  \
-    {                                           \
-      MJ_UNINITIALIZED mj::String _fileName;    \
-      MJ_UNINITIALIZED mj::String _expr;        \
-      _fileName.Init(__FILENAME__);             \
-      _expr.Init(XWSTR(#expr));                 \
-      mj::NullExit(_fileName, __LINE__, _expr); \
-    }                                           \
+#define MJ_EXIT_NULL(expr)                       \
+  do                                             \
+  {                                              \
+    if (!expr)                                   \
+    {                                            \
+      MJ_UNINITIALIZED mj::StringView _fileName; \
+      MJ_UNINITIALIZED mj::StringView _expr;     \
+      _fileName.Init(__FILENAME__);              \
+      _expr.Init(XWSTR(#expr));                  \
+      mj::NullExit(_fileName, __LINE__, _expr);  \
+    }                                            \
   } while (0)
 
 namespace mj
 {
-  void ErrorExit(DWORD dw, const String& fileName, int lineNumber, const String& expression);
-  void NullExit(const String& fileName, int lineNumber, const String& expression);
+  void ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const StringView& expression);
+  void NullExit(const StringView& fileName, int lineNumber, const StringView& expression);
 } // namespace mj

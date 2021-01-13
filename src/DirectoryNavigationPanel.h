@@ -68,13 +68,11 @@ namespace mj
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
   };
 
-  
-
   struct ListFolderContentsTask : public mj::Task
   {
     // In
     MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
-    MJ_UNINITIALIZED mj::String directory;
+    MJ_UNINITIALIZED mj::StringView directory;
 
     // Out
     mj::ArrayList<mj::EEntryType::Enum> items;

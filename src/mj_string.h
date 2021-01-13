@@ -7,7 +7,7 @@ namespace mj
   /// Wide string with known length
   /// TODO: Rename this to StringView (as we do not handle any memory)
   /// </summary>
-  struct String
+  struct StringView
   {
     MJ_UNINITIALIZED const wchar_t* ptr;
     MJ_UNINITIALIZED size_t len; // Number of characters, compatible with DirectWrite "string length"
@@ -23,17 +23,17 @@ namespace mj
   public:
     void SetArrayList(ArrayList<wchar_t>* pArrayList);
 
-    StringBuilder& Append(const String& string);
+    StringBuilder& Append(const StringView& string);
     StringBuilder& Append(const wchar_t* pStringLiteral);
     StringBuilder& Append(int32_t integer);
     StringBuilder& AppendHex32(uint32_t dw);
-    String ToString();
+    StringView ToString();
   };
 
   class StringCache
   {
   private:
-    ArrayList<String> strings;
+    ArrayList<StringView> strings;
     ArrayList<wchar_t> buffer;
 
   public:
@@ -48,7 +48,7 @@ namespace mj
     /// </summary>
     void Destroy();
 
-    ArrayListView<const String> CreateView();
+    ArrayListView<const StringView> CreateView();
 
     /// <summary>
     /// Inserts a copy of this string into the buffer.
@@ -69,12 +69,12 @@ namespace mj
 
     size_t Capacity() const;
 
-    String* begin() const;
+    StringView* begin() const;
 
-    String* end() const;
+    StringView* end() const;
 
-    String& operator[](size_t index);
+    StringView& operator[](size_t index);
 
-    operator mj::ArrayListView<const String>();
+    operator mj::ArrayListView<const StringView>();
   };
 } // namespace mj

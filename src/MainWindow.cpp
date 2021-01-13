@@ -132,7 +132,7 @@ void mj::MainWindow::Init()
     MJ_DEFER(pAllocator->Free(pBuf));
     dw           = ::GetLogicalDriveStringsW(dw, pBuf);
     wchar_t* ptr = pBuf;
-    MJ_UNINITIALIZED String str;
+    MJ_UNINITIALIZED StringView str;
     str.Init(nullptr);
     while (ptr < pBuf + dw)
     {
@@ -200,7 +200,7 @@ void mj::MainWindow::Destroy()
     static_cast<void>(pRenderTarget->Release());
     this->pRenderTarget = nullptr;
   }
-  
+
   svc::Destroy();
 
   ::CoUninitialize();
