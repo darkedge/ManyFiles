@@ -159,7 +159,7 @@ namespace mj
     {
       if (num == 0)
       {
-        return nullptr;
+        return false;
       }
 
       if (numElements + num <= capacity)
