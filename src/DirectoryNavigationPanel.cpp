@@ -146,7 +146,7 @@ struct LoadBitmapFromResourceTask : public mj::Task
   }
 };
 
-void mj::ListFolderContentsTask::Execute()
+void mj::detail::ListFolderContentsTask::Execute()
 {
   ZoneScoped;
 
@@ -157,15 +157,6 @@ void mj::ListFolderContentsTask::Execute()
   MJ_UNINITIALIZED WIN32_FIND_DATA findData;
   HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
   MJ_ERR_IF(hFind, INVALID_HANDLE_VALUE);
-
-#if 0 // Do this later in a different task
-      MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
-                                                static_cast<UINT32>(string.len), //
-                                                this->pTextFormat,               //
-                                                1024.0f,                         //
-                                                1024.0f,                         //
-                                                &pItem->pTextLayout));
-#endif
 
   do
   {
@@ -197,12 +188,12 @@ void mj::ListFolderContentsTask::Execute()
   ::FindClose(hFind);
 }
 
-void mj::ListFolderContentsTask::OnDone()
+void mj::detail::ListFolderContentsTask::OnDone()
 {
   pParent->OnListFolderContentsDone(this);
 }
 
-void mj::ListFolderContentsTask::Destroy()
+void mj::detail::ListFolderContentsTask::Destroy()
 {
   this->items.Destroy();
   this->stringCache.Destroy();
@@ -228,7 +219,7 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
   // Start tasks
   if (!this->pListFolderContentsTask)
   {
-    this->pListFolderContentsTask          = mj::ThreadpoolCreateTask<ListFolderContentsTask>();
+    this->pListFolderContentsTask          = mj::ThreadpoolCreateTask<detail::ListFolderContentsTask>();
     this->pListFolderContentsTask->pParent = this;
     this->pListFolderContentsTask->directory.Init(LR"(C:\*)");
     mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
@@ -302,10 +293,14 @@ void mj::DirectoryNavigationPanel::Paint()
     auto point = D2D1::Point2F(16.0f, 0.0f);
     for (const auto& entry : this->entries)
     {
-      MJ_UNINITIALIZED DWRITE_LINE_METRICS metrics;
-      MJ_UNINITIALIZED UINT32 count;
-      MJ_ERR_HRESULT(entry.pTextLayout->GetLineMetrics(&metrics, 1, &count));
-      pContext->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
+      if (entry.pTextLayout)
+      {
+        // MJ_UNINITIALIZED DWRITE_LINE_METRICS metrics;
+        // MJ_UNINITIALIZED UINT32 count;
+        // MJ_ERR_HRESULT(entry.pTextLayout->GetLineMetrics(&metrics, 1, &count));
+        pContext->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
+      }
+
       if (entry.pIcon)
       {
         auto iconSize = entry.pIcon->GetPixelSize();
@@ -315,7 +310,8 @@ void mj::DirectoryNavigationPanel::Paint()
       }
 
       // Always draw images on integer coordinates
-      point.y += static_cast<int>(metrics.height);
+      // point.y += static_cast<int>(metrics.height);
+      point.y += 16;
     }
   }
 }
@@ -326,15 +322,7 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->pAllocator->Free(this->searchBuffer.pAddress);
   this->pAllocator->Free(this->resultsBuffer.pAddress);
 
-  for (auto& entry : this->entries)
-  {
-    if (entry.pIcon != this->pFolderIcon)
-    {
-      entry.pIcon->Release();
-    }
-    entry.pTextLayout->Release();
-  }
-  this->entries.Clear();
+  this->ClearEntries();
 
   if (this->pBlackBrush)
     this->pBlackBrush->Release();
@@ -355,14 +343,90 @@ void mj::DirectoryNavigationPanel::OnEverythingQuery()
   this->CheckEverythingQueryPrerequisites();
 }
 
-void mj::DirectoryNavigationPanel::OnListFolderContentsDone(ListFolderContentsTask* pTask)
+void mj::DirectoryNavigationPanel::OnListFolderContentsDone(detail::ListFolderContentsTask* pTask)
 {
   if (this->listFolderContentsTaskResult.items.Copy(pTask->items) &&
       this->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
   {
     // TODO: Start icon, TextFormat tasks if preconditions are met
+    // this->TryLoadFolderContentIcons();
+    this->TryCreateFolderContentTextLayouts();
   }
   this->pListFolderContentsTask = nullptr;
+}
+
+void mj::detail::CreateTextFormatTask::Execute()
+{
+  ZoneScoped;
+
+  mj::StringView& string = pParent->listFolderContentsTaskResult.stringCache[index];
+
+  MJ_ERR_HRESULT(svc::DWriteFactory()->CreateTextLayout(string.ptr,                      //
+                                                        static_cast<UINT32>(string.len), //
+                                                        pParent->pTextFormat,            //
+                                                        1024.0f,                         //
+                                                        1024.0f,                         //
+                                                        &this->pTextLayout));
+}
+
+void mj::detail::CreateTextFormatTask::OnDone()
+{
+  this->pParent->SetTextLayout(this->index, this->pTextLayout);
+}
+
+void mj::DirectoryNavigationPanel::SetTextLayout(size_t index, IDWriteTextLayout* pTextLayout)
+{
+  pTextLayout->AddRef();
+  this->entries[index].pTextLayout = pTextLayout;
+}
+
+void mj::detail::CreateTextFormatTask::Destroy()
+{
+  this->pTextLayout->Release();
+}
+
+void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
+{
+  ZoneScoped;
+
+  // Note: If the folder is empty, we do nothing.
+  // This is okay if we don't want to render anything, but this could change.
+  auto numItems = this->listFolderContentsTaskResult.items.Size();
+
+  // Skipping the check for DWrite because our TextFormat already depends on it.
+  if (numItems > 0 && this->pTextFormat)
+  {
+    this->ClearEntries();
+    if (this->entries.Emplace(numItems))
+    {
+      // Variable number of tasks with the same cancellation token
+      for (auto i = 0; i < numItems; i++)
+      {
+        this->entries[i] = {};
+        auto pTask       = mj::ThreadpoolCreateTask<detail::CreateTextFormatTask>();
+        pTask->pParent   = this;
+        pTask->index     = i;
+        mj::ThreadpoolSubmitTask(pTask);
+      }
+    }
+  }
+}
+
+void mj::DirectoryNavigationPanel::ClearEntries()
+{
+  for (auto& element : this->entries)
+  {
+    // Only release if icon exists and is owned by the element
+    if (element.pIcon && element.pIcon != this->pFolderIcon)
+    {
+      element.pIcon->Release();
+    }
+    if (element.pTextLayout)
+    {
+      element.pTextLayout->Release();
+    }
+  }
+  this->entries.Clear();
 }
 
 void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext)

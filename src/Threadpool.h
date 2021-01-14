@@ -35,6 +35,8 @@ namespace mj
 
     /// <summary>
     /// Called in the main thread when the task is done.
+    /// Do not use this method to clean up resources, as it doesn't get called when
+    /// this task is cancelled. Use Destroy instead.
     /// </summary>
     virtual void OnDone()
     {
@@ -43,6 +45,7 @@ namespace mj
 
     /// <summary>
     /// Override when a task manages its own memory.
+    /// Always called.
     /// </summary>
     virtual void Destroy()
     {

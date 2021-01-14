@@ -146,7 +146,7 @@ namespace mj
     /// </summary>
     /// <param name="num"></param>
     /// <returns>Pointer to the newly reserved range, or nullptr if there is no more space.</returns>
-    T* Emplace(size_t num)
+    [[nodiscard]] T* Emplace(size_t num)
     {
       if (num == 0)
       {
@@ -176,7 +176,7 @@ namespace mj
     /// Inserts a range of elements at the specified pCurrent.
     /// </summary>
     /// <returns>A pointer to the start of the newly inserted elements, or nullptr if there was no space.</returns>
-    T* Insert(size_t pCurrent, const T* pSrc, size_t num)
+    [[nodiscard]] T* Insert(size_t pCurrent, const T* pSrc, size_t num)
     {
       // Note: These first checks are redundant after we recurse
       if (num == 0)
