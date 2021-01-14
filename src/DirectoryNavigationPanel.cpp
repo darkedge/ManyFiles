@@ -382,7 +382,11 @@ void mj::DirectoryNavigationPanel::SetTextLayout(size_t index, IDWriteTextLayout
 {
   pTextLayout->AddRef();
   this->entries[index].pTextLayout = pTextLayout;
-  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+
+  if (++this->numEntriesDoneLoading == this->entries.Size())
+  {
+    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+  }
 }
 
 void mj::detail::CreateTextFormatTask::Destroy()
@@ -405,6 +409,7 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
     if (this->entries.Emplace(numItems))
     {
       // Variable number of tasks with the same cancellation token
+      numEntriesDoneLoading = 0;
       for (auto i = 0; i < numItems; i++)
       {
         this->entries[i] = {};

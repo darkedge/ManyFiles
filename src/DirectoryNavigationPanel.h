@@ -43,6 +43,7 @@ namespace mj
 
     AllocatorBase* pAllocator = nullptr;
     ArrayList<Entry> entries;
+    int32_t numEntriesDoneLoading = 0;
     Allocation searchBuffer;
     Allocation resultsBuffer;
 

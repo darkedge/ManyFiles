@@ -108,24 +108,6 @@ void mj::MainWindow::Init()
   this->pDirectoryNavigationPanel = pAllocator->New<DirectoryNavigationPanel>();
   this->pDirectoryNavigationPanel->Init(pAllocator);
 
-  // Start a bunch of tasks
-
-  {
-    auto pTask         = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
-    pTask->pMainWindow = this;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-  {
-    auto pTask         = mj::ThreadpoolCreateTask<CreateID2D1RenderTargetContext>();
-    pTask->pMainWindow = this;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-  {
-    auto pTask         = mj::ThreadpoolCreateTask<CreateDWriteFactoryTask>();
-    pTask->pMainWindow = this;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-
   // TODO: Put this somewhere else
   {
     ZoneScopedN("GetLogicalDriveStringsW");
@@ -155,11 +137,12 @@ void mj::MainWindow::Init()
 void mj::MainWindow::Resize()
 {
   ZoneScoped;
-  if (pRenderTarget)
+  auto hwnd = svc::MainWindowHandle();
+  if (pRenderTarget && hwnd)
   {
     MJ_UNINITIALIZED RECT clientArea;
-    ::GetClientRect(svc::MainWindowHandle(), &clientArea);
-    MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(svc::MainWindowHandle()), &clientArea));
+    ::GetClientRect(hwnd, &clientArea);
+    MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(hwnd), &clientArea));
   }
 }
 
@@ -227,6 +210,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     pMainWindow       = reinterpret_cast<mj::MainWindow*>(pcs->lpCreateParams);
     MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
     svc::ProvideMainWindowHandle(hWnd);
+    pMainWindow->Resize();
 
     pMainWindow->Init();
 
@@ -277,6 +261,23 @@ void mj::MainWindow::Run()
   MJ_DEFER(::CloseHandle(iocp));
   mj::ThreadpoolInit(iocp);
   MJ_DEFER(mj::ThreadpoolDestroy());
+  
+  // Start a bunch of tasks
+  {
+    auto pTask         = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
+    pTask->pMainWindow = this;
+    mj::ThreadpoolSubmitTask(pTask);
+  }
+  {
+    auto pTask         = mj::ThreadpoolCreateTask<CreateID2D1RenderTargetContext>();
+    pTask->pMainWindow = this;
+    mj::ThreadpoolSubmitTask(pTask);
+  }
+  {
+    auto pTask         = mj::ThreadpoolCreateTask<CreateDWriteFactoryTask>();
+    pTask->pMainWindow = this;
+    mj::ThreadpoolSubmitTask(pTask);
+  }
 
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};
@@ -326,20 +327,20 @@ void mj::MainWindow::Run()
       }
       else if (pTask)
       {
-        ZoneScopedNC("ThreadpoolTaskEnd");
+        ZoneScopedN("ThreadpoolTaskEnd");
         mj::ThreadpoolTaskEnd(pTask);
       }
     }
     break;
     case WAIT_OBJECT_0 + 1: // Window message
     {
-      ZoneScopedNC("GetMessageW");
+      ZoneScopedN("GetMessageW");
       while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
       {
         // If the message is translated, the return value is nonzero.
         // If the message is not translated, the return value is zero.
         {
-          ZoneScopedNC("TranslateMessage");
+          ZoneScopedN("TranslateMessage");
           static_cast<void>(::TranslateMessage(&msg));
         }
 
@@ -347,7 +348,7 @@ void mj::MainWindow::Run()
         // Although its meaning depends on the message being dispatched,
         // the return value generally is ignored.
         {
-          ZoneScopedNC("DispatchMessageW");
+          ZoneScopedN("DispatchMessageW");
           static_cast<void>(::DispatchMessageW(&msg));
         }
 
