@@ -97,17 +97,7 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarge
   this->Resize();
 }
 
-void mj::MainWindow::Init()
-{
-  ZoneScoped;
-
-  auto pAllocator = svc::GeneralPurposeAllocator();
-
-  svc::Init(svc::GeneralPurposeAllocator());
-
-  this->pDirectoryNavigationPanel = pAllocator->New<DirectoryNavigationPanel>();
-  this->pDirectoryNavigationPanel->Init(pAllocator);
-
+#if 0
   // TODO: Put this somewhere else
   {
     ZoneScopedN("GetLogicalDriveStringsW");
@@ -132,7 +122,7 @@ void mj::MainWindow::Init()
       ptr++;
     }
   }
-}
+#endif
 
 void mj::MainWindow::Resize()
 {
@@ -212,8 +202,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     svc::ProvideMainWindowHandle(hWnd);
     pMainWindow->Resize();
 
-    pMainWindow->Init();
-
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
   case WM_SIZE:
@@ -261,7 +249,7 @@ void mj::MainWindow::Run()
   MJ_DEFER(::CloseHandle(iocp));
   mj::ThreadpoolInit(iocp);
   MJ_DEFER(mj::ThreadpoolDestroy());
-  
+
   // Start a bunch of tasks
   {
     auto pTask         = mj::ThreadpoolCreateTask<CreateIWICImagingFactoryContext>();
@@ -277,6 +265,12 @@ void mj::MainWindow::Run()
     auto pTask         = mj::ThreadpoolCreateTask<CreateDWriteFactoryTask>();
     pTask->pMainWindow = this;
     mj::ThreadpoolSubmitTask(pTask);
+  }
+
+  {
+    svc::Init(pAllocator);
+    this->pDirectoryNavigationPanel = pAllocator->New<DirectoryNavigationPanel>();
+    this->pDirectoryNavigationPanel->Init(pAllocator);
   }
 
   MJ_UNINITIALIZED ATOM cls;
