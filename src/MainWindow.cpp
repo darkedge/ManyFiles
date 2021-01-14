@@ -8,7 +8,6 @@
 #include "Threadpool.h"
 
 #define MJ_WM_SIZE (WM_USER + 0)
-#define MJ_WM_TASK (WM_USER + 1)
 
 struct CreateIWICImagingFactoryContext : public mj::Task
 {
@@ -93,6 +92,9 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarge
 {
   this->pRenderTarget = pRenderTarget;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
+
+  // Make sure we bind to a DC before getting a WM_PAINT message
+  this->Resize();
 }
 
 void mj::MainWindow::Init()
@@ -226,7 +228,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
     svc::ProvideMainWindowHandle(hWnd);
 
-    mj::ThreadpoolSetWindowHandle(hWnd);
     pMainWindow->Init();
 
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
@@ -242,7 +243,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     return 0;
   }
   case WM_DESTROY:
-    mj::ThreadpoolDestroy();
     ::PostQuitMessage(0);
     return 0;
   case WM_PAINT:
@@ -251,11 +251,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     static_cast<void>(::BeginPaint(hWnd, &ps));
     pMainWindow->Paint();
     static_cast<void>(::EndPaint(hWnd, &ps));
-    return 0;
-  }
-  case MJ_WM_TASK:
-  {
-    mj::ThreadpoolTaskEnd(wParam);
     return 0;
   }
   default:
@@ -268,13 +263,20 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
 void mj::MainWindow::Run()
 {
   MJ_DEFER(this->Destroy());
-  mj::ThreadpoolInit(MJ_WM_TASK);
 
   mj::HeapAllocator generalPurposeAllocator;
   generalPurposeAllocator.Init();
   MJ_UNINITIALIZED mj::AllocatorBase* pAllocator;
   pAllocator = &generalPurposeAllocator;
   svc::ProvideGeneralPurposeAllocator(pAllocator);
+
+  // Initialize thread pool
+  MJ_UNINITIALIZED MSG msg;
+  MJ_UNINITIALIZED HANDLE iocp;
+  MJ_ERR_IF(iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
+  MJ_DEFER(::CloseHandle(iocp));
+  mj::ThreadpoolInit(iocp);
+  MJ_DEFER(mj::ThreadpoolDestroy());
 
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};
@@ -301,22 +303,70 @@ void mj::MainWindow::Run()
   }
 
   // Run the message loop.
-  MJ_UNINITIALIZED MSG msg;
-  while (::GetMessageW(&msg, nullptr, 0, 0))
+  while (true)
   {
-    // If the message is translated, the return value is nonzero.
-    // If the message is not translated, the return value is zero.
-    static_cast<void>(::TranslateMessage(&msg));
-
-    // The return value specifies the value returned by the window procedure.
-    // Although its meaning depends on the message being dispatched,
-    // the return value generally is ignored.
-    static_cast<void>(::DispatchMessageW(&msg));
-
-    if (s_Resize)
+    MJ_UNINITIALIZED DWORD waitObject;
     {
-      s_Resize = false;
-      MJ_ERR_ZERO(::PostMessageW(hWnd, MJ_WM_SIZE, 0, 0));
+      ZoneScopedNC("Sleeping", 0x21231C);
+      waitObject = ::MsgWaitForMultipleObjects(1, &iocp, FALSE, INFINITE, QS_ALLEVENTS);
+    }
+    switch (waitObject)
+    {
+    case WAIT_OBJECT_0: // IOCP
+    {
+      MJ_UNINITIALIZED DWORD numBytes;
+      MJ_UNINITIALIZED mj::Task* pTask;
+      MJ_UNINITIALIZED LPOVERLAPPED pOverlapped;
+
+      BOOL ret =
+          ::GetQueuedCompletionStatus(iocp, &numBytes, reinterpret_cast<PULONG_PTR>(&pTask), &pOverlapped, INFINITE);
+      if (ret == FALSE && ::GetLastError() == ERROR_ABANDONED_WAIT_0)
+      {
+        return;
+      }
+      else if (pTask)
+      {
+        ZoneScopedNC("ThreadpoolTaskEnd");
+        mj::ThreadpoolTaskEnd(pTask);
+      }
+    }
+    break;
+    case WAIT_OBJECT_0 + 1: // Window message
+    {
+      ZoneScopedNC("GetMessageW");
+      while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
+      {
+        // If the message is translated, the return value is nonzero.
+        // If the message is not translated, the return value is zero.
+        {
+          ZoneScopedNC("TranslateMessage");
+          static_cast<void>(::TranslateMessage(&msg));
+        }
+
+        // The return value specifies the value returned by the window procedure.
+        // Although its meaning depends on the message being dispatched,
+        // the return value generally is ignored.
+        {
+          ZoneScopedNC("DispatchMessageW");
+          static_cast<void>(::DispatchMessageW(&msg));
+        }
+
+        if (s_Resize)
+        {
+          s_Resize = false;
+          MJ_ERR_ZERO(::PostMessageW(hWnd, MJ_WM_SIZE, 0, 0));
+        }
+
+        if (msg.message == WM_QUIT)
+        {
+          return;
+        }
+      }
+    }
+    break;
+    default:
+      // TODO: Show error on WAIT_FAILED
+      break;
     }
   }
 }

@@ -77,6 +77,7 @@ struct EverythingQueryContext : public mj::Task
 
   virtual void OnDone() override
   {
+    ZoneScoped;
     this->pParent->OnEverythingQuery();
   }
 };
@@ -142,6 +143,7 @@ struct LoadBitmapFromResourceTask : public mj::Task
 
   virtual void OnDone() override
   {
+    ZoneScoped;
     *this->pOutBitmap = this->pBitmap;
   }
 };
@@ -190,6 +192,7 @@ void mj::detail::ListFolderContentsTask::Execute()
 
 void mj::detail::ListFolderContentsTask::OnDone()
 {
+  ZoneScoped;
   pParent->OnListFolderContentsDone(this);
 }
 
@@ -371,6 +374,7 @@ void mj::detail::CreateTextFormatTask::Execute()
 
 void mj::detail::CreateTextFormatTask::OnDone()
 {
+  ZoneScoped;
   this->pParent->SetTextLayout(this->index, this->pTextLayout);
 }
 
@@ -378,6 +382,7 @@ void mj::DirectoryNavigationPanel::SetTextLayout(size_t index, IDWriteTextLayout
 {
   pTextLayout->AddRef();
   this->entries[index].pTextLayout = pTextLayout;
+  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
 }
 
 void mj::detail::CreateTextFormatTask::Destroy()

@@ -10,8 +10,7 @@ static constexpr auto MAX_TASKS   = 1024;
 static constexpr auto NUM_THREADS = 8;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
 static mj::TaskContext* s_pTaskHead;
-static HWND s_Hwnd;
-static UINT s_Msg;
+static HANDLE s_IocpMainThread;
 static HANDLE s_Threads[NUM_THREADS];
 static HANDLE s_Iocp;
 
@@ -69,8 +68,8 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
       pTask->Execute();
 
       {
-        ZoneScopedNC("PostMessageW", 0x31332C);
-        MJ_ERR_ZERO(::PostMessageW(s_Hwnd, s_Msg, reinterpret_cast<WPARAM>(pTask), 0));
+        ZoneScopedNC("PostQueuedCompletionStatus", 0x31332C);
+        ::PostQueuedCompletionStatus(s_IocpMainThread, 0, reinterpret_cast<ULONG_PTR>(pTask), nullptr);
       }
     }
   }
@@ -78,11 +77,12 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
   return 0;
 }
 
-void mj::ThreadpoolInit(UINT msg)
+void mj::ThreadpoolInit(HANDLE pHandle)
 {
   ZoneScoped;
 
-  s_Msg = msg;
+  s_IocpMainThread = pHandle;
+
   MJ_ERR_IF(s_Iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
 
   // Initialize free list
@@ -107,14 +107,8 @@ void mj::ThreadpoolInit(UINT msg)
   }
 }
 
-void mj::ThreadpoolSetWindowHandle(HWND hWnd)
+void mj::ThreadpoolTaskEnd(mj::Task* pTask)
 {
-  s_Hwnd = hWnd;
-}
-
-void mj::ThreadpoolTaskEnd(WPARAM wParam)
-{
-  mj::Task* pTask = reinterpret_cast<mj::Task*>(wParam);
   if (!pTask->cancelled)
   {
     pTask->OnDone();

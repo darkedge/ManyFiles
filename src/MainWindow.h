@@ -12,7 +12,7 @@ namespace mj
   {
   private:
     IControl* pDirectoryNavigationPanel = nullptr;
-    ID2D1DCRenderTarget* pRenderTarget    = nullptr;
+    ID2D1DCRenderTarget* pRenderTarget  = nullptr;
     bool s_Resize                       = false;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
