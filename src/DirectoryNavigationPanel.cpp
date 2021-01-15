@@ -314,7 +314,7 @@ void mj::DirectoryNavigationPanel::Paint()
 
       // Always draw images on integer coordinates
       // point.y += static_cast<int>(metrics.height);
-      point.y += 16;
+      point.y += 21;
     }
   }
 }
@@ -462,7 +462,7 @@ void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFa
                                             DWRITE_FONT_WEIGHT_NORMAL,    // Font weight
                                             DWRITE_FONT_STYLE_NORMAL,     // Font style
                                             DWRITE_FONT_STRETCH_NORMAL,   // Font stretch
-                                            ConvertPointSizeToDIP(10.0f), // Font size
+                                            ::ConvertPointSizeToDIP(10.0f), // Font size
                                             L"",                          // Locale name
                                             &this->pTextFormat));
   this->CheckEverythingQueryPrerequisites();
