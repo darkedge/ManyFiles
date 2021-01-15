@@ -162,28 +162,31 @@ void mj::detail::ListFolderContentsTask::Execute()
 
   do
   {
-    mj::EEntryType::Enum* pItem = items.Emplace(1);
-    if (!pItem)
+    if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM))
     {
-      this->items.Destroy();
-      this->stringCache.Destroy();
-      break;
-    }
+      mj::EEntryType::Enum* pItem = items.Emplace(1);
+      if (!pItem)
+      {
+        this->items.Destroy();
+        this->stringCache.Destroy();
+        break;
+      }
 
-    if (!this->stringCache.Add(findData.cFileName))
-    {
-      this->items.Destroy();
-      this->stringCache.Destroy();
-      break;
-    }
+      if (!this->stringCache.Add(findData.cFileName))
+      {
+        this->items.Destroy();
+        this->stringCache.Destroy();
+        break;
+      }
 
-    if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    {
-      *pItem = mj::EEntryType::Directory;
-    }
-    else
-    {
-      *pItem = mj::EEntryType::File;
+      if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+      {
+        *pItem = mj::EEntryType::Directory;
+      }
+      else
+      {
+        *pItem = mj::EEntryType::File;
+      }
     }
   } while (::FindNextFileW(hFind, &findData) != 0);
 
@@ -336,6 +339,11 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->listFolderContentsTaskResult.items.Destroy();
   this->listFolderContentsTaskResult.stringCache.Destroy();
 
+  if (this->pListFolderContentsTask)
+  {
+    this->pListFolderContentsTask->cancelled = true;
+  }
+
   svc::RemoveID2D1RenderTargetObserver(this);
   svc::RemoveIDWriteFactoryObserver(this);
 }
@@ -443,13 +451,11 @@ void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarge
 {
   ZoneScoped;
 
-  {
-    auto* pTask       = mj::ThreadpoolCreateTask<LoadBitmapFromResourceTask>();
-    pTask->pParent    = this;
-    pTask->pOutBitmap = &this->pFolderIcon;
-    pTask->resource   = IDB_FOLDER;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
+  auto* pTask       = mj::ThreadpoolCreateTask<LoadBitmapFromResourceTask>();
+  pTask->pParent    = this;
+  pTask->pOutBitmap = &this->pFolderIcon;
+  pTask->resource   = IDB_FOLDER;
+  mj::ThreadpoolSubmitTask(pTask);
 
   MJ_ERR_HRESULT(pContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pBlackBrush));
 }
@@ -457,13 +463,13 @@ void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarge
 void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFactory)
 {
   ZoneScoped;
-  MJ_ERR_HRESULT(pFactory->CreateTextFormat(L"Segoe UI",                  // Font name
-                                            nullptr,                      // Font collection
-                                            DWRITE_FONT_WEIGHT_NORMAL,    // Font weight
-                                            DWRITE_FONT_STYLE_NORMAL,     // Font style
-                                            DWRITE_FONT_STRETCH_NORMAL,   // Font stretch
+  MJ_ERR_HRESULT(pFactory->CreateTextFormat(L"Segoe UI",                    // Font name
+                                            nullptr,                        // Font collection
+                                            DWRITE_FONT_WEIGHT_NORMAL,      // Font weight
+                                            DWRITE_FONT_STYLE_NORMAL,       // Font style
+                                            DWRITE_FONT_STRETCH_NORMAL,     // Font stretch
                                             ::ConvertPointSizeToDIP(10.0f), // Font size
-                                            L"",                          // Locale name
+                                            L"",                            // Locale name
                                             &this->pTextFormat));
   this->CheckEverythingQueryPrerequisites();
 }
