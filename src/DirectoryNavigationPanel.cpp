@@ -334,6 +334,7 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->pAllocator->Free(this->resultsBuffer.pAddress);
 
   this->ClearEntries();
+  this->entries.Destroy();
 
   if (this->pBlackBrush)
   {
@@ -368,7 +369,6 @@ void mj::DirectoryNavigationPanel::Destroy()
 
 void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
 {
-  bool dirty          = false;
   auto pHoveredPrev   = this->pHoveredEntry;
   this->pHoveredEntry = nullptr;
 
@@ -379,22 +379,26 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
     if (entry.pTextLayout)
     {
       MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
+      // This call costs nothing, looks like it's just a copy
       MJ_ERR_HRESULT(entry.pTextLayout->GetMetrics(&metrics));
+
       MJ_UNINITIALIZED RECT rect;
-      rect.left   = point.x + metrics.left;
-      rect.right  = point.x + metrics.left + metrics.width;
-      rect.top    = point.y + metrics.top;
-      rect.bottom = point.y + metrics.top + metrics.height;
-      POINT p;
+      rect.left   = static_cast<LONG>(point.x + metrics.left);
+      rect.right  = static_cast<LONG>(point.x + metrics.left + metrics.width);
+      rect.top    = static_cast<LONG>(point.y + metrics.top);
+      rect.bottom = static_cast<LONG>(point.y + metrics.top + metrics.height);
+
+      MJ_UNINITIALIZED POINT p;
       p.x = x;
       p.y = y;
+
       if (::PtInRect(&rect, p))
       {
         this->pHoveredEntry        = &entry;
-        this->highlightRect.left   = rect.left;
-        this->highlightRect.right  = rect.right;
-        this->highlightRect.top    = rect.top;
-        this->highlightRect.bottom = rect.bottom;
+        this->highlightRect.left   = static_cast<FLOAT>(rect.left);
+        this->highlightRect.right  = static_cast<FLOAT>(rect.right);
+        this->highlightRect.top    = static_cast<FLOAT>(rect.top);
+        this->highlightRect.bottom = static_cast<FLOAT>(rect.bottom);
         break;
       }
     }

@@ -219,10 +219,13 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     return 0;
   case WM_PAINT:
   {
+    static constexpr const char* pFrameMark = STR(WM_PAINT);
+    FrameMarkStart(pFrameMark);
     MJ_UNINITIALIZED PAINTSTRUCT ps;
     static_cast<void>(::BeginPaint(hWnd, &ps));
     pMainWindow->Paint();
     static_cast<void>(::EndPaint(hWnd, &ps));
+    FrameMarkEnd(pFrameMark);
     return 0;
   }
   case WM_MOUSEMOVE:
@@ -308,7 +311,6 @@ void mj::MainWindow::Run()
   {
     MJ_UNINITIALIZED DWORD waitObject;
     {
-      ZoneScopedNC("Sleeping", 0x21231C);
       waitObject = ::MsgWaitForMultipleObjects(1, &iocp, FALSE, INFINITE, QS_ALLEVENTS);
     }
     switch (waitObject)
@@ -327,30 +329,22 @@ void mj::MainWindow::Run()
       }
       else if (pTask)
       {
-        ZoneScopedN("ThreadpoolTaskEnd");
         mj::ThreadpoolTaskEnd(pTask);
       }
     }
     break;
     case WAIT_OBJECT_0 + 1: // Window message
     {
-      ZoneScopedN("GetMessageW");
       while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
       {
         // If the message is translated, the return value is nonzero.
         // If the message is not translated, the return value is zero.
-        {
-          ZoneScopedN("TranslateMessage");
-          static_cast<void>(::TranslateMessage(&msg));
-        }
+        static_cast<void>(::TranslateMessage(&msg));
 
         // The return value specifies the value returned by the window procedure.
         // Although its meaning depends on the message being dispatched,
         // the return value generally is ignored.
-        {
-          ZoneScopedN("DispatchMessageW");
-          static_cast<void>(::DispatchMessageW(&msg));
-        }
+        static_cast<void>(::DispatchMessageW(&msg));
 
         if (s_Resize)
         {
