@@ -225,6 +225,12 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     static_cast<void>(::EndPaint(hWnd, &ps));
     return 0;
   }
+  case WM_MOUSEMOVE:
+  {
+    POINTS p = MAKEPOINTS(lParam);
+    pMainWindow->pDirectoryNavigationPanel->OnMouseMove(p.x, p.y);
+    return 0;
+  }
   default:
     break;
   }

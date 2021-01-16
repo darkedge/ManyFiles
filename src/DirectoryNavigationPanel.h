@@ -37,9 +37,12 @@ namespace mj
     friend struct detail::ListFolderContentsTask;
     friend struct detail::CreateTextFormatTask;
 
-    ID2D1SolidColorBrush* pBlackBrush = nullptr;
-    IDWriteTextFormat* pTextFormat    = nullptr;
-    ID2D1Bitmap* pFolderIcon          = nullptr;
+    ID2D1SolidColorBrush* pBlackBrush          = nullptr;
+    ID2D1SolidColorBrush* pEntryHighlightBrush = nullptr;
+    IDWriteTextFormat* pTextFormat             = nullptr;
+    ID2D1Bitmap* pFolderIcon                   = nullptr;
+    const Entry* pHoveredEntry                 = nullptr;
+    MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
 
     AllocatorBase* pAllocator = nullptr;
     ArrayList<Entry> entries;
@@ -70,6 +73,7 @@ namespace mj
     void Init(AllocatorBase* pAllocator) override;
     virtual void Paint() override;
     void Destroy() override;
+    void OnMouseMove(int16_t x, int16_t y) override;
 
     // Event callbacks
     void OnEverythingQuery();

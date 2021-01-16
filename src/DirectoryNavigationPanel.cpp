@@ -293,8 +293,8 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 void mj::DirectoryNavigationPanel::Paint()
 {
   ZoneScoped;
-  auto* pContext = svc::D2D1RenderTarget();
-  if (pContext)
+  auto* pRenderTarget = svc::D2D1RenderTarget();
+  if (pRenderTarget)
   {
     auto point = D2D1::Point2F(16.0f, 0.0f);
     for (const auto& entry : this->entries)
@@ -304,7 +304,7 @@ void mj::DirectoryNavigationPanel::Paint()
         // MJ_UNINITIALIZED DWRITE_LINE_METRICS metrics;
         // MJ_UNINITIALIZED UINT32 count;
         // MJ_ERR_HRESULT(entry.pTextLayout->GetLineMetrics(&metrics, 1, &count));
-        pContext->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
+        pRenderTarget->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
       }
 
       if (entry.pIcon)
@@ -312,12 +312,17 @@ void mj::DirectoryNavigationPanel::Paint()
         auto iconSize = entry.pIcon->GetPixelSize();
         float width   = static_cast<float>(iconSize.width);
         float height  = static_cast<float>(iconSize.height);
-        pContext->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
+        pRenderTarget->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
       }
 
       // Always draw images on integer coordinates
       // point.y += static_cast<int>(metrics.height);
       point.y += 21;
+    }
+
+    if (this->pHoveredEntry && this->pEntryHighlightBrush)
+    {
+      pRenderTarget->DrawRectangle(&this->highlightRect, this->pEntryHighlightBrush);
     }
   }
 }
@@ -331,10 +336,22 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->ClearEntries();
 
   if (this->pBlackBrush)
+  {
     this->pBlackBrush->Release();
+    this->pBlackBrush = nullptr;
+  }
+
+  if (this->pEntryHighlightBrush)
+  {
+    this->pEntryHighlightBrush->Release();
+    this->pEntryHighlightBrush = nullptr;
+  }
 
   if (this->pFolderIcon)
+  {
     this->pFolderIcon->Release();
+    this->pFolderIcon = nullptr;
+  }
 
   this->listFolderContentsTaskResult.items.Destroy();
   this->listFolderContentsTaskResult.stringCache.Destroy();
@@ -342,10 +359,53 @@ void mj::DirectoryNavigationPanel::Destroy()
   if (this->pListFolderContentsTask)
   {
     this->pListFolderContentsTask->cancelled = true;
+    this->pListFolderContentsTask            = nullptr;
   }
 
   svc::RemoveID2D1RenderTargetObserver(this);
   svc::RemoveIDWriteFactoryObserver(this);
+}
+
+void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
+{
+  bool dirty          = false;
+  auto pHoveredPrev   = this->pHoveredEntry;
+  this->pHoveredEntry = nullptr;
+
+  auto point = D2D1::Point2F(16.0f, 0.0f);
+  for (auto i = 0; i < this->entries.Size(); i++)
+  {
+    const auto& entry = this->entries[i];
+    if (entry.pTextLayout)
+    {
+      MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
+      MJ_ERR_HRESULT(entry.pTextLayout->GetMetrics(&metrics));
+      MJ_UNINITIALIZED RECT rect;
+      rect.left   = point.x + metrics.left;
+      rect.right  = point.x + metrics.left + metrics.width;
+      rect.top    = point.y + metrics.top;
+      rect.bottom = point.y + metrics.top + metrics.height;
+      POINT p;
+      p.x = x;
+      p.y = y;
+      if (::PtInRect(&rect, p))
+      {
+        this->pHoveredEntry        = &entry;
+        this->highlightRect.left   = rect.left;
+        this->highlightRect.right  = rect.right;
+        this->highlightRect.top    = rect.top;
+        this->highlightRect.bottom = rect.bottom;
+        break;
+      }
+    }
+    point.y += 21;
+  }
+
+  if (pHoveredPrev != this->pHoveredEntry)
+  {
+    // TODO: This should be global
+    ::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE);
+  }
 }
 
 void mj::DirectoryNavigationPanel::OnEverythingQuery()
@@ -457,7 +517,8 @@ void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarge
   pTask->resource   = IDB_FOLDER;
   mj::ThreadpoolSubmitTask(pTask);
 
-  MJ_ERR_HRESULT(pContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pBlackBrush));
+  MJ_ERR_HRESULT(pContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &this->pBlackBrush));
+  MJ_ERR_HRESULT(pContext->CreateSolidColorBrush(D2D1::ColorF(0xFF0000), &this->pEntryHighlightBrush));
 }
 
 void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFactory)
