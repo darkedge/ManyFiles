@@ -67,7 +67,8 @@ namespace mj
     // ListFolderContentsTask results
     struct
     {
-      mj::ArrayList<mj::EEntryType::Enum> items;
+      mj::ArrayList<size_t> folders;
+      mj::ArrayList<size_t> files;
       mj::StringCache stringCache;
     } listFolderContentsTaskResult;
     detail::ListFolderContentsTask* pListFolderContentsTask = nullptr;
@@ -80,7 +81,7 @@ namespace mj
     ID2D1Bitmap* ConvertIcon(HICON hIcon);
     void CheckEverythingQueryPrerequisites();
     void TryCreateFolderContentTextLayouts();
-    void SetTextLayout(size_t index, IDWriteTextLayout* pTextLayout);
+    void SetTextLayout(Entry* pEntry, IDWriteTextLayout* pTextLayout);
     void ClearEntries();
     bool TestMouseEntry(int16_t x, int16_t y, mj::Entry** ppEntry, RECT* pRect);
     void OpenSubFolder(const wchar_t* pFolder);
@@ -112,7 +113,8 @@ namespace mj
       MJ_UNINITIALIZED mj::StringView directory;
 
       // Out
-      mj::ArrayList<mj::EEntryType::Enum> items;
+      mj::ArrayList<size_t> folders;
+      mj::ArrayList<size_t> files;
       mj::StringCache stringCache;
 
       // Private
@@ -121,13 +123,16 @@ namespace mj
       virtual void Execute() override;
       virtual void OnDone() override;
       virtual void Destroy() override;
+
+    private:
+      bool Add(mj::ArrayList<size_t>& list, size_t index);
     };
 
     struct CreateTextFormatTask : public mj::Task
     {
       // In
       MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
-      MJ_UNINITIALIZED size_t index;
+      MJ_UNINITIALIZED mj::Entry* pEntry;
 
       // Out
       MJ_UNINITIALIZED IDWriteTextLayout* pTextLayout;

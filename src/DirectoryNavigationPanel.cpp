@@ -199,12 +199,30 @@ void mj::DirectoryNavigationPanel::OnLoadFileIconTaskDone(mj::detail::LoadFileIc
   MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
 }
 
+bool mj::detail::ListFolderContentsTask::Add(mj::ArrayList<size_t>& list, size_t index)
+{
+  size_t* pItem = list.Emplace(1);
+
+  if (!pItem)
+  {
+    this->files.Destroy();
+    this->folders.Destroy();
+    this->stringCache.Destroy();
+    return false;
+  }
+
+  *pItem = index;
+
+  return true;
+}
+
 void mj::detail::ListFolderContentsTask::Execute()
 {
   ZoneScoped;
 
   this->allocator.Init();
-  this->items.Init(&this->allocator);
+  this->files.Init(&this->allocator);
+  this->folders.Init(&this->allocator);
   this->stringCache.Init(&this->allocator);
 
   MJ_UNINITIALIZED WIN32_FIND_DATA findData;
@@ -215,35 +233,32 @@ void mj::detail::ListFolderContentsTask::Execute()
   {
     if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM))
     {
-      mj::EEntryType::Enum* pItem = items.Emplace(1);
-      if (!pItem)
-      {
-        this->items.Destroy();
-        this->stringCache.Destroy();
-        break;
-      }
-
       if (!this->stringCache.Add(findData.cFileName))
       {
-        this->items.Destroy();
+        this->files.Destroy();
+        this->folders.Destroy();
         this->stringCache.Destroy();
         break;
       }
 
       if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
       {
-        *pItem = mj::EEntryType::Directory;
+        if (!Add(this->folders, this->stringCache.Size() - 1))
+        {
+          break;
+        }
       }
       else
       {
-        *pItem = mj::EEntryType::File;
+        if (!Add(this->files, this->stringCache.Size() - 1))
+        {
+          break;
+        }
       }
     }
   } while (::FindNextFileW(hFind, &findData) != 0);
 
   ::FindClose(hFind);
-
-  // TODO: Sort
 }
 
 void mj::detail::ListFolderContentsTask::OnDone()
@@ -254,7 +269,8 @@ void mj::detail::ListFolderContentsTask::OnDone()
 
 void mj::detail::ListFolderContentsTask::Destroy()
 {
-  this->items.Destroy();
+  this->files.Destroy();
+  this->folders.Destroy();
   this->stringCache.Destroy();
 }
 
@@ -283,6 +299,7 @@ void mj::DirectoryNavigationPanel::OpenFolder()
     this->pListFolderContentsTask->cancelled = true;
   }
 
+  // Note: The StringBuilder should already contain the folder here.
   this->sbOpenFolder.Append(L"\\*");
   this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
   this->pListFolderContentsTask->pParent   = this;
@@ -304,7 +321,8 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
   MJ_EXIT_NULL(this->resultsBuffer.pAddress);
   this->entries.Init(this->pAllocator);
 
-  this->listFolderContentsTaskResult.items.Init(this->pAllocator);
+  this->listFolderContentsTaskResult.files.Init(this->pAllocator);
+  this->listFolderContentsTaskResult.folders.Init(this->pAllocator);
   this->listFolderContentsTaskResult.stringCache.Init(this->pAllocator);
 
   this->breadcrumb.Init(pAllocator);
@@ -456,7 +474,8 @@ void mj::DirectoryNavigationPanel::Destroy()
     this->pFileIcon = nullptr;
   }
 
-  this->listFolderContentsTaskResult.items.Destroy();
+  this->listFolderContentsTaskResult.files.Destroy();
+  this->listFolderContentsTaskResult.folders.Destroy();
   this->listFolderContentsTaskResult.stringCache.Destroy();
 
   if (this->pListFolderContentsTask)
@@ -555,7 +574,8 @@ void mj::DirectoryNavigationPanel::OnEverythingQuery()
 
 void mj::DirectoryNavigationPanel::OnListFolderContentsDone(detail::ListFolderContentsTask* pTask)
 {
-  if (this->listFolderContentsTaskResult.items.Copy(pTask->items) &&
+  if (this->listFolderContentsTaskResult.files.Copy(pTask->files) &&
+      this->listFolderContentsTaskResult.folders.Copy(pTask->folders) &&
       this->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
   {
     // TODO: Start icon, TextFormat tasks if preconditions are met
@@ -569,13 +589,11 @@ void mj::detail::CreateTextFormatTask::Execute()
 {
   ZoneScoped;
 
-  mj::StringView& string = pParent->listFolderContentsTaskResult.stringCache[index];
-
-  MJ_ERR_HRESULT(svc::DWriteFactory()->CreateTextLayout(string.ptr,                      //
-                                                        static_cast<UINT32>(string.len), //
-                                                        pParent->pTextFormat,            //
-                                                        1024.0f,                         //
-                                                        1024.0f,                         //
+  MJ_ERR_HRESULT(svc::DWriteFactory()->CreateTextLayout(this->pEntry->pName->ptr,                      //
+                                                        static_cast<UINT32>(this->pEntry->pName->len), //
+                                                        pParent->pTextFormat,                          //
+                                                        1024.0f,                                       //
+                                                        1024.0f,                                       //
                                                         &this->pTextLayout));
 }
 
@@ -583,12 +601,12 @@ void mj::detail::CreateTextFormatTask::OnDone()
 {
   ZoneScoped;
   this->pTextLayout->AddRef();
-  this->pParent->SetTextLayout(this->index, this->pTextLayout);
+  this->pParent->SetTextLayout(this->pEntry, this->pTextLayout);
 }
 
-void mj::DirectoryNavigationPanel::SetTextLayout(size_t index, IDWriteTextLayout* pTextLayout)
+void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextLayout* pTextLayout)
 {
-  this->entries[index].pTextLayout = pTextLayout;
+  pEntry->pTextLayout = pTextLayout;
 
   if (++this->numEntriesDoneLoading == this->entries.Size())
   {
@@ -607,7 +625,7 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
 
   // Note: If the folder is empty, we do nothing.
   // This is okay if we don't want to render anything, but this could change.
-  auto numItems = this->listFolderContentsTaskResult.items.Size();
+  auto numItems = this->listFolderContentsTaskResult.stringCache.Size();
 
   // Skipping the check for DWrite because our TextFormat already depends on it.
   if (numItems > 0 && this->pTextFormat)
@@ -617,17 +635,34 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
     {
       // Variable number of tasks with the same cancellation token
       numEntriesDoneLoading = 0;
-      for (auto i = 0; i < numItems; i++)
+
+      // Folders
+      for (auto i = 0; i < this->listFolderContentsTaskResult.folders.Size(); i++)
       {
         auto& entry = this->entries[i];
         entry       = {};
-        entry.type  = this->listFolderContentsTaskResult.items[i];
-        entry.pName = &this->listFolderContentsTaskResult.stringCache[i];
-        entry.pIcon = entry.type == EEntryType::Directory ? this->pFolderIcon : this->pFileIcon;
+        entry.type  = EEntryType::Directory;
+        entry.pName = &this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.folders[i]];
+        entry.pIcon = this->pFolderIcon;
 
         auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextFormatTask>();
         pTask->pParent = this;
-        pTask->index   = i;
+        pTask->pEntry  = &entry;
+        mj::ThreadpoolSubmitTask(pTask);
+      }
+
+      // Files
+      for (auto i = 0; i < this->listFolderContentsTaskResult.files.Size(); i++)
+      {
+        auto& entry = this->entries[i + this->listFolderContentsTaskResult.folders.Size()];
+        entry       = {};
+        entry.type  = EEntryType::File;
+        entry.pName = &this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.files[i]];
+        entry.pIcon = this->pFileIcon;
+
+        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextFormatTask>();
+        pTask->pParent = this;
+        pTask->pEntry  = &entry;
         mj::ThreadpoolSubmitTask(pTask);
       }
     }
