@@ -78,7 +78,6 @@ namespace mj
     // Event callbacks
     void OnEverythingQuery();
     void OnListFolderContentsDone(detail::ListFolderContentsTask* pTask);
-    void OnLoadBitmapFromResourceTaskDone(detail::LoadBitmapFromResourceTask* pTask);
     void OnLoadFolderIconTaskDone(detail::LoadFolderIconTask* pTask);
 
   public:
@@ -121,23 +120,6 @@ namespace mj
 
       // Out
       MJ_UNINITIALIZED IDWriteTextLayout* pTextLayout;
-
-      virtual void Execute() override;
-
-      virtual void OnDone() override;
-
-      virtual void Destroy() override;
-    };
-
-    // Requires: D2D1RenderTarget
-    struct LoadBitmapFromResourceTask : public mj::Task
-    {
-      // In
-      mj::DirectoryNavigationPanel* pParent = nullptr;
-      WORD resource                         = 0;
-
-      // Out
-      ID2D1Bitmap* pBitmap = nullptr;
 
       virtual void Execute() override;
 
