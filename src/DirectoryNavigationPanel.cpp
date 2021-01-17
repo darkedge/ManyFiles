@@ -61,7 +61,7 @@ void mj::detail::EverythingQueryContext::Execute()
                               .Append(L"\" !\"")       //
                               .Append(this->directory) //
                               .Append(L"*\\*\"")       //
-                              .ToString();
+                              .ToStringNullTerminated();
 
   Everything_SetSearchW(search.ptr);
   {
@@ -258,7 +258,39 @@ void mj::detail::ListFolderContentsTask::Destroy()
   this->stringCache.Destroy();
 }
 
-void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
+void mj::DirectoryNavigationPanel::OpenSubFolder(const wchar_t* pFolder)
+{
+  auto breadcrumbSize = this->breadcrumb.Size();
+  if (breadcrumbSize > 0)
+  {
+    auto currentPath = this->breadcrumb[breadcrumbSize - 1];
+    this->sbOpenFolder.Clear();
+    this->sbOpenFolder.Append(currentPath);
+    this->sbOpenFolder.Append(L"\\");
+    this->sbOpenFolder.Append(pFolder);
+
+    // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
+    this->breadcrumb.Add(this->sbOpenFolder.ToString());
+  }
+
+  this->OpenFolder();
+}
+
+void mj::DirectoryNavigationPanel::OpenFolder()
+{
+  if (this->pListFolderContentsTask)
+  {
+    this->pListFolderContentsTask->cancelled = true;
+  }
+
+  this->sbOpenFolder.Append(L"\\*");
+  this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
+  this->pListFolderContentsTask->pParent   = this;
+  this->pListFolderContentsTask->directory = sbOpenFolder.ToStringNullTerminated();
+  mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
+}
+
+void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 {
   ZoneScoped;
   svc::AddID2D1RenderTargetObserver(this);
@@ -275,14 +307,15 @@ void mj::DirectoryNavigationPanel::Init(AllocatorBase* pAllocator)
   this->listFolderContentsTaskResult.items.Init(this->pAllocator);
   this->listFolderContentsTaskResult.stringCache.Init(this->pAllocator);
 
+  this->breadcrumb.Init(pAllocator);
+  this->breadcrumb.Add(L"C:");
+  this->alOpenFolder.Init(pAllocator);
+  this->sbOpenFolder.SetArrayList(&this->alOpenFolder);
+
   // Start tasks
-  if (!this->pListFolderContentsTask)
-  {
-    this->pListFolderContentsTask          = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
-    this->pListFolderContentsTask->pParent = this;
-    this->pListFolderContentsTask->directory.Init(LR"(C:\*)");
-    mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
-  }
+  this->sbOpenFolder.Clear();
+  this->sbOpenFolder.Append(this->breadcrumb[0]);
+  this->OpenFolder();
 
 #if 0
   {
@@ -390,6 +423,10 @@ void mj::DirectoryNavigationPanel::OnPaint()
 void mj::DirectoryNavigationPanel::Destroy()
 {
   ZoneScoped;
+
+  this->breadcrumb.Destroy();
+  this->alOpenFolder.Destroy();
+
   this->pAllocator->Free(this->searchBuffer.pAddress);
   this->pAllocator->Free(this->resultsBuffer.pAddress);
 
@@ -432,19 +469,18 @@ void mj::DirectoryNavigationPanel::Destroy()
   svc::RemoveIDWriteFactoryObserver(this);
 }
 
-void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
+bool mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, mj::Entry** ppEntry, RECT* pRect)
 {
-  auto pHoveredPrev   = this->pHoveredEntry;
-  this->pHoveredEntry = nullptr;
-
   auto point = D2D1::Point2F(16.0f, 0.0f);
   for (auto i = 0; i < this->entries.Size(); i++)
   {
-    const auto& entry = this->entries[i];
+    auto& entry = this->entries[i];
     if (entry.pTextLayout)
     {
       MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
       // This call costs nothing, looks like it's just a copy
+      // Optimization note: we could extract this information on creation
+      // and put the rect in a separate list for faster iteration.
       MJ_ERR_HRESULT(entry.pTextLayout->GetMetrics(&metrics));
 
       MJ_UNINITIALIZED RECT rect;
@@ -459,21 +495,52 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
 
       if (::PtInRect(&rect, p))
       {
-        this->pHoveredEntry        = &entry;
-        this->highlightRect.left   = static_cast<FLOAT>(rect.left);
-        this->highlightRect.right  = static_cast<FLOAT>(rect.right);
-        this->highlightRect.top    = static_cast<FLOAT>(rect.top);
-        this->highlightRect.bottom = static_cast<FLOAT>(rect.bottom);
-        break;
+        if (pRect)
+        {
+          *pRect = rect;
+        }
+        if (ppEntry)
+        {
+          *ppEntry = &entry;
+        }
+        return true;
       }
     }
     point.y += 21;
+  }
+
+  return false;
+}
+
+void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
+{
+  auto pHoveredPrev   = this->pHoveredEntry;
+  this->pHoveredEntry = nullptr;
+
+  MJ_UNINITIALIZED mj::Entry* pEntry;
+  MJ_UNINITIALIZED RECT rect;
+  if (this->TestMouseEntry(x, y, &pEntry, &rect))
+  {
+    this->pHoveredEntry        = pEntry;
+    this->highlightRect.left   = static_cast<FLOAT>(rect.left);
+    this->highlightRect.right  = static_cast<FLOAT>(rect.right);
+    this->highlightRect.top    = static_cast<FLOAT>(rect.top);
+    this->highlightRect.bottom = static_cast<FLOAT>(rect.bottom);
   }
 
   if (pHoveredPrev != this->pHoveredEntry)
   {
     // TODO: This should be global
     ::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE);
+  }
+}
+
+void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)
+{
+  MJ_UNINITIALIZED mj::Entry* pEntry;
+  if (this->TestMouseEntry(x, y, &pEntry, nullptr))
+  {
+    this->OpenSubFolder(pEntry->pName->ptr);
   }
 }
 
@@ -549,11 +616,15 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
       numEntriesDoneLoading = 0;
       for (auto i = 0; i < numItems; i++)
       {
-        this->entries[i]      = {};
-        this->entries[i].type = this->listFolderContentsTaskResult.items[i];
-        auto pTask            = mj::ThreadpoolCreateTask<mj::detail::CreateTextFormatTask>();
-        pTask->pParent        = this;
-        pTask->index          = i;
+        auto& entry = this->entries[i];
+        entry       = {};
+        entry.type  = this->listFolderContentsTaskResult.items[i];
+        entry.pName = &this->listFolderContentsTaskResult.stringCache[i];
+        entry.pIcon = entry.type == EEntryType::Directory ? this->pFolderIcon : this->pFileIcon;
+
+        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextFormatTask>();
+        pTask->pParent = this;
+        pTask->index   = i;
         mj::ThreadpoolSubmitTask(pTask);
       }
     }

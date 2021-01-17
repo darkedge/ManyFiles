@@ -234,6 +234,12 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     pMainWindow->pDirectoryNavigationPanel->OnMouseMove(p.x, p.y);
     return 0;
   }
+  case WM_LBUTTONDBLCLK:
+  {
+    POINTS p = MAKEPOINTS(lParam);
+    pMainWindow->pDirectoryNavigationPanel->OnDoubleClick(p.x, p.y, static_cast<uint16_t>(wParam));
+    return 0;
+  }
   default:
     break;
   }
@@ -289,6 +295,7 @@ void mj::MainWindow::Run()
   wc.hInstance     = HINST_THISCOMPONENT;
   wc.lpszClassName = L"Class Name";
   wc.hCursor       = ::LoadCursorW(nullptr, IDC_ARROW);
+  wc.style         = CS_DBLCLKS;
   MJ_ERR_ZERO(cls = ::RegisterClassExW(&wc));
   LPWSTR classAtom = MAKEINTATOM(cls);
 

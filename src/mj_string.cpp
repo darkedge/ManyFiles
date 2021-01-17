@@ -3,7 +3,7 @@
 #define STRSAFE_NO_CB_FUNCTIONS
 #include <strsafe.h>
 
-// The StringBuilder only adds a null terminator in the ToString() function.
+// The StringBuilder only adds a null terminator in the ToStringNullTerminated() function.
 
 static const wchar_t s_IntToWideChar[] = { L'0', L'1', L'2', L'3', L'4', L'5', L'6', L'7',
                                            L'8', L'9', L'A', L'B', L'C', L'D', L'E', L'F' };
@@ -27,6 +27,11 @@ void mj::StringView::Init(const wchar_t* pString)
 void mj::StringBuilder::SetArrayList(ArrayList<wchar_t>* pArrayList)
 {
   this->pArrayList = pArrayList;
+}
+
+void mj::StringBuilder::Clear()
+{
+  this->pArrayList->Clear();
 }
 
 mj::StringBuilder& mj::StringBuilder::Append(int32_t integer)
@@ -110,10 +115,19 @@ mj::StringBuilder& mj::StringBuilder::Append(const wchar_t* pStringLiteral)
 
 mj::StringView mj::StringBuilder::ToString()
 {
+  auto length = this->pArrayList->Size();
+  MJ_UNINITIALIZED mj::StringView string;
+  string.Init(this->pArrayList->begin(), length);
+  return string;
+}
+
+mj::StringView mj::StringBuilder::ToStringNullTerminated()
+{
   // Make sure the string is null-terminated
   wchar_t* pLast = this->pArrayList->Emplace(1);
   if (pLast)
   {
+    // Truncate
     *pLast = L'\0';
   }
   else
@@ -128,7 +142,7 @@ mj::StringView mj::StringBuilder::ToString()
   MJ_UNINITIALIZED size_t length;
   MJ_ERR_HRESULT(::StringCchLengthW(this->pArrayList->Get(), STRSAFE_MAX_CCH, &length));
 
-  MJ_UNINITIALIZED StringView string;
+  MJ_UNINITIALIZED mj::StringView string;
   string.Init(this->pArrayList->begin(), length);
   return string;
 }
@@ -156,7 +170,11 @@ bool mj::StringCache::Add(const wchar_t* pStringLiteral)
 {
   MJ_UNINITIALIZED StringView string;
   string.Init(pStringLiteral);
+  return this->Add(string);
+}
 
+bool mj::StringCache::Add(const StringView& string)
+{
   // Store old buffer pointer to track reallocation
   // Note: We are assuming that ArrayList reallocation will always return a new pointer
   // This should hold because we never free the old memory before allocating the new memory
@@ -181,7 +199,11 @@ bool mj::StringCache::Add(const wchar_t* pStringLiteral)
     }
 
     // Copy the new string
-    MJ_ERR_HRESULT(::StringCchCopyW(pDest, destSize, string.ptr));
+    // StringCchCopy(Ex)W does not support source strings without a null terminator
+    // MJ_ERR_HRESULT(::StringCchCopyW(pDest, destSize, string.ptr));
+    ::memcpy(pDest, string.ptr, string.len * sizeof(wchar_t));
+    // Add null terminator in case string was not null terminated
+    pDest[string.len] = L'\0';
 
     // Initialize the new string object
     pString->ptr = pDest;

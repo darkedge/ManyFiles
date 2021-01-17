@@ -21,6 +21,7 @@ namespace mj
     EEntryType::Enum type;
     IDWriteTextLayout* pTextLayout;
     ID2D1Bitmap* pIcon;
+    StringView* pName;
   };
 
   namespace detail
@@ -49,6 +50,12 @@ namespace mj
     ID2D1Bitmap* pFolderIcon                   = nullptr;
     ID2D1Bitmap* pFileIcon                     = nullptr;
     const Entry* pHoveredEntry                 = nullptr;
+    StringCache breadcrumb;
+
+    // Open folder
+    ArrayList<wchar_t> alOpenFolder;
+    StringBuilder sbOpenFolder;
+
     MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
 
     AllocatorBase* pAllocator = nullptr;
@@ -75,6 +82,9 @@ namespace mj
     void TryCreateFolderContentTextLayouts();
     void SetTextLayout(size_t index, IDWriteTextLayout* pTextLayout);
     void ClearEntries();
+    bool TestMouseEntry(int16_t x, int16_t y, mj::Entry** ppEntry, RECT* pRect);
+    void OpenSubFolder(const wchar_t* pFolder);
+    void OpenFolder();
 
     // Event callbacks
     void OnEverythingQuery();
@@ -87,6 +97,7 @@ namespace mj
     virtual void OnPaint() override;
     void Destroy() override;
     void OnMouseMove(int16_t x, int16_t y) override;
+    void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
 
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;

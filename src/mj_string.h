@@ -5,7 +5,6 @@ namespace mj
 {
   /// <summary>
   /// Wide string with known length
-  /// TODO: Rename this to StringView (as we do not handle any memory)
   /// </summary>
   struct StringView
   {
@@ -22,12 +21,25 @@ namespace mj
 
   public:
     void SetArrayList(ArrayList<wchar_t>* pArrayList);
+    void Clear();
 
+    // TODO: We have no way to report failure!
     StringBuilder& Append(const StringView& string);
     StringBuilder& Append(const wchar_t* pStringLiteral);
     StringBuilder& Append(int32_t integer);
     StringBuilder& AppendHex32(uint32_t dw);
+
+    /// <summary>
+    /// Does not add a null terminator.
+    /// Additional appends to this StringBuilder are allowed.
+    /// </summary>
     StringView ToString();
+
+    /// <summary>
+    /// Adds a null terminator to the string and returns.
+    /// Note: Clear this StringBuilder before appending again!
+    /// </summary>
+    StringView ToStringNullTerminated();
   };
 
   class StringCache
@@ -60,6 +72,16 @@ namespace mj
     /// Use an iterator or the subscript operator to get the pointers afterward.
     /// </returns>
     bool Add(const wchar_t* pStringLiteral);
+
+    /// <summary>
+    /// Adds a deep copy of a StringView to the buffer. The string does not need to be null-terminated.
+    /// </summary>
+    /// <returns>
+    /// True if adding was successful, otherwise false.
+    /// Note: We do not return the pointer, as it might be invalidated as more strings are added.
+    /// Use an iterator or the subscript operator to get the pointers afterward.
+    /// </returns>
+    bool Add(const StringView& string);
 
     bool Copy(const StringCache& other);
 
