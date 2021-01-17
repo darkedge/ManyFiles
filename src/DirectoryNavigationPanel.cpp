@@ -540,7 +540,10 @@ void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t 
   MJ_UNINITIALIZED mj::Entry* pEntry;
   if (this->TestMouseEntry(x, y, &pEntry, nullptr))
   {
-    this->OpenSubFolder(pEntry->pName->ptr);
+    if (pEntry->type == EEntryType::Directory)
+    {
+      this->OpenSubFolder(pEntry->pName->ptr);
+    }
   }
 }
 
