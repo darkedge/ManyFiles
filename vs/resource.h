@@ -1,1 +1,2 @@
 #define IDB_FOLDER 105
+#define IDB_DOCUMENT 106

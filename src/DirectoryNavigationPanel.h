@@ -28,7 +28,7 @@ namespace mj
     struct ListFolderContentsTask;
     struct CreateTextFormatTask;
     struct LoadFolderIconTask;
-    struct LoadBitmapFromResourceTask;
+    struct LoadFileIconTask;
     struct EverythingQueryContext;
   } // namespace detail
 
@@ -40,13 +40,14 @@ namespace mj
     friend struct detail::ListFolderContentsTask;
     friend struct detail::CreateTextFormatTask;
     friend struct detail::LoadFolderIconTask;
-    friend struct detail::LoadBitmapFromResourceTask;
+    friend struct detail::LoadFileIconTask;
     friend struct detail::EverythingQueryContext;
 
     ID2D1SolidColorBrush* pBlackBrush          = nullptr;
     ID2D1SolidColorBrush* pEntryHighlightBrush = nullptr;
     IDWriteTextFormat* pTextFormat             = nullptr;
     ID2D1Bitmap* pFolderIcon                   = nullptr;
+    ID2D1Bitmap* pFileIcon                     = nullptr;
     const Entry* pHoveredEntry                 = nullptr;
     MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
 
@@ -79,6 +80,7 @@ namespace mj
     void OnEverythingQuery();
     void OnListFolderContentsDone(detail::ListFolderContentsTask* pTask);
     void OnLoadFolderIconTaskDone(detail::LoadFolderIconTask* pTask);
+    void OnLoadFileIconTaskDone(detail::LoadFileIconTask* pTask);
 
   public:
     void Init(AllocatorBase* pAllocator) override;
@@ -106,9 +108,7 @@ namespace mj
       MJ_UNINITIALIZED mj::HeapAllocator allocator;
 
       virtual void Execute() override;
-
       virtual void OnDone() override;
-
       virtual void Destroy() override;
     };
 
@@ -122,9 +122,7 @@ namespace mj
       MJ_UNINITIALIZED IDWriteTextLayout* pTextLayout;
 
       virtual void Execute() override;
-
       virtual void OnDone() override;
-
       virtual void Destroy() override;
     };
 
@@ -139,9 +137,22 @@ namespace mj
       ID2D1Bitmap* pBitmap = nullptr;
 
       virtual void Execute() override;
-
       virtual void OnDone() override;
+      virtual void Destroy() override;
+    };
 
+    // Requires: D2D1RenderTarget
+    struct LoadFileIconTask : public mj::Task
+    {
+      // In
+      mj::DirectoryNavigationPanel* pParent = nullptr;
+      WORD resource                         = 0;
+
+      // Out
+      ID2D1Bitmap* pBitmap = nullptr;
+
+      virtual void Execute() override;
+      virtual void OnDone() override;
       virtual void Destroy() override;
     };
 

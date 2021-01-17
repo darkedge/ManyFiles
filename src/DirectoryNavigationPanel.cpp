@@ -153,6 +153,26 @@ void mj::detail::LoadFolderIconTask::Destroy()
   this->pBitmap = nullptr;
 }
 
+void mj::detail::LoadFileIconTask::Execute()
+{
+  ZoneScoped;
+  mj::detail::LoadBitmapFromResource(this->resource, &this->pBitmap);
+}
+
+void mj::detail::LoadFileIconTask::OnDone()
+{
+  ZoneScoped;
+  this->pBitmap->AddRef();
+  this->pParent->OnLoadFileIconTaskDone(this);
+}
+
+void mj::detail::LoadFileIconTask::Destroy()
+{
+  ZoneScoped;
+  this->pBitmap->Release();
+  this->pBitmap = nullptr;
+}
+
 void mj::DirectoryNavigationPanel::OnLoadFolderIconTaskDone(mj::detail::LoadFolderIconTask* pTask)
 {
   this->pFolderIcon = pTask->pBitmap;
@@ -161,6 +181,19 @@ void mj::DirectoryNavigationPanel::OnLoadFolderIconTaskDone(mj::detail::LoadFold
     if (entry.type == EEntryType::Directory)
     {
       entry.pIcon = this->pFolderIcon;
+    }
+  }
+  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+}
+
+void mj::DirectoryNavigationPanel::OnLoadFileIconTaskDone(mj::detail::LoadFileIconTask* pTask)
+{
+  this->pFileIcon = pTask->pBitmap;
+  for (auto& entry : this->entries)
+  {
+    if (entry.type == EEntryType::File)
+    {
+      entry.pIcon = this->pFileIcon;
     }
   }
   MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
@@ -209,6 +242,8 @@ void mj::detail::ListFolderContentsTask::Execute()
   } while (::FindNextFileW(hFind, &findData) != 0);
 
   ::FindClose(hFind);
+
+  // TODO: Sort
 }
 
 void mj::detail::ListFolderContentsTask::OnDone()
@@ -378,6 +413,11 @@ void mj::DirectoryNavigationPanel::Destroy()
     this->pFolderIcon->Release();
     this->pFolderIcon = nullptr;
   }
+  if (this->pFileIcon)
+  {
+    this->pFileIcon->Release();
+    this->pFileIcon = nullptr;
+  }
 
   this->listFolderContentsTaskResult.items.Destroy();
   this->listFolderContentsTaskResult.stringCache.Destroy();
@@ -524,8 +564,8 @@ void mj::DirectoryNavigationPanel::ClearEntries()
 {
   for (auto& element : this->entries)
   {
-    // Only release if icon exists and is owned by the element
-    if (element.pIcon && element.pIcon != this->pFolderIcon)
+    // Only release if icon exists and is not a shared icon
+    if (element.pIcon && element.pIcon != this->pFolderIcon && element.pIcon != this->pFileIcon)
     {
       element.pIcon->Release();
     }
@@ -541,10 +581,18 @@ void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarge
 {
   ZoneScoped;
 
-  auto* pTask     = mj::ThreadpoolCreateTask<mj::detail::LoadFolderIconTask>();
-  pTask->pParent  = this;
-  pTask->resource = IDB_FOLDER;
-  mj::ThreadpoolSubmitTask(pTask);
+  {
+    auto* pTask     = mj::ThreadpoolCreateTask<mj::detail::LoadFolderIconTask>();
+    pTask->pParent  = this;
+    pTask->resource = IDB_FOLDER;
+    mj::ThreadpoolSubmitTask(pTask);
+  }
+  {
+    auto* pTask     = mj::ThreadpoolCreateTask<mj::detail::LoadFileIconTask>();
+    pTask->pParent  = this;
+    pTask->resource = IDB_DOCUMENT;
+    mj::ThreadpoolSubmitTask(pTask);
+  }
 
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &this->pBlackBrush));
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xFF0000), &this->pEntryHighlightBrush));
