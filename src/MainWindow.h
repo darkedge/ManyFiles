@@ -18,7 +18,7 @@ namespace mj
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     void Resize();
-    void Paint();
+    void OnPaint();
     void Destroy();
 
     void ReleaseUnusedObjects();

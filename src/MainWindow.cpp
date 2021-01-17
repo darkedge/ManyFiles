@@ -136,7 +136,7 @@ void mj::MainWindow::Resize()
   }
 }
 
-void mj::MainWindow::Paint()
+void mj::MainWindow::OnPaint()
 {
   ZoneScoped;
   if (this->pRenderTarget)
@@ -150,7 +150,7 @@ void mj::MainWindow::Paint()
       ZoneScopedN("Clear");
       this->pRenderTarget->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
     }
-    this->pDirectoryNavigationPanel->Paint();
+    this->pDirectoryNavigationPanel->OnPaint();
 
     {
       ZoneScopedN("EndDraw");
@@ -223,7 +223,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     FrameMarkStart(pFrameMark);
     MJ_UNINITIALIZED PAINTSTRUCT ps;
     static_cast<void>(::BeginPaint(hWnd, &ps));
-    pMainWindow->Paint();
+    pMainWindow->OnPaint();
     static_cast<void>(::EndPaint(hWnd, &ps));
     FrameMarkEnd(pFrameMark);
     return 0;

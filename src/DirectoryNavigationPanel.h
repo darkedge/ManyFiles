@@ -27,6 +27,9 @@ namespace mj
   {
     struct ListFolderContentsTask;
     struct CreateTextFormatTask;
+    struct LoadFolderIconTask;
+    struct LoadBitmapFromResourceTask;
+    struct EverythingQueryContext;
   } // namespace detail
 
   class DirectoryNavigationPanel : public IControl,
@@ -36,6 +39,9 @@ namespace mj
   private:
     friend struct detail::ListFolderContentsTask;
     friend struct detail::CreateTextFormatTask;
+    friend struct detail::LoadFolderIconTask;
+    friend struct detail::LoadBitmapFromResourceTask;
+    friend struct detail::EverythingQueryContext;
 
     ID2D1SolidColorBrush* pBlackBrush          = nullptr;
     ID2D1SolidColorBrush* pEntryHighlightBrush = nullptr;
@@ -69,15 +75,17 @@ namespace mj
     void SetTextLayout(size_t index, IDWriteTextLayout* pTextLayout);
     void ClearEntries();
 
-  public:
-    void Init(AllocatorBase* pAllocator) override;
-    virtual void Paint() override;
-    void Destroy() override;
-    void OnMouseMove(int16_t x, int16_t y) override;
-
     // Event callbacks
     void OnEverythingQuery();
     void OnListFolderContentsDone(detail::ListFolderContentsTask* pTask);
+    void OnLoadBitmapFromResourceTaskDone(detail::LoadBitmapFromResourceTask* pTask);
+    void OnLoadFolderIconTaskDone(detail::LoadFolderIconTask* pTask);
+
+  public:
+    void Init(AllocatorBase* pAllocator) override;
+    virtual void OnPaint() override;
+    void Destroy() override;
+    void OnMouseMove(int16_t x, int16_t y) override;
 
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
@@ -119,6 +127,51 @@ namespace mj
       virtual void OnDone() override;
 
       virtual void Destroy() override;
+    };
+
+    // Requires: D2D1RenderTarget
+    struct LoadBitmapFromResourceTask : public mj::Task
+    {
+      // In
+      mj::DirectoryNavigationPanel* pParent = nullptr;
+      WORD resource                         = 0;
+
+      // Out
+      ID2D1Bitmap* pBitmap = nullptr;
+
+      virtual void Execute() override;
+
+      virtual void OnDone() override;
+
+      virtual void Destroy() override;
+    };
+
+    // Requires: D2D1RenderTarget
+    struct LoadFolderIconTask : public mj::Task
+    {
+      // In
+      mj::DirectoryNavigationPanel* pParent = nullptr;
+      WORD resource                         = 0;
+
+      // Out
+      ID2D1Bitmap* pBitmap = nullptr;
+
+      virtual void Execute() override;
+
+      virtual void OnDone() override;
+
+      virtual void Destroy() override;
+    };
+
+    struct EverythingQueryContext : public mj::Task
+    {
+      mj::DirectoryNavigationPanel* pParent = nullptr;
+      MJ_UNINITIALIZED mj::StringView directory;
+      MJ_UNINITIALIZED mj::Allocation searchBuffer;
+
+      virtual void Execute() override;
+
+      virtual void OnDone() override;
     };
   } // namespace detail
 } // namespace mj
