@@ -404,7 +404,7 @@ void mj::DirectoryNavigationPanel::OnPaint()
   {
     auto point = D2D1::Point2F(16.0f, this->scrollOffset);
 
-    if (this->height > 0)
+    if (this->height > 0 && this->entries.Size() > 0)
     {
       auto pixelHeight = this->entries.Size() * this->entryHeight;
       auto viewHeight  = this->height;
@@ -502,7 +502,7 @@ void mj::DirectoryNavigationPanel::Destroy()
 
 bool mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, mj::Entry** ppEntry, RECT* pRect)
 {
-  auto point = D2D1::Point2F(16.0f, 0.0f);
+  auto point = D2D1::Point2F(16.0f, this->scrollOffset);
   for (auto i = 0; i < this->entries.Size(); i++)
   {
     auto& entry = this->entries[i];
@@ -562,7 +562,7 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
   if (pHoveredPrev != this->pHoveredEntry)
   {
     // TODO: This should be global
-    ::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE);
+    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
   }
 }
 
@@ -604,17 +604,15 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
   }
 
   MJ_UNINITIALIZED UINT pvParam;
-  {
-    ZoneScoped;
-    MJ_ERR_IF(::SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &pvParam, 0), 0);
-  }
+  // 7-15 microseconds
+  MJ_ERR_IF(::SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &pvParam, 0), 0);
 
   int16_t diff = numScrolls * pvParam * this->entryHeight;
   if (diff != 0)
   {
     this->scrollOffset += diff;
     int16_t pixelHeight = this->entries.Size() * this->entryHeight;
-    if (this->scrollOffset > 0)
+    if (this->scrollOffset > 0 || pixelHeight < this->height)
     {
       this->scrollOffset = 0;
     }
@@ -671,6 +669,7 @@ void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextL
 
   if (++this->numEntriesDoneLoading == this->entries.Size())
   {
+    this->scrollOffset = 0;
     MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
   }
 }
