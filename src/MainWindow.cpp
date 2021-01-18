@@ -245,6 +245,14 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     pMainWindow->pDirectoryNavigationPanel->OnDoubleClick(p.x, p.y, static_cast<uint16_t>(wParam));
     return 0;
   }
+  case WM_MOUSEWHEEL:
+  {
+    auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
+    auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+    POINTS p = MAKEPOINTS(lParam);
+    pMainWindow->pDirectoryNavigationPanel->OnMouseWheel(p.x, p.y, fwKeys, zDelta);
+    return 0;
+  }
   default:
     break;
   }

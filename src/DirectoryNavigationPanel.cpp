@@ -402,15 +402,18 @@ void mj::DirectoryNavigationPanel::OnPaint()
   // Implies that our brushes are also created
   if (pRenderTarget)
   {
-    auto point = D2D1::Point2F(16.0f, 0.0f);
+    auto point = D2D1::Point2F(16.0f, this->scrollOffset);
 
-    static constexpr auto entryHeight = 21;
-
-    auto pixelHeight = this->entries.Size() * entryHeight;
     if (this->height > 0)
     {
-      auto viewHeight = this->height;
-      auto rect       = D2D1::RectF(this->width - 16.0f, 0.0f, this->width, viewHeight * viewHeight / pixelHeight);
+      auto pixelHeight = this->entries.Size() * this->entryHeight;
+      auto viewHeight  = this->height;
+      auto top         = -this->scrollOffset * viewHeight / pixelHeight;
+      auto rect        = D2D1::RectF( //
+          this->width - 16.0f, //
+          top,                 //
+          this->width,         //
+          top + viewHeight * viewHeight / pixelHeight);
       pRenderTarget->DrawRectangle(rect, this->pBlackBrush);
     }
 
@@ -437,7 +440,7 @@ void mj::DirectoryNavigationPanel::OnPaint()
       }
 
       // Always draw images on integer coordinates
-      point.y += entryHeight;
+      point.y += this->entryHeight;
     }
 
     if (this->pHoveredEntry && this->pEntryHighlightBrush)
@@ -572,6 +575,55 @@ void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t 
     {
       this->OpenSubFolder(pEntry->pName->ptr);
     }
+  }
+}
+
+void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta)
+{
+  static_cast<void>(x);
+  static_cast<void>(y);
+  static_cast<void>(mkMask);
+
+  this->mouseWheelAccumulator += zDelta;
+
+  // Reset if switching directions
+  if (this->mouseWheelAccumulator < 0 && zDelta > 0 || //
+      this->mouseWheelAccumulator > 0 && zDelta < 0)
+  {
+    this->mouseWheelAccumulator = zDelta;
+  }
+
+  int16_t numScrolls = this->mouseWheelAccumulator / WHEEL_DELTA;
+  if (this->mouseWheelAccumulator > 0)
+  {
+    this->mouseWheelAccumulator -= numScrolls * WHEEL_DELTA;
+  }
+  else if (this->mouseWheelAccumulator < 0)
+  {
+    this->mouseWheelAccumulator += numScrolls * WHEEL_DELTA;
+  }
+
+  MJ_UNINITIALIZED UINT pvParam;
+  {
+    ZoneScoped;
+    MJ_ERR_IF(::SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &pvParam, 0), 0);
+  }
+
+  int16_t diff = numScrolls * pvParam * this->entryHeight;
+  if (diff != 0)
+  {
+    this->scrollOffset += diff;
+    int16_t pixelHeight = this->entries.Size() * this->entryHeight;
+    if (this->scrollOffset > 0)
+    {
+      this->scrollOffset = 0;
+    }
+    else if (this->scrollOffset + pixelHeight < this->height)
+    {
+      this->scrollOffset = this->height - pixelHeight;
+    }
+
+    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
   }
 }
 
