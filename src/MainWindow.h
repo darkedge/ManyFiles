@@ -1,5 +1,5 @@
 #pragma once
-#include "IControl.h"
+#include "Control.h"
 #include "mj_win32.h"
 #include "mj_allocator.h"
 #include <d2d1_1.h>
@@ -11,7 +11,7 @@ namespace mj
   class MainWindow
   {
   private:
-    IControl* pDirectoryNavigationPanel = nullptr;
+    Control* pDirectoryNavigationPanel = nullptr;
     ID2D1DCRenderTarget* pRenderTarget  = nullptr;
     bool s_Resize                       = false;
 

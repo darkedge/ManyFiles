@@ -4,7 +4,6 @@
     <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
     <ClCompile Include="..\src\EntryPoint.cpp" />
     <ClCompile Include="..\src\ErrorExit.cpp" />
-    <ClCompile Include="..\src\IControl.cpp" />
     <ClCompile Include="..\src\MainWindow.cpp" />
     <ClCompile Include="..\src\mj_common.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
@@ -16,6 +15,7 @@
     <ClCompile Include="..\src\mj_string.cpp" />
     <ClCompile Include="..\src\mj_allocator.cpp" />
     <ClCompile Include="..\src\mj_stb_image.cpp" />
+    <ClCompile Include="..\src\Control.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -26,7 +26,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\ErrorExit.h" />
-    <ClInclude Include="..\src\IControl.h" />
     <ClInclude Include="..\src\MainWindow.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
     <ClInclude Include="..\src\mj_common.h" />
@@ -43,6 +42,7 @@
     <ClInclude Include="..\src\stb_image.h" />
     <ClInclude Include="..\src\mj_string.h" />
     <ClInclude Include="..\src\mj_macro.h" />
+    <ClInclude Include="..\src\Control.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

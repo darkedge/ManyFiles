@@ -1,5 +1,5 @@
 #pragma once
-#include "IControl.h"
+#include "Control.h"
 #include "mj_common.h"
 #include "mj_string.h"
 #include "ServiceLocator.h"
@@ -33,7 +33,7 @@ namespace mj
     struct EverythingQueryContext;
   } // namespace detail
 
-  class DirectoryNavigationPanel : public IControl,
+  class DirectoryNavigationPanel : public Control,
                                    public svc::ID2D1RenderTargetObserver,
                                    public svc::IDWriteFactoryObserver
   {

@@ -398,16 +398,26 @@ void mj::DirectoryNavigationPanel::OnPaint()
 {
   ZoneScoped;
   auto* pRenderTarget = svc::D2D1RenderTarget();
+
+  // Implies that our brushes are also created
   if (pRenderTarget)
   {
     auto point = D2D1::Point2F(16.0f, 0.0f);
+
+    static constexpr auto entryHeight = 21;
+
+    auto pixelHeight = this->entries.Size() * entryHeight;
+    if (this->height > 0)
+    {
+      auto viewHeight = this->height;
+      auto rect       = D2D1::RectF(this->width - 16.0f, 0.0f, this->width, viewHeight * viewHeight / pixelHeight);
+      pRenderTarget->DrawRectangle(rect, this->pBlackBrush);
+    }
+
     for (const auto& entry : this->entries)
     {
       if (entry.pTextLayout)
       {
-        // MJ_UNINITIALIZED DWRITE_LINE_METRICS metrics;
-        // MJ_UNINITIALIZED UINT32 count;
-        // MJ_ERR_HRESULT(entry.pTextLayout->GetLineMetrics(&metrics, 1, &count));
         pRenderTarget->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
       }
 
@@ -427,8 +437,7 @@ void mj::DirectoryNavigationPanel::OnPaint()
       }
 
       // Always draw images on integer coordinates
-      // point.y += static_cast<int>(metrics.height);
-      point.y += 21;
+      point.y += entryHeight;
     }
 
     if (this->pHoveredEntry && this->pEntryHighlightBrush)

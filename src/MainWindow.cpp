@@ -132,6 +132,11 @@ void mj::MainWindow::Resize()
   {
     MJ_UNINITIALIZED RECT clientArea;
     ::GetClientRect(hwnd, &clientArea);
+    if (this->pDirectoryNavigationPanel)
+    {
+      this->pDirectoryNavigationPanel->width  = clientArea.right - clientArea.left;
+      this->pDirectoryNavigationPanel->height = clientArea.bottom - clientArea.top;
+    }
     MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(hwnd), &clientArea));
   }
 }
