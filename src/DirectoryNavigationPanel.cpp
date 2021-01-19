@@ -676,13 +676,25 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t client
         // the return value is zero.
         // If you do not specify TPM_RETURNCMD in the uFlags parameter, the return value is nonzero if the function
         // succeeds and zero if it fails. To get extended error information, call GetLastError.
-        static_cast<void>(::TrackPopupMenu(pMenu,                                           //
-                                           TPM_LEFTALIGN | TPM_RETURNCMD | TPM_RIGHTBUTTON, //
-                                           screenX,                                         //
-                                           screenY,                                         //
-                                           0,                                               //
-                                           svc::MainWindowHandle(),                         //
-                                           nullptr));
+        BOOL cmd = ::TrackPopupMenu(pMenu,                                           //
+                                    TPM_RETURNCMD, //
+                                    screenX,                                         //
+                                    screenY,                                         //
+                                    0,                                               //
+                                    svc::MainWindowHandle(),                         //
+                                    nullptr);
+
+        if (cmd)
+        {
+          CMINVOKECOMMANDINFOEX info = {};
+          info.cbSize                = sizeof(info);
+          info.fMask                 = CMIC_MASK_UNICODE;
+          info.hwnd                  = svc::MainWindowHandle();
+          info.lpVerb                = MAKEINTRESOURCEA(cmd - 1);
+          info.lpVerbW               = MAKEINTRESOURCEW(cmd - 1);
+          info.nShow                 = SW_SHOWNORMAL;
+          MJ_ERR_HRESULT(pContextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&info)));
+        }
       }
     }
   }
