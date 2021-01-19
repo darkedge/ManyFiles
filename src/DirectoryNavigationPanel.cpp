@@ -10,6 +10,8 @@
 #include "Threadpool.h"
 #include "../vs/resource.h"
 #include "stb_image.h"
+#define STRICT_TYPED_ITEMIDS
+#include <Shlobj.h>
 
 static float ConvertPointSizeToDIP(float points)
 {
@@ -500,7 +502,7 @@ void mj::DirectoryNavigationPanel::Destroy()
   svc::RemoveIDWriteFactoryObserver(this);
 }
 
-bool mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, mj::Entry** ppEntry, RECT* pRect)
+mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RECT* pRect)
 {
   auto point = D2D1::Point2F(16.0f, this->scrollOffset);
   for (auto i = 0; i < this->entries.Size(); i++)
@@ -530,17 +532,13 @@ bool mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, mj::Entr
         {
           *pRect = rect;
         }
-        if (ppEntry)
-        {
-          *ppEntry = &entry;
-        }
-        return true;
+        return &entry;
       }
     }
     point.y += 21;
   }
 
-  return false;
+  return nullptr;
 }
 
 void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
@@ -548,9 +546,9 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
   auto pHoveredPrev   = this->pHoveredEntry;
   this->pHoveredEntry = nullptr;
 
-  MJ_UNINITIALIZED mj::Entry* pEntry;
   MJ_UNINITIALIZED RECT rect;
-  if (this->TestMouseEntry(x, y, &pEntry, &rect))
+  mj::Entry* pEntry = this->TestMouseEntry(x, y, &rect);
+  if (pEntry)
   {
     this->pHoveredEntry        = pEntry;
     this->highlightRect.left   = static_cast<FLOAT>(rect.left);
@@ -568,8 +566,8 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
 
 void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)
 {
-  MJ_UNINITIALIZED mj::Entry* pEntry;
-  if (this->TestMouseEntry(x, y, &pEntry, nullptr))
+  mj::Entry* pEntry = this->TestMouseEntry(x, y, nullptr);
+  if (pEntry)
   {
     if (pEntry->type == EEntryType::Directory)
     {
@@ -622,6 +620,71 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
     }
 
     MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+  }
+}
+
+void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t clientY, int16_t screenX, int16_t screenY)
+{
+  mj::Entry* pEntry = this->TestMouseEntry(clientX, clientY, nullptr);
+  if (pEntry)
+  {
+    if (pEntry->type == EEntryType::Directory)
+    {
+      MJ_UNINITIALIZED IShellFolder* pDesktop;
+      MJ_ERR_HRESULT(::SHGetDesktopFolder(&pDesktop));
+      MJ_DEFER(pDesktop->Release());
+
+      auto breadcrumbSize = this->breadcrumb.Size();
+      if (breadcrumbSize > 0)
+      {
+        auto currentPath = this->breadcrumb[breadcrumbSize - 1];
+        this->sbOpenFolder.Clear();
+        this->sbOpenFolder.Append(currentPath);
+        this->sbOpenFolder.Append(L"\\");
+        this->sbOpenFolder.Append(*pEntry->pName);
+
+        auto path = this->sbOpenFolder.ToStringNullTerminated();
+        MJ_UNINITIALIZED PIDLIST_RELATIVE pidl;
+        MJ_ERR_HRESULT(pDesktop->ParseDisplayName(nullptr,                        //
+                                                  nullptr,                        //
+                                                  const_cast<wchar_t*>(path.ptr), // Why is this not const?
+                                                  nullptr,                        //
+                                                  &pidl,                          //
+                                                  nullptr));
+        MJ_DEFER(::CoTaskMemFree(pidl));
+
+        MJ_UNINITIALIZED IContextMenu* pContextMenu;
+        MJ_ERR_HRESULT(pDesktop->GetUIObjectOf(nullptr,                                        //
+                                               1,                                              //
+                                               reinterpret_cast<PCUITEMID_CHILD_ARRAY>(&pidl), // C-style cast
+                                               IID_IContextMenu,                               //
+                                               nullptr,                                        //
+                                               reinterpret_cast<void**>(&pContextMenu)));
+
+        MJ_UNINITIALIZED HMENU pMenu;
+        MJ_ERR_IF(pMenu = ::CreatePopupMenu(), nullptr);
+        MJ_DEFER(::DestroyMenu(pMenu));
+
+        // If successful, returns an HRESULT value that has its severity value set to SEVERITY_SUCCESS and its code
+        // value set to the offset of the largest command identifier that was assigned, plus one. For example, if
+        // idCmdFirst is set to 5 and you add three items to the menu with command identifiers of 5, 7, and 8, the
+        // return value should be MAKE_HRESULT(SEVERITY_SUCCESS, 0, 8 - 5 + 1). Otherwise, it returns a COM error value.
+        static_cast<void>(pContextMenu->QueryContextMenu(pMenu, 0, 1, 0x7fff, CMF_NORMAL | CMF_EXPLORE));
+
+        // If you specify TPM_RETURNCMD in the uFlags parameter, the return value is the menu-item identifier of the
+        // item that the user selected. If the user cancels the menu without making a selection, or if an error occurs,
+        // the return value is zero.
+        // If you do not specify TPM_RETURNCMD in the uFlags parameter, the return value is nonzero if the function
+        // succeeds and zero if it fails. To get extended error information, call GetLastError.
+        static_cast<void>(::TrackPopupMenu(pMenu,                                           //
+                                           TPM_LEFTALIGN | TPM_RETURNCMD | TPM_RIGHTBUTTON, //
+                                           screenX,                                         //
+                                           screenY,                                         //
+                                           0,                                               //
+                                           svc::MainWindowHandle(),                         //
+                                           nullptr));
+      }
+    }
   }
 }
 

@@ -245,6 +245,17 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     pMainWindow->pDirectoryNavigationPanel->OnDoubleClick(p.x, p.y, static_cast<uint16_t>(wParam));
     return 0;
   }
+  case WM_CONTEXTMENU:
+  {
+    POINTS screenCoordinates = MAKEPOINTS(lParam);
+    MJ_UNINITIALIZED POINT clientCoordinates;
+    clientCoordinates.x = screenCoordinates.x;
+    clientCoordinates.y = screenCoordinates.y;
+    // No fallback if this fails
+    static_cast<void>(::ScreenToClient(hWnd, &clientCoordinates));
+    pMainWindow->pDirectoryNavigationPanel->OnContextMenu(clientCoordinates.x, clientCoordinates.y, screenCoordinates.x, screenCoordinates.y);
+    return 0;
+  }
   case WM_MOUSEWHEEL:
   {
     auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
