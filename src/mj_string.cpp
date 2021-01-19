@@ -3,7 +3,7 @@
 #define STRSAFE_NO_CB_FUNCTIONS
 #include <strsafe.h>
 
-// The StringBuilder only adds a null terminator in the ToStringNullTerminated() function.
+// The StringBuilder only adds a null terminator in the ToStringClosed() function.
 
 static const wchar_t s_IntToWideChar[] = { L'0', L'1', L'2', L'3', L'4', L'5', L'6', L'7',
                                            L'8', L'9', L'A', L'B', L'C', L'D', L'E', L'F' };
@@ -113,7 +113,7 @@ mj::StringBuilder& mj::StringBuilder::Append(const wchar_t* pStringLiteral)
   return *this;
 }
 
-mj::StringView mj::StringBuilder::ToString()
+mj::StringView mj::StringBuilder::ToStringOpen()
 {
   auto length = this->pArrayList->Size();
   MJ_UNINITIALIZED mj::StringView string;
@@ -121,7 +121,7 @@ mj::StringView mj::StringBuilder::ToString()
   return string;
 }
 
-mj::StringView mj::StringBuilder::ToStringNullTerminated()
+mj::StringView mj::StringBuilder::ToStringClosed()
 {
   // Make sure the string is null-terminated
   wchar_t* pLast = this->pArrayList->Emplace(1);

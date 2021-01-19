@@ -63,7 +63,7 @@ void mj::detail::EverythingQueryContext::Execute()
                               .Append(L"\" !\"")       //
                               .Append(this->directory) //
                               .Append(L"*\\*\"")       //
-                              .ToStringNullTerminated();
+                              .ToStringClosed();
 
   Everything_SetSearchW(search.ptr);
   {
@@ -288,7 +288,7 @@ void mj::DirectoryNavigationPanel::OpenSubFolder(const wchar_t* pFolder)
     this->sbOpenFolder.Append(pFolder);
 
     // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
-    this->breadcrumb.Add(this->sbOpenFolder.ToString());
+    this->breadcrumb.Add(this->sbOpenFolder.ToStringOpen());
   }
 
   this->OpenFolder();
@@ -305,7 +305,7 @@ void mj::DirectoryNavigationPanel::OpenFolder()
   this->sbOpenFolder.Append(L"\\*");
   this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
   this->pListFolderContentsTask->pParent   = this;
-  this->pListFolderContentsTask->directory = sbOpenFolder.ToStringNullTerminated();
+  this->pListFolderContentsTask->directory = sbOpenFolder.ToStringClosed();
   mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
 }
 
@@ -645,7 +645,7 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t client
         this->sbOpenFolder.Append(L"\\");
         this->sbOpenFolder.Append(*pEntry->pName);
 
-        auto path = this->sbOpenFolder.ToStringNullTerminated();
+        auto path = this->sbOpenFolder.ToStringClosed();
         MJ_UNINITIALIZED PIDLIST_RELATIVE pidl;
         MJ_ERR_HRESULT(pDesktop->ParseDisplayName(nullptr,                        //
                                                   nullptr,                        //

@@ -53,7 +53,7 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
                         .AppendHex32(dw)                  //
                         .Append(L": ")                    //
                         .Append(msgString)                //
-                        .ToStringNullTerminated();
+                        .ToStringClosed();
 
       // static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
       ::DebugBreak();
@@ -101,7 +101,7 @@ void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& 
                       .Append(lineNumber)               //
                       .Append(L" - Pointer was null: ") //
                       .Append(expression)               //
-                      .ToStringNullTerminated();
+                      .ToStringClosed();
 
     // static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
     ::DebugBreak();

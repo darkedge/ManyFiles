@@ -33,13 +33,13 @@ namespace mj
     /// Does not add a null terminator.
     /// Additional appends to this StringBuilder are allowed.
     /// </summary>
-    StringView ToString();
+    StringView ToStringOpen();
 
     /// <summary>
     /// Adds a null terminator to the string and returns.
     /// Note: Clear this StringBuilder before appending again!
     /// </summary>
-    StringView ToStringNullTerminated();
+    StringView ToStringClosed();
   };
 
   class StringCache
