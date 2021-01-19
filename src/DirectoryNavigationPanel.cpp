@@ -630,6 +630,8 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t client
   {
     if (pEntry->type == EEntryType::Directory)
     {
+      ZoneScoped;
+
       MJ_UNINITIALIZED IShellFolder* pDesktop;
       MJ_ERR_HRESULT(::SHGetDesktopFolder(&pDesktop));
       MJ_DEFER(pDesktop->Release());
@@ -665,24 +667,38 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t client
         MJ_ERR_IF(pMenu = ::CreatePopupMenu(), nullptr);
         MJ_DEFER(::DestroyMenu(pMenu));
 
-        // If successful, returns an HRESULT value that has its severity value set to SEVERITY_SUCCESS and its code
-        // value set to the offset of the largest command identifier that was assigned, plus one. For example, if
-        // idCmdFirst is set to 5 and you add three items to the menu with command identifiers of 5, 7, and 8, the
-        // return value should be MAKE_HRESULT(SEVERITY_SUCCESS, 0, 8 - 5 + 1). Otherwise, it returns a COM error value.
-        static_cast<void>(pContextMenu->QueryContextMenu(pMenu, 0, 1, 0x7fff, CMF_NORMAL | CMF_EXPLORE));
+        // Fill context menu
+        {
+          // Slow operation (100s of milliseconds), but part of critical path
+          ZoneScopedN("QueryContextMenu");
 
-        // If you specify TPM_RETURNCMD in the uFlags parameter, the return value is the menu-item identifier of the
-        // item that the user selected. If the user cancels the menu without making a selection, or if an error occurs,
-        // the return value is zero.
-        // If you do not specify TPM_RETURNCMD in the uFlags parameter, the return value is nonzero if the function
-        // succeeds and zero if it fails. To get extended error information, call GetLastError.
-        BOOL cmd = ::TrackPopupMenu(pMenu,                                           //
-                                    TPM_RETURNCMD, //
-                                    screenX,                                         //
-                                    screenY,                                         //
-                                    0,                                               //
-                                    svc::MainWindowHandle(),                         //
-                                    nullptr);
+          // If successful, returns an HRESULT value that has its severity value set to SEVERITY_SUCCESS and its code
+          // value set to the offset of the largest command identifier that was assigned, plus one. For example, if
+          // idCmdFirst is set to 5 and you add three items to the menu with command identifiers of 5, 7, and 8, the
+          // return value should be MAKE_HRESULT(SEVERITY_SUCCESS, 0, 8 - 5 + 1). Otherwise, it returns a COM error
+          // value.
+          static_cast<void>(pContextMenu->QueryContextMenu(pMenu, 0, 1, 0x7fff, CMF_NORMAL | CMF_EXPLORE));
+        }
+
+        // This is one of those instances where a BOOL can have many values
+        MJ_UNINITIALIZED BOOL cmd;
+        {
+          // Blocking until popup menu is closed
+          ZoneScopedN("TrackPopupMenu");
+
+          // If you specify TPM_RETURNCMD in the uFlags parameter, the return value is the menu-item identifier of the
+          // item that the user selected. If the user cancels the menu without making a selection, or if an error
+          // occurs, the return value is zero. If you do not specify TPM_RETURNCMD in the uFlags parameter, the return
+          // value is nonzero if the function succeeds and zero if it fails. To get extended error information, call
+          // GetLastError.
+          cmd = ::TrackPopupMenu(pMenu,                   //
+                                 TPM_RETURNCMD,           //
+                                 screenX,                 //
+                                 screenY,                 //
+                                 0,                       //
+                                 svc::MainWindowHandle(), //
+                                 nullptr);
+        }
 
         if (cmd)
         {
