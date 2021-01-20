@@ -133,10 +133,10 @@ void mj::MainWindow::Resize()
     MJ_UNINITIALIZED RECT clientArea;
     ::GetClientRect(hwnd, &clientArea);
 
-    LONG width        = clientArea.right - clientArea.left;
-    LONG height       = clientArea.bottom - clientArea.top;
-    LONG controlWidth = width / 2;
-    int16_t x         = 0;
+    int16_t width        = static_cast<int16_t>(clientArea.right - clientArea.left);
+    int16_t height       = static_cast<int16_t>(clientArea.bottom - clientArea.top);
+    int16_t controlWidth = width / 2;
+    int16_t x            = 0;
     for (int32_t i = 0; i < 2; i++)
     {
       if (this->controls[i])
@@ -212,8 +212,8 @@ namespace mj
     // No fallback if this fails
     static_cast<void>(::ScreenToClient(hWnd, &clientCoordinates));
     MJ_UNINITIALIZED POINTS ptClient;
-    ptClient.x = clientCoordinates.x;
-    ptClient.y = clientCoordinates.y;
+    ptClient.x = static_cast<SHORT>(clientCoordinates.x);
+    ptClient.y = static_cast<SHORT>(clientCoordinates.y);
     return ptClient;
   }
 } // namespace mj

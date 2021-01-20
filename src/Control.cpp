@@ -20,4 +20,6 @@ bool mj::Control::TranslateClientPoint(POINTS* pPointS)
     pPointS->y -= this->y;
     return true;
   }
+
+  return false;
 }

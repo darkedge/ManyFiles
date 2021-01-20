@@ -65,7 +65,7 @@ namespace mj
     Allocation resultsBuffer;
 
     int16_t mouseWheelAccumulator = 0;
-    int16_t scrollOffset          = 0;
+    int32_t scrollOffset          = 0;
 
     // ListFolderContentsTask results
     struct
@@ -96,7 +96,7 @@ namespace mj
     void OnLoadFolderIconTaskDone(detail::LoadFolderIconTask* pTask);
     void OnLoadFileIconTaskDone(detail::LoadFileIconTask* pTask);
 
-    static constexpr const auto entryHeight = 21;
+    static constexpr const int16_t entryHeight = 21;
 
   public:
     void Init(AllocatorBase* pAllocator) override;
@@ -106,7 +106,7 @@ namespace mj
     void OnMouseMove(int16_t x, int16_t y) override;
     void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
     void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;
-    void OnContextMenu(int32_t clientX, int32_t clientY, int16_t screenX, int16_t screenY) override;
+    void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY) override;
 
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;

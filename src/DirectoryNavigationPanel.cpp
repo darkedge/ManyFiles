@@ -411,14 +411,14 @@ void mj::DirectoryNavigationPanel::OnPaint()
     pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
     MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
 
-    auto point = D2D1::Point2F(16.0f, this->scrollOffset);
+    auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
     if (this->height > 0 && this->entries.Size() > 0)
     {
-      auto pixelHeight = this->entries.Size() * this->entryHeight;
-      auto viewHeight  = this->height;
-      auto top         = -this->scrollOffset * viewHeight / pixelHeight;
-      auto rect        = D2D1::RectF( //
+      FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
+      FLOAT viewHeight  = this->height;
+      FLOAT top         = -this->scrollOffset * viewHeight / pixelHeight;
+      auto rect         = D2D1::RectF( //
           this->width - 16.0f, //
           top,                 //
           this->width,         //
@@ -511,7 +511,7 @@ void mj::DirectoryNavigationPanel::Destroy()
 
 mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RECT* pRect)
 {
-  auto point = D2D1::Point2F(16.0f, this->scrollOffset);
+  auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
   for (auto i = 0; i < this->entries.Size(); i++)
   {
     auto& entry = this->entries[i];
@@ -573,6 +573,8 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
 
 void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)
 {
+  static_cast<void>(mkMask);
+
   mj::Entry* pEntry = this->TestMouseEntry(x, y, nullptr);
   if (pEntry)
   {
@@ -612,11 +614,11 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
   // 7-15 microseconds
   MJ_ERR_IF(::SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &pvParam, 0), 0);
 
-  int16_t diff = numScrolls * pvParam * this->entryHeight;
+  int16_t diff = numScrolls * static_cast<int16_t>(pvParam) * this->entryHeight;
   if (diff != 0)
   {
     this->scrollOffset += diff;
-    int16_t pixelHeight = this->entries.Size() * this->entryHeight;
+    int32_t pixelHeight = static_cast<int32_t>(this->entries.Size()) * this->entryHeight;
     if (this->scrollOffset > 0 || pixelHeight < this->height)
     {
       this->scrollOffset = 0;
@@ -630,7 +632,7 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
   }
 }
 
-void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t clientY, int16_t screenX, int16_t screenY)
+void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY)
 {
   mj::Entry* pEntry = this->TestMouseEntry(clientX, clientY, nullptr);
   if (pEntry)
