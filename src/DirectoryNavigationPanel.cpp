@@ -235,7 +235,16 @@ void mj::detail::ListFolderContentsTask::Execute()
   {
     if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM))
     {
-      if (!this->stringCache.Add(findData.cFileName))
+      MJ_UNINITIALIZED StringView string;
+      string.Init(findData.cFileName);
+
+      // Ignore "." and ".."
+      if (string.Equals(L".") || string.Equals(L".."))
+      {
+        continue;
+      }
+
+      if (!this->stringCache.Add(string))
       {
         this->files.Destroy();
         this->folders.Destroy();
@@ -245,14 +254,14 @@ void mj::detail::ListFolderContentsTask::Execute()
 
       if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
       {
-        if (!Add(this->folders, this->stringCache.Size() - 1))
+        if (!this->Add(this->folders, this->stringCache.Size() - 1))
         {
           break;
         }
       }
       else
       {
-        if (!Add(this->files, this->stringCache.Size() - 1))
+        if (!this->Add(this->files, this->stringCache.Size() - 1))
         {
           break;
         }

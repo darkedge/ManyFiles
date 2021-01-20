@@ -24,6 +24,13 @@ void mj::StringView::Init(const wchar_t* pString)
   }
 }
 
+bool mj::StringView::Equals(const wchar_t* pString)
+{
+  MJ_UNINITIALIZED mj::StringView other;
+  other.Init(pString);
+  return this->len == other.len && memcmp(this->ptr, other.ptr, this->len * sizeof(wchar_t)) == 0;
+}
+
 void mj::StringBuilder::SetArrayList(ArrayList<wchar_t>* pArrayList)
 {
   this->pArrayList = pArrayList;

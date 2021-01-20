@@ -12,6 +12,7 @@ namespace mj
     MJ_UNINITIALIZED size_t len; // Number of characters, compatible with DirectWrite "string length"
     void Init(const wchar_t* pString, size_t numChars);
     void Init(const wchar_t* pString);
+    bool Equals(const wchar_t* pString);
   };
 
   class StringBuilder
