@@ -327,6 +327,7 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
   this->listFolderContentsTaskResult.folders.Init(this->pAllocator);
   this->listFolderContentsTaskResult.stringCache.Init(this->pAllocator);
 
+  // FIXME: When opening a folder, add all parent folders to the breadcrumb
   this->breadcrumb.Init(pAllocator);
   this->breadcrumb.Add(L"C:");
   this->alOpenFolder.Init(pAllocator);
@@ -358,7 +359,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
     // Display results.
     DWORD numResults = Everything_GetNumResults();
 
-    this->entries.Clear();
+    this->ClearEntries();
     Entry* pEntries = this->entries.Emplace(numResults);
 
     wchar_t fullPathName[MAX_PATH];
@@ -797,6 +798,7 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
   if (numItems > 0 && this->pTextFormat)
   {
     this->ClearEntries();
+    this->pHoveredEntry = nullptr;
     if (this->entries.Emplace(numItems))
     {
       // Variable number of tasks with the same cancellation token
