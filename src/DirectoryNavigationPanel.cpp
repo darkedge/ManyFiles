@@ -408,6 +408,8 @@ void mj::DirectoryNavigationPanel::OnPaint()
     pRenderTarget->GetTransform(&transform);
     pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->x, this->y)) * transform);
     MJ_DEFER(pRenderTarget->SetTransform(&transform));
+    pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
+    MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
 
     auto point = D2D1::Point2F(16.0f, this->scrollOffset);
 
