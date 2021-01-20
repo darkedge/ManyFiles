@@ -404,6 +404,11 @@ void mj::DirectoryNavigationPanel::OnPaint()
   // Implies that our brushes are also created
   if (pRenderTarget)
   {
+    MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
+    pRenderTarget->GetTransform(&transform);
+    pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->x, this->y)) * transform);
+    MJ_DEFER(pRenderTarget->SetTransform(&transform));
+
     auto point = D2D1::Point2F(16.0f, this->scrollOffset);
 
     if (this->height > 0 && this->entries.Size() > 0)
@@ -658,7 +663,7 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int32_t clientX, int32_t client
         MJ_UNINITIALIZED IContextMenu* pContextMenu;
         MJ_ERR_HRESULT(pDesktop->GetUIObjectOf(nullptr,                                        //
                                                1,                                              //
-                                               reinterpret_cast<PCUITEMID_CHILD_ARRAY>(&pidl), // C-style cast
+                                               reinterpret_cast<PCUITEMID_CHILD_ARRAY>(&pidl), //
                                                IID_IContextMenu,                               //
                                                nullptr,                                        //
                                                reinterpret_cast<void**>(&pContextMenu)));

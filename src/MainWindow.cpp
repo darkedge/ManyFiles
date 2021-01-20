@@ -132,10 +132,21 @@ void mj::MainWindow::Resize()
   {
     MJ_UNINITIALIZED RECT clientArea;
     ::GetClientRect(hwnd, &clientArea);
-    if (this->pDirectoryNavigationPanel)
+
+    LONG width        = clientArea.right - clientArea.left;
+    LONG height       = clientArea.bottom - clientArea.top;
+    LONG controlWidth = width / 2;
+    int16_t x         = 0;
+    for (int32_t i = 0; i < 2; i++)
     {
-      this->pDirectoryNavigationPanel->width  = clientArea.right - clientArea.left;
-      this->pDirectoryNavigationPanel->height = clientArea.bottom - clientArea.top;
+      if (this->controls[i])
+      {
+        this->controls[i]->x      = x;
+        this->controls[i]->y      = 0;
+        this->controls[i]->width  = controlWidth;
+        this->controls[i]->height = height;
+      }
+      x += controlWidth;
     }
     MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(hwnd), &clientArea));
   }
@@ -155,7 +166,10 @@ void mj::MainWindow::OnPaint()
       ZoneScopedN("Clear");
       this->pRenderTarget->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
     }
-    this->pDirectoryNavigationPanel->OnPaint();
+    for (int32_t i = 0; i < 2; i++)
+    {
+      this->controls[i]->OnPaint();
+    }
 
     {
       ZoneScopedN("EndDraw");
@@ -167,11 +181,14 @@ void mj::MainWindow::OnPaint()
 void mj::MainWindow::Destroy()
 {
   ZoneScoped;
-  if (this->pDirectoryNavigationPanel)
+  for (int32_t i = 0; i < 2; i++)
   {
-    this->pDirectoryNavigationPanel->Destroy();
-    svc::GeneralPurposeAllocator()->Free(this->pDirectoryNavigationPanel);
-    this->pDirectoryNavigationPanel = nullptr;
+    if (this->controls[i])
+    {
+      this->controls[i]->Destroy();
+      svc::GeneralPurposeAllocator()->Free(this->controls[i]);
+      this->controls[i] = nullptr;
+    }
   }
 
   if (this->pRenderTarget)
@@ -236,32 +253,66 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case WM_MOUSEMOVE:
   {
     POINTS p = MAKEPOINTS(lParam);
-    pMainWindow->pDirectoryNavigationPanel->OnMouseMove(p.x, p.y);
+    for (int32_t i = 0; i < 2; i++)
+    {
+      Control* pControl = pMainWindow->controls[i];
+      if (pControl->TranslatePointS(&p))
+      {
+        pMainWindow->controls[i]->OnMouseMove(p.x, p.y);
+        break;
+      }
+    }
     return 0;
   }
   case WM_LBUTTONDBLCLK:
   {
     POINTS p = MAKEPOINTS(lParam);
-    pMainWindow->pDirectoryNavigationPanel->OnDoubleClick(p.x, p.y, static_cast<uint16_t>(wParam));
+    for (int32_t i = 0; i < 2; i++)
+    {
+      Control* pControl = pMainWindow->controls[i];
+      if (pControl->TranslatePointS(&p))
+      {
+        pMainWindow->controls[i]->OnDoubleClick(p.x, p.y, static_cast<uint16_t>(wParam));
+        break;
+      }
+    }
     return 0;
   }
   case WM_CONTEXTMENU:
   {
     POINTS screenCoordinates = MAKEPOINTS(lParam);
     MJ_UNINITIALIZED POINT clientCoordinates;
-    clientCoordinates.x = screenCoordinates.x;
-    clientCoordinates.y = screenCoordinates.y;
+    POINTSTOPOINT(clientCoordinates, screenCoordinates);
     // No fallback if this fails
     static_cast<void>(::ScreenToClient(hWnd, &clientCoordinates));
-    pMainWindow->pDirectoryNavigationPanel->OnContextMenu(clientCoordinates.x, clientCoordinates.y, screenCoordinates.x, screenCoordinates.y);
+    for (int32_t i = 0; i < 2; i++)
+    {
+      Control* pControl = pMainWindow->controls[i];
+      MJ_UNINITIALIZED POINTS p;
+      p.x = clientCoordinates.x;
+      p.y = clientCoordinates.y;
+      if (pControl->TranslatePointS(&p))
+      {
+        pControl->OnContextMenu(p.x, p.y, screenCoordinates.x, screenCoordinates.y);
+        break;
+      }
+    }
     return 0;
   }
   case WM_MOUSEWHEEL:
   {
     auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
     auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-    POINTS p = MAKEPOINTS(lParam);
-    pMainWindow->pDirectoryNavigationPanel->OnMouseWheel(p.x, p.y, fwKeys, zDelta);
+    POINTS p    = MAKEPOINTS(lParam);
+    for (int32_t i = 0; i < 2; i++)
+    {
+      Control* pControl = pMainWindow->controls[i];
+      if (pControl->TranslatePointS(&p))
+      {
+        pControl->OnMouseWheel(p.x, p.y, fwKeys, zDelta);
+        break;
+      }
+    }
     return 0;
   }
   default:
@@ -308,8 +359,12 @@ void mj::MainWindow::Run()
 
   {
     svc::Init(pAllocator);
-    this->pDirectoryNavigationPanel = pAllocator->New<DirectoryNavigationPanel>();
-    this->pDirectoryNavigationPanel->Init(pAllocator);
+
+    for (int32_t i = 0; i < 2; i++)
+    {
+      this->controls[i] = pAllocator->New<DirectoryNavigationPanel>();
+      this->controls[i]->Init(pAllocator);
+    }
   }
 
   MJ_UNINITIALIZED ATOM cls;

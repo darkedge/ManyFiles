@@ -1,5 +1,6 @@
 #pragma once
 #include "mj_allocator.h"
+#include <Windows.h>
 
 namespace mj
 {
@@ -29,6 +30,14 @@ namespace mj
     /// </summary>
     virtual void OnContextMenu(int32_t clientX, int32_t clientY, int16_t screenX, int16_t screenY){};
 
+    /// <summary>
+    /// For use with mouse events.
+    /// Translates pPoints to control space if true.
+    /// </summary>
+    bool TranslatePointS(POINTS* pPoints);
+
+    int16_t x      = 0;
+    int16_t y      = 0;
     int16_t width  = 0;
     int16_t height = 0;
   };

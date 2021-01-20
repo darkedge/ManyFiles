@@ -11,7 +11,7 @@ namespace mj
   class MainWindow
   {
   private:
-    Control* pDirectoryNavigationPanel = nullptr;
+    Control* controls[2];
     ID2D1DCRenderTarget* pRenderTarget  = nullptr;
     bool s_Resize                       = false;
 
