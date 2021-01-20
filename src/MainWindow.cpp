@@ -139,12 +139,14 @@ void mj::MainWindow::Resize()
     int16_t x            = 0;
     for (int32_t i = 0; i < 2; i++)
     {
-      if (this->controls[i])
+      Control* pControl = this->controls[i];
+      if (pControl)
       {
-        this->controls[i]->x      = x;
-        this->controls[i]->y      = 0;
-        this->controls[i]->width  = controlWidth;
-        this->controls[i]->height = height;
+        pControl->x      = x;
+        pControl->y      = 0;
+        pControl->width  = controlWidth;
+        pControl->height = height;
+        pControl->OnSize();
       }
       x += controlWidth;
     }
@@ -168,7 +170,8 @@ void mj::MainWindow::OnPaint()
     }
     for (int32_t i = 0; i < 2; i++)
     {
-      this->controls[i]->OnPaint();
+      Control* pControl = this->controls[i];
+      pControl->OnPaint();
     }
 
     {
@@ -183,10 +186,11 @@ void mj::MainWindow::Destroy()
   ZoneScoped;
   for (int32_t i = 0; i < 2; i++)
   {
-    if (this->controls[i])
+    Control* pControl = this->controls[i];
+    if (pControl)
     {
-      this->controls[i]->Destroy();
-      svc::GeneralPurposeAllocator()->Free(this->controls[i]);
+      pControl->Destroy();
+      svc::GeneralPurposeAllocator()->Free(pControl);
       this->controls[i] = nullptr;
     }
   }
@@ -273,7 +277,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
       Control* pControl = pMainWindow->controls[i];
       if (pControl->TranslateClientPoint(&ptClient))
       {
-        pMainWindow->controls[i]->OnMouseMove(ptClient.x, ptClient.y);
+        pControl->OnMouseMove(ptClient.x, ptClient.y);
         break;
       }
     }
@@ -287,7 +291,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
       Control* pControl = pMainWindow->controls[i];
       if (pControl->TranslateClientPoint(&ptClient))
       {
-        pMainWindow->controls[i]->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
+        pControl->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
         break;
       }
     }

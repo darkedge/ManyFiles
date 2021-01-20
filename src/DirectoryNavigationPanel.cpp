@@ -725,6 +725,12 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t client
   }
 }
 
+void mj::DirectoryNavigationPanel::OnSize()
+{
+  this->mouseWheelAccumulator = 0;
+  this->scrollOffset          = 0;
+}
+
 void mj::DirectoryNavigationPanel::OnEverythingQuery()
 {
   queryDone = true;

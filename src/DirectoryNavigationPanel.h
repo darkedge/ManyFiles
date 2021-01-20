@@ -64,6 +64,7 @@ namespace mj
     Allocation searchBuffer;
     Allocation resultsBuffer;
 
+    // Scrolling
     int16_t mouseWheelAccumulator = 0;
     int32_t scrollOffset          = 0;
 
@@ -107,6 +108,7 @@ namespace mj
     void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
     void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;
     void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY) override;
+    void OnSize() override;
 
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;

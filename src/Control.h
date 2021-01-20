@@ -15,7 +15,7 @@ namespace mj
     {
       static_cast<void>(x);
       static_cast<void>(y);
-    };
+    }
 
     /// <param name="mkMask">Key State Masks for Mouse Messages (MK_*, see WinUser.h)</param>
     virtual void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)
@@ -23,7 +23,7 @@ namespace mj
       static_cast<void>(x);
       static_cast<void>(y);
       static_cast<void>(mkMask);
-    };
+    }
 
     /// <param name="mkMask">Key State Masks for Mouse Messages (MK_*, see WinUser.h)</param>
     /// <param name="zDelta">Some ratio of WHEEL_DELTA</param>
@@ -33,7 +33,7 @@ namespace mj
       static_cast<void>(y);
       static_cast<void>(mkMask);
       static_cast<void>(zDelta);
-    };
+    }
 
     /// <summary>
     /// Context menu intent.
@@ -49,7 +49,12 @@ namespace mj
       static_cast<void>(clientY);
       static_cast<void>(screenX);
       static_cast<void>(screenY);
-    };
+    }
+
+    /// <summary>
+    /// Position and dimensions should be adjusted by parent control before calling this function.
+    /// </summary>
+    virtual void OnSize(){};
 
     /// <summary>
     /// For use with mouse events.
