@@ -173,7 +173,7 @@ namespace mj
     }
 
     /// <summary>
-    /// Inserts a range of elements at the specified pCurrent.
+    /// Inserts a range of elements at the specified index.
     /// </summary>
     /// <returns>A pointer to the start of the newly inserted elements, or nullptr if there was no space.</returns>
     [[nodiscard]] T* Insert(size_t pCurrent, const T* pSrc, size_t num)
@@ -202,7 +202,7 @@ namespace mj
         // Move elements right
         static_cast<void>(::memmove(end() + num - numMove, ptr, numMove * TSize));
 
-        // Copy new elements into pCurrent
+        // Copy new elements into index
         static_cast<void>(::memcpy(ptr, pSrc, num * TSize));
 
         this->numElements += num;
@@ -226,23 +226,24 @@ namespace mj
     /// Erases a range of elements.
     /// </summary>
     /// <returns>
-    /// Pointer to the element at the specified pCurrent after erasure
+    /// Pointer to the element at the specified index after erasure
     /// (can be the pEnd pointer if all trailing elements were erased)
     /// or nullptr if one or more arguments are out of range
     /// </returns>
-    T* Erase(size_t pCurrent, size_t num)
+    T* Erase(size_t index, size_t num)
     {
-      if (pCurrent < this->numElements && num <= (this->numElements - pCurrent))
+      if (index < this->numElements && num <= (this->numElements - index))
       {
+        T* pEnd = this->end();
         this->numElements -= num;
 
         // Move elements from right of erased range to left
-        T* pDst = begin() + pCurrent;
+        T* pDst = begin() + index;
         T* pSrc = pDst + num;
 
-        if (pSrc < end())
+        if (pSrc < pEnd)
         {
-          memmove(pDst, pSrc, (end() - pDst - 1) * TSize);
+          memmove(pDst, pSrc, (pEnd - pDst - 1) * TSize);
           return pDst;
         }
       }
