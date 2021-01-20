@@ -203,6 +203,21 @@ void mj::MainWindow::Destroy()
   ::CoUninitialize();
 }
 
+namespace mj
+{
+  static POINTS ScreenPointToClient(HWND hWnd, POINTS ptScreen)
+  {
+    MJ_UNINITIALIZED POINT clientCoordinates;
+    POINTSTOPOINT(clientCoordinates, ptScreen);
+    // No fallback if this fails
+    static_cast<void>(::ScreenToClient(hWnd, &clientCoordinates));
+    MJ_UNINITIALIZED POINTS ptClient;
+    ptClient.x = clientCoordinates.x;
+    ptClient.y = clientCoordinates.y;
+    return ptClient;
+  }
+} // namespace mj
+
 /// <summary>
 /// Main WindowProc function
 /// </summary>
@@ -252,13 +267,13 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_MOUSEMOVE:
   {
-    POINTS p = MAKEPOINTS(lParam);
+    POINTS ptClient = MAKEPOINTS(lParam);
     for (int32_t i = 0; i < 2; i++)
     {
       Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslatePointS(&p))
+      if (pControl->TranslateClientPoint(&ptClient))
       {
-        pMainWindow->controls[i]->OnMouseMove(p.x, p.y);
+        pMainWindow->controls[i]->OnMouseMove(ptClient.x, ptClient.y);
         break;
       }
     }
@@ -266,13 +281,13 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_LBUTTONDBLCLK:
   {
-    POINTS p = MAKEPOINTS(lParam);
+    POINTS ptClient = MAKEPOINTS(lParam);
     for (int32_t i = 0; i < 2; i++)
     {
       Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslatePointS(&p))
+      if (pControl->TranslateClientPoint(&ptClient))
       {
-        pMainWindow->controls[i]->OnDoubleClick(p.x, p.y, static_cast<uint16_t>(wParam));
+        pMainWindow->controls[i]->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
         break;
       }
     }
@@ -280,20 +295,14 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_CONTEXTMENU:
   {
-    POINTS screenCoordinates = MAKEPOINTS(lParam);
-    MJ_UNINITIALIZED POINT clientCoordinates;
-    POINTSTOPOINT(clientCoordinates, screenCoordinates);
-    // No fallback if this fails
-    static_cast<void>(::ScreenToClient(hWnd, &clientCoordinates));
+    POINTS ptScreen = MAKEPOINTS(lParam);
+    POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
     for (int32_t i = 0; i < 2; i++)
     {
       Control* pControl = pMainWindow->controls[i];
-      MJ_UNINITIALIZED POINTS p;
-      p.x = clientCoordinates.x;
-      p.y = clientCoordinates.y;
-      if (pControl->TranslatePointS(&p))
+      if (pControl->TranslateClientPoint(&ptClient))
       {
-        pControl->OnContextMenu(p.x, p.y, screenCoordinates.x, screenCoordinates.y);
+        pControl->OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
         break;
       }
     }
@@ -301,15 +310,16 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_MOUSEWHEEL:
   {
-    auto fwKeys = GET_KEYSTATE_WPARAM(wParam);
-    auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-    POINTS p    = MAKEPOINTS(lParam);
+    auto fwKeys     = GET_KEYSTATE_WPARAM(wParam);
+    auto zDelta     = GET_WHEEL_DELTA_WPARAM(wParam);
+    POINTS ptScreen = MAKEPOINTS(lParam);
+    POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
     for (int32_t i = 0; i < 2; i++)
     {
       Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslatePointS(&p))
+      if (pControl->TranslateClientPoint(&ptClient))
       {
-        pControl->OnMouseWheel(p.x, p.y, fwKeys, zDelta);
+        pControl->OnMouseWheel(ptClient.x, ptClient.y, fwKeys, zDelta);
         break;
       }
     }

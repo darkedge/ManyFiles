@@ -1,7 +1,7 @@
 #include "Control.h"
 #include "ErrorExit.h"
 
-bool mj::Control::TranslatePointS(POINTS* pPointS)
+bool mj::Control::TranslateClientPoint(POINTS* pPointS)
 {
   MJ_EXIT_NULL(pPointS);
 
