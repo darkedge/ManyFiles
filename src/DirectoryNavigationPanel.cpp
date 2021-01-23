@@ -420,18 +420,22 @@ void mj::DirectoryNavigationPanel::OnPaint()
     MJ_DEFER(pRenderTarget->SetTransform(&transform));
     pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
     MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
+    D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
+    MJ_DEFER(pRenderTarget->SetAntialiasMode(antialiasMode));
+    pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
 
     auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
+    // Draw scrollbar
     if (this->height > 0 && this->entries.Size() > 0)
     {
       FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
       FLOAT viewHeight  = this->height;
       FLOAT top         = -this->scrollOffset * viewHeight / pixelHeight;
-      auto rect         = D2D1::RectF( //
-          this->width - 16.0f, //
-          top,                 //
-          this->width,         //
+      D2D1_RECT_F rect  = D2D1::RectF( //
+          this->width - 16.0f,        //
+          top,                        //
+          this->width,                //
           top + viewHeight * viewHeight / pixelHeight);
       pRenderTarget->DrawRectangle(rect, this->pBlackBrush);
     }
