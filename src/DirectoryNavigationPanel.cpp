@@ -432,12 +432,22 @@ void mj::DirectoryNavigationPanel::OnPaint()
       FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
       FLOAT viewHeight  = this->height;
       FLOAT top         = -this->scrollOffset * viewHeight / pixelHeight;
-      D2D1_RECT_F rect  = D2D1::RectF( //
-          this->width - 16.0f,        //
-          top,                        //
-          this->width,                //
-          top + viewHeight * viewHeight / pixelHeight);
-      pRenderTarget->DrawRectangle(rect, this->pBlackBrush);
+      {
+        D2D1_RECT_F rect = D2D1::RectF( //
+            this->width - 16.0f,        //
+            0,                          //
+            this->width,                //
+            viewHeight);
+        pRenderTarget->FillRectangle(rect, this->pScrollbarBackgroundBrush);
+      }
+      {
+        D2D1_RECT_F rect = D2D1::RectF( //
+            this->width - 16.0f,        //
+            top,                        //
+            this->width,                //
+            top + viewHeight * viewHeight / pixelHeight);
+        pRenderTarget->FillRectangle(rect, this->pScrollbarForegroundBrush);
+      }
     }
 
     for (const auto& entry : this->entries)
@@ -490,6 +500,18 @@ void mj::DirectoryNavigationPanel::Destroy()
   {
     this->pBlackBrush->Release();
     this->pBlackBrush = nullptr;
+  }
+
+  if (this->pScrollbarForegroundBrush)
+  {
+    this->pScrollbarForegroundBrush->Release();
+    this->pScrollbarForegroundBrush = nullptr;
+  }
+
+  if (this->pScrollbarBackgroundBrush)
+  {
+    this->pScrollbarBackgroundBrush->Release();
+    this->pScrollbarBackgroundBrush = nullptr;
   }
 
   if (this->pEntryHighlightBrush)
@@ -885,6 +907,8 @@ void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarge
   }
 
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &this->pBlackBrush));
+  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xC2C3C9), &this->pScrollbarForegroundBrush));
+  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE8E8EC), &this->pScrollbarBackgroundBrush));
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xFF0000), &this->pEntryHighlightBrush));
 }
 
