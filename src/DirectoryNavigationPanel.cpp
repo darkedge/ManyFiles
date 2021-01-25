@@ -620,13 +620,9 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
   }
 
   int16_t numScrolls = this->mouseWheelAccumulator / WHEEL_DELTA;
-  if (this->mouseWheelAccumulator > 0)
+  if (this->mouseWheelAccumulator != 0)
   {
     this->mouseWheelAccumulator -= numScrolls * WHEEL_DELTA;
-  }
-  else if (this->mouseWheelAccumulator < 0)
-  {
-    this->mouseWheelAccumulator += numScrolls * WHEEL_DELTA;
   }
 
   MJ_UNINITIALIZED UINT pvParam;
