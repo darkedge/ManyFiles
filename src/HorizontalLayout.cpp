@@ -36,6 +36,7 @@ void mj::HorizontalLayout::Destroy()
 
 void mj::HorizontalLayout::OnSize()
 {
+  // TODO: This integer division can leave blank columns if there is a remainder
   int16_t controlWidth = this->width / this->controls.Size();
   int16_t x            = 0;
 
