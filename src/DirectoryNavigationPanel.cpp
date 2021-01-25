@@ -151,8 +151,7 @@ void mj::detail::LoadFolderIconTask::OnDone()
 void mj::detail::LoadFolderIconTask::Destroy()
 {
   ZoneScoped;
-  this->pBitmap->Release();
-  this->pBitmap = nullptr;
+  MJ_SAFE_RELEASE(this->pBitmap);
 }
 
 void mj::detail::LoadFileIconTask::Execute()
@@ -171,8 +170,7 @@ void mj::detail::LoadFileIconTask::OnDone()
 void mj::detail::LoadFileIconTask::Destroy()
 {
   ZoneScoped;
-  this->pBitmap->Release();
-  this->pBitmap = nullptr;
+  MJ_SAFE_RELEASE(this->pBitmap);
 }
 
 void mj::DirectoryNavigationPanel::OnLoadFolderIconTaskDone(mj::detail::LoadFolderIconTask* pTask)
@@ -418,11 +416,13 @@ void mj::DirectoryNavigationPanel::OnPaint()
     pRenderTarget->GetTransform(&transform);
     pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->x, this->y)) * transform);
     MJ_DEFER(pRenderTarget->SetTransform(&transform));
+
     pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
     MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
+
     D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
-    MJ_DEFER(pRenderTarget->SetAntialiasMode(antialiasMode));
     pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+    MJ_DEFER(pRenderTarget->SetAntialiasMode(antialiasMode));
 
     auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
@@ -496,40 +496,12 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->ClearEntries();
   this->entries.Destroy();
 
-  if (this->pBlackBrush)
-  {
-    this->pBlackBrush->Release();
-    this->pBlackBrush = nullptr;
-  }
-
-  if (this->pScrollbarForegroundBrush)
-  {
-    this->pScrollbarForegroundBrush->Release();
-    this->pScrollbarForegroundBrush = nullptr;
-  }
-
-  if (this->pScrollbarBackgroundBrush)
-  {
-    this->pScrollbarBackgroundBrush->Release();
-    this->pScrollbarBackgroundBrush = nullptr;
-  }
-
-  if (this->pEntryHighlightBrush)
-  {
-    this->pEntryHighlightBrush->Release();
-    this->pEntryHighlightBrush = nullptr;
-  }
-
-  if (this->pFolderIcon)
-  {
-    this->pFolderIcon->Release();
-    this->pFolderIcon = nullptr;
-  }
-  if (this->pFileIcon)
-  {
-    this->pFileIcon->Release();
-    this->pFileIcon = nullptr;
-  }
+  MJ_SAFE_RELEASE(this->pBlackBrush);
+  MJ_SAFE_RELEASE(this->pScrollbarForegroundBrush);
+  MJ_SAFE_RELEASE(this->pScrollbarBackgroundBrush);
+  MJ_SAFE_RELEASE(this->pEntryHighlightBrush);
+  MJ_SAFE_RELEASE(this->pFolderIcon);
+  MJ_SAFE_RELEASE(this->pFileIcon);
 
   this->listFolderContentsTaskResult.files.Destroy();
   this->listFolderContentsTaskResult.folders.Destroy();
@@ -915,13 +887,14 @@ void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarge
 void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFactory)
 {
   ZoneScoped;
-  MJ_ERR_HRESULT(pFactory->CreateTextFormat(L"Segoe UI",                    // Font name
-                                            nullptr,                        // Font collection
-                                            DWRITE_FONT_WEIGHT_NORMAL,      // Font weight
-                                            DWRITE_FONT_STYLE_NORMAL,       // Font style
-                                            DWRITE_FONT_STRETCH_NORMAL,     // Font stretch
-                                            ::ConvertPointSizeToDIP(10.0f), // Font size
-                                            L"",                            // Locale name
+  MJ_SAFE_RELEASE(this->pTextFormat);
+  MJ_ERR_HRESULT(pFactory->CreateTextFormat(L"Segoe UI",                   // Font name
+                                            nullptr,                       // Font collection
+                                            DWRITE_FONT_WEIGHT_NORMAL,     // Font weight
+                                            DWRITE_FONT_STYLE_NORMAL,      // Font style
+                                            DWRITE_FONT_STRETCH_NORMAL,    // Font stretch
+                                            ::ConvertPointSizeToDIP(9.0f), // Font size
+                                            L"",                           // Locale name
                                             &this->pTextFormat));
   this->CheckEverythingQueryPrerequisites();
 }
