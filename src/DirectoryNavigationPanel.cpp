@@ -18,6 +18,15 @@ static float ConvertPointSizeToDIP(float points)
   return ((points / 72.0f) * 96.0f);
 }
 
+struct InvalidateRectTask : public mj::Task
+{
+  void Execute() override
+  {
+    ZoneScoped;
+    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+  }
+};
+
 ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 {
   ZoneScoped;
@@ -183,7 +192,7 @@ void mj::DirectoryNavigationPanel::OnLoadFolderIconTaskDone(mj::detail::LoadFold
       entry.pIcon = this->pFolderIcon;
     }
   }
-  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+  mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
 void mj::DirectoryNavigationPanel::OnLoadFileIconTaskDone(mj::detail::LoadFileIconTask* pTask)
@@ -196,7 +205,7 @@ void mj::DirectoryNavigationPanel::OnLoadFileIconTaskDone(mj::detail::LoadFileIc
       entry.pIcon = this->pFileIcon;
     }
   }
-  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+  mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
 bool mj::detail::ListFolderContentsTask::Add(mj::ArrayList<size_t>& list, size_t index)
@@ -401,7 +410,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
       }
     }
   }
-  MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+  mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
 void mj::DirectoryNavigationPanel::OnPaint()
@@ -577,8 +586,7 @@ void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
 
   if (pHoveredPrev != this->pHoveredEntry)
   {
-    // TODO: This should be global
-    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
   }
 }
 
@@ -639,7 +647,7 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
       this->scrollOffset = this->height - pixelHeight;
     }
 
-    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
   }
 }
 
@@ -787,7 +795,7 @@ void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextL
   if (++this->numEntriesDoneLoading == this->entries.Size())
   {
     this->scrollOffset = 0;
-    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
   }
 }
 
