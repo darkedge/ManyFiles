@@ -431,22 +431,25 @@ void mj::DirectoryNavigationPanel::OnPaint()
     {
       FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
       FLOAT viewHeight  = this->height;
-      FLOAT top         = -this->scrollOffset * viewHeight / pixelHeight;
+      if (pixelHeight > viewHeight)
       {
-        D2D1_RECT_F rect = D2D1::RectF( //
-            this->width - 16.0f,        //
-            0,                          //
-            this->width,                //
-            viewHeight);
-        pRenderTarget->FillRectangle(rect, this->pScrollbarBackgroundBrush);
-      }
-      {
-        D2D1_RECT_F rect = D2D1::RectF( //
-            this->width - 16.0f,        //
-            top,                        //
-            this->width,                //
-            top + viewHeight * viewHeight / pixelHeight);
-        pRenderTarget->FillRectangle(rect, this->pScrollbarForegroundBrush);
+        FLOAT top = -this->scrollOffset * viewHeight / pixelHeight;
+        {
+          D2D1_RECT_F rect = D2D1::RectF( //
+              this->width - 16.0f,        //
+              0,                          //
+              this->width,                //
+              viewHeight);
+          pRenderTarget->FillRectangle(rect, this->pScrollbarBackgroundBrush);
+        }
+        {
+          D2D1_RECT_F rect = D2D1::RectF( //
+              this->width - 16.0f,        //
+              top,                        //
+              this->width,                //
+              top + viewHeight * viewHeight / pixelHeight);
+          pRenderTarget->FillRectangle(rect, this->pScrollbarForegroundBrush);
+        }
       }
     }
 
