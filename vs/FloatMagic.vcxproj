@@ -108,6 +108,7 @@
     <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="..\src\ErrorExit.h" />
     <ClInclude Include="..\src\Control.h" />
+    <ClInclude Include="..\src\HorizontalLayout.h" />
     <ClInclude Include="..\src\MainWindow.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
     <ClInclude Include="..\src\mj_common.h" />
@@ -143,6 +144,7 @@
     <ClCompile Include="..\src\EntryPoint.cpp" />
     <ClCompile Include="..\src\ErrorExit.cpp" />
     <ClCompile Include="..\src\Control.cpp" />
+    <ClCompile Include="..\src\HorizontalLayout.cpp" />
     <ClCompile Include="..\src\MainWindow.cpp" />
     <ClCompile Include="..\src\mj_allocator.cpp" />
     <ClCompile Include="..\src\mj_common.cpp" />

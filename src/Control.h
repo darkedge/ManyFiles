@@ -60,7 +60,7 @@ namespace mj
     /// For use with mouse events.
     /// Translates pPoints to control space if true.
     /// </summary>
-    bool TranslateClientPoint(POINTS* pPoints);
+    bool TranslateClientPoint(int16_t *pX, int16_t *pY);
 
     int16_t x      = 0;
     int16_t y      = 0;

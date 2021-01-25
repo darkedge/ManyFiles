@@ -16,6 +16,7 @@
     <ClCompile Include="..\src\mj_allocator.cpp" />
     <ClCompile Include="..\src\mj_stb_image.cpp" />
     <ClCompile Include="..\src\Control.cpp" />
+    <ClCompile Include="..\src\HorizontalLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -43,6 +44,7 @@
     <ClInclude Include="..\src\mj_string.h" />
     <ClInclude Include="..\src\mj_macro.h" />
     <ClInclude Include="..\src\Control.h" />
+    <ClInclude Include="..\src\HorizontalLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

@@ -1,5 +1,5 @@
 #pragma once
-#include "Control.h"
+#include "HorizontalLayout.h"
 #include "mj_win32.h"
 #include "mj_allocator.h"
 #include <d2d1_1.h>
@@ -11,9 +11,10 @@ namespace mj
   class MainWindow
   {
   private:
-    Control* controls[2];
-    ID2D1DCRenderTarget* pRenderTarget  = nullptr;
-    bool s_Resize                       = false;
+    Control* controls[3];
+    HorizontalLayout* pRootControl;
+    ID2D1DCRenderTarget* pRenderTarget = nullptr;
+    bool s_Resize                      = false;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 

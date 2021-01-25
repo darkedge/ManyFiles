@@ -102,15 +102,15 @@ namespace mj
     static constexpr const int16_t entryHeight = 21;
 
   public:
-    void Init(AllocatorBase* pAllocator) override;
+    virtual void Init(AllocatorBase* pAllocator) override;
     virtual void OnPaint() override;
-    void Destroy() override;
+    virtual void Destroy() override;
 
-    void OnMouseMove(int16_t x, int16_t y) override;
-    void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
-    void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;
-    void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY) override;
-    void OnSize() override;
+    virtual void OnMouseMove(int16_t x, int16_t y) override;
+    virtual void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
+    virtual void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;
+    virtual void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY) override;
+    virtual void OnSize() override;
 
     virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) override;
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;

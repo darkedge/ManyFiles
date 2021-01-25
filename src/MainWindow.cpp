@@ -133,23 +133,15 @@ void mj::MainWindow::Resize()
     MJ_UNINITIALIZED RECT clientArea;
     ::GetClientRect(hwnd, &clientArea);
 
-    int16_t width        = static_cast<int16_t>(clientArea.right - clientArea.left);
-    int16_t height       = static_cast<int16_t>(clientArea.bottom - clientArea.top);
-    int16_t controlWidth = width / 2;
-    int16_t x            = 0;
-    for (int32_t i = 0; i < 2; i++)
+    if (this->pRootControl)
     {
-      Control* pControl = this->controls[i];
-      if (pControl)
-      {
-        pControl->x      = x;
-        pControl->y      = 0;
-        pControl->width  = controlWidth;
-        pControl->height = height;
-        pControl->OnSize();
-      }
-      x += controlWidth;
+      this->pRootControl->x      = 0;
+      this->pRootControl->y      = 0;
+      this->pRootControl->width  = static_cast<int16_t>(clientArea.right - clientArea.left);
+      this->pRootControl->height = static_cast<int16_t>(clientArea.bottom - clientArea.top);
+      this->pRootControl->OnSize();
     }
+
     MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(hwnd), &clientArea));
   }
 }
@@ -168,10 +160,10 @@ void mj::MainWindow::OnPaint()
       ZoneScopedN("Clear");
       this->pRenderTarget->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
     }
-    for (int32_t i = 0; i < 2; i++)
+
+    if (this->pRootControl)
     {
-      Control* pControl = this->controls[i];
-      pControl->OnPaint();
+      this->pRootControl->OnPaint();
     }
 
     {
@@ -184,7 +176,8 @@ void mj::MainWindow::OnPaint()
 void mj::MainWindow::Destroy()
 {
   ZoneScoped;
-  for (int32_t i = 0; i < 2; i++)
+
+  for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
   {
     Control* pControl = this->controls[i];
     if (pControl)
@@ -193,6 +186,14 @@ void mj::MainWindow::Destroy()
       svc::GeneralPurposeAllocator()->Free(pControl);
       this->controls[i] = nullptr;
     }
+  }
+
+  if (this->pRootControl)
+  {
+    this->pRootControl->Destroy();
+    // TODO: We should store the allocator used for this allocation, somewhere.
+    svc::GeneralPurposeAllocator()->Free(this->pRootControl);
+    this->pRootControl = nullptr;
   }
 
   if (this->pRenderTarget)
@@ -272,28 +273,18 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case WM_MOUSEMOVE:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
-    for (int32_t i = 0; i < 2; i++)
+    if (pMainWindow->pRootControl)
     {
-      Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslateClientPoint(&ptClient))
-      {
-        pControl->OnMouseMove(ptClient.x, ptClient.y);
-        break;
-      }
+      pMainWindow->pRootControl->OnMouseMove(ptClient.x, ptClient.y);
     }
     return 0;
   }
   case WM_LBUTTONDBLCLK:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
-    for (int32_t i = 0; i < 2; i++)
+    if (pMainWindow->pRootControl)
     {
-      Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslateClientPoint(&ptClient))
-      {
-        pControl->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
-        break;
-      }
+      pMainWindow->pRootControl->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
     }
     return 0;
   }
@@ -301,14 +292,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   {
     POINTS ptScreen = MAKEPOINTS(lParam);
     POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
-    for (int32_t i = 0; i < 2; i++)
+    if (pMainWindow->pRootControl)
     {
-      Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslateClientPoint(&ptClient))
-      {
-        pControl->OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
-        break;
-      }
+      pMainWindow->pRootControl->OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
     }
     return 0;
   }
@@ -318,14 +304,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     auto zDelta     = GET_WHEEL_DELTA_WPARAM(wParam);
     POINTS ptScreen = MAKEPOINTS(lParam);
     POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
-    for (int32_t i = 0; i < 2; i++)
+    if (pMainWindow->pRootControl)
     {
-      Control* pControl = pMainWindow->controls[i];
-      if (pControl->TranslateClientPoint(&ptClient))
-      {
-        pControl->OnMouseWheel(ptClient.x, ptClient.y, fwKeys, zDelta);
-        break;
-      }
+      pMainWindow->pRootControl->OnMouseWheel(ptClient.x, ptClient.y, fwKeys, zDelta);
     }
     return 0;
   }
@@ -374,10 +355,13 @@ void mj::MainWindow::Run()
   {
     svc::Init(pAllocator);
 
-    for (int32_t i = 0; i < 2; i++)
+    this->pRootControl = pAllocator->New<HorizontalLayout>();
+    this->pRootControl->Init(pAllocator);
+    for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
     {
       this->controls[i] = pAllocator->New<DirectoryNavigationPanel>();
       this->controls[i]->Init(pAllocator);
+      this->pRootControl->Add(this->controls[i]);
     }
   }
 
