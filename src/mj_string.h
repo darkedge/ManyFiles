@@ -13,6 +13,8 @@ namespace mj
     void Init(const wchar_t* pString, size_t numChars);
     void Init(const wchar_t* pString);
     bool Equals(const wchar_t* pString);
+    bool IsEmpty();
+    ptrdiff_t FindLastOf(const wchar_t* pString);
   };
 
   class StringBuilder

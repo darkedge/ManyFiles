@@ -16,6 +16,12 @@ void mj::StringView::Init(const wchar_t* pString, size_t numChars)
 
 void mj::StringView::Init(const wchar_t* pString)
 {
+  if (!pString)
+  {
+    // Convert to empty string
+    pString = L"";
+  }
+
   MJ_UNINITIALIZED size_t length;
   if (SUCCEEDED(::StringCchLengthW(pString, STRSAFE_MAX_CCH, &length)))
   {
@@ -29,6 +35,55 @@ bool mj::StringView::Equals(const wchar_t* pString)
   MJ_UNINITIALIZED mj::StringView other;
   other.Init(pString);
   return this->len == other.len && memcmp(this->ptr, other.ptr, this->len * sizeof(wchar_t)) == 0;
+}
+
+bool mj::StringView::IsEmpty()
+{
+  return this->len == 0;
+}
+
+ptrdiff_t mj::StringView::FindLastOf(const wchar_t* pString)
+{
+  ptrdiff_t index = -1;
+  MJ_UNINITIALIZED StringView subString;
+  subString.Init(pString);
+
+  // FindLastOf makes no sense on empty strings
+  if (this->IsEmpty() || subString.IsEmpty() || subString.len > this->len)
+  {
+    return index;
+  }
+
+  // Move backwards
+  const wchar_t* pIt = this->ptr + this->len - subString.len;
+  while (pIt >= this->ptr)
+  {
+    // Compare forwards
+    const wchar_t* pBegin      = pIt;
+    const wchar_t* pComparison = subString.ptr;
+    bool match                 = false;
+
+    while (*pBegin == *pComparison && pBegin - pIt < subString.len)
+    {
+      ++pBegin;
+      ++pComparison;
+      if (pBegin - pIt == subString.len)
+      {
+        match = true;
+        index = pIt - this->ptr;
+        break;
+      }
+    }
+
+    if (match)
+    {
+      break;
+    }
+
+    --pIt;
+  }
+
+  return index;
 }
 
 void mj::StringBuilder::SetArrayList(ArrayList<wchar_t>* pArrayList)

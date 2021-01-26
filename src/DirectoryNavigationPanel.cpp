@@ -233,6 +233,7 @@ void mj::detail::ListFolderContentsTask::Execute()
   this->files.Init(&this->allocator);
   this->folders.Init(&this->allocator);
   this->stringCache.Init(&this->allocator);
+  this->status = 0;
 
   MJ_UNINITIALIZED WIN32_FIND_DATA findData;
   HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
@@ -240,6 +241,7 @@ void mj::detail::ListFolderContentsTask::Execute()
   {
     // TODO: Handle ::GetLastError().
     // Example: 0x00000005 --> Access is denied.
+    this->status = ::GetLastError();
     return;
   }
 
@@ -308,9 +310,6 @@ void mj::DirectoryNavigationPanel::OpenSubFolder(const wchar_t* pFolder)
     this->sbOpenFolder.Append(currentPath);
     this->sbOpenFolder.Append(L"\\");
     this->sbOpenFolder.Append(pFolder);
-
-    // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
-    this->breadcrumb.Add(this->sbOpenFolder.ToStringOpen());
   }
 
   this->OpenFolder();
@@ -760,10 +759,17 @@ void mj::DirectoryNavigationPanel::OnEverythingQuery()
 
 void mj::DirectoryNavigationPanel::OnListFolderContentsDone(detail::ListFolderContentsTask* pTask)
 {
-  if (this->listFolderContentsTaskResult.files.Copy(pTask->files) &&
-      this->listFolderContentsTaskResult.folders.Copy(pTask->folders) &&
+  if (pTask->status == 0 &&                                              //
+      this->listFolderContentsTaskResult.files.Copy(pTask->files) &&     //
+      this->listFolderContentsTaskResult.folders.Copy(pTask->folders) && //
       this->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
   {
+    // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
+    StringView str = this->sbOpenFolder.ToStringOpen();
+    str.Init(str.ptr, str.FindLastOf(L"\\*"));
+
+    this->breadcrumb.Add(str);
+
     // TODO: Start icon, TextFormat tasks if preconditions are met
     // this->TryLoadFolderContentIcons();
     this->TryCreateFolderContentTextLayouts();

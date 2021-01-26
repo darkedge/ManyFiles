@@ -44,14 +44,14 @@ namespace mj
     friend struct detail::LoadFileIconTask;
     friend struct detail::EverythingQueryContext;
 
-    ID2D1SolidColorBrush* pBlackBrush          = nullptr;
+    ID2D1SolidColorBrush* pBlackBrush               = nullptr;
     ID2D1SolidColorBrush* pScrollbarForegroundBrush = nullptr;
     ID2D1SolidColorBrush* pScrollbarBackgroundBrush = nullptr;
-    ID2D1SolidColorBrush* pEntryHighlightBrush = nullptr;
-    IDWriteTextFormat* pTextFormat             = nullptr;
-    ID2D1Bitmap* pFolderIcon                   = nullptr;
-    ID2D1Bitmap* pFileIcon                     = nullptr;
-    const Entry* pHoveredEntry                 = nullptr;
+    ID2D1SolidColorBrush* pEntryHighlightBrush      = nullptr;
+    IDWriteTextFormat* pTextFormat                  = nullptr;
+    ID2D1Bitmap* pFolderIcon                        = nullptr;
+    ID2D1Bitmap* pFileIcon                          = nullptr;
+    const Entry* pHoveredEntry                      = nullptr;
     StringCache breadcrumb;
 
     // Open folder
@@ -125,6 +125,7 @@ namespace mj
       MJ_UNINITIALIZED mj::StringView directory;
 
       // Out
+      MJ_UNINITIALIZED HRESULT status;
       mj::ArrayList<size_t> folders;
       mj::ArrayList<size_t> files;
       mj::StringCache stringCache;
