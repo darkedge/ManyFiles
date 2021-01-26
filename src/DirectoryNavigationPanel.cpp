@@ -236,7 +236,12 @@ void mj::detail::ListFolderContentsTask::Execute()
 
   MJ_UNINITIALIZED WIN32_FIND_DATA findData;
   HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
-  MJ_ERR_IF(hFind, INVALID_HANDLE_VALUE);
+  if (hFind == INVALID_HANDLE_VALUE)
+  {
+    // TODO: Handle ::GetLastError().
+    // Example: 0x00000005 --> Access is denied.
+    return;
+  }
 
   do
   {
@@ -287,6 +292,7 @@ void mj::detail::ListFolderContentsTask::OnDone()
 
 void mj::detail::ListFolderContentsTask::Destroy()
 {
+  ZoneScoped;
   this->files.Destroy();
   this->folders.Destroy();
   this->stringCache.Destroy();
