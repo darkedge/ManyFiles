@@ -1,5 +1,7 @@
 #include "HorizontalLayout.h"
 
+static constexpr const int16_t s_ResizeControlWidth = 8;
+
 void mj::HorizontalLayout::Init(AllocatorBase* pAllocator)
 {
   this->controls.Init(pAllocator);
@@ -7,8 +9,9 @@ void mj::HorizontalLayout::Init(AllocatorBase* pAllocator)
 
 void mj::HorizontalLayout::OnPaint()
 {
-  for (Control* pControl : this->controls)
+  for (size_t i = 0; i < this->controls.Size(); i++)
   {
+    Control* pControl = this->controls[i];
     pControl->OnPaint();
   }
 }
@@ -36,18 +39,23 @@ void mj::HorizontalLayout::Destroy()
 
 void mj::HorizontalLayout::OnSize()
 {
-  // TODO: This integer division can leave blank columns if there is a remainder
-  int16_t controlWidth = this->width / this->controls.Size();
-  int16_t x            = 0;
-
-  for (Control* pControl : this->controls)
+  if (this->controls.Size() > 0)
   {
-    pControl->x      = x;
-    pControl->y      = 0;
-    pControl->width  = controlWidth;
-    pControl->height = height;
-    pControl->OnSize();
-    x += controlWidth;
+    int16_t numResizeControls = this->controls.Size() - 1;
+    
+    // TODO: This integer division can leave blank columns if there is a remainder
+    int16_t controlWidth = this->width / this->controls.Size();
+    int16_t x            = 0;
+
+    for (Control* pControl : this->controls)
+    {
+      pControl->x      = x;
+      pControl->y      = 0;
+      pControl->width  = controlWidth;
+      pControl->height = height;
+      pControl->OnSize();
+      x += controlWidth;
+    }
   }
 }
 

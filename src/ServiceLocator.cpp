@@ -2,6 +2,7 @@
 #include "ServiceProvider.h"
 #include "ErrorExit.h"
 #include "mj_common.h"
+#include "../3rdparty/tracy/Tracy.hpp"
 
 static IDWriteFactory* pDWriteFactory;
 static ID2D1RenderTarget* pD2D1RenderTarget;
@@ -18,6 +19,7 @@ static mj::ArrayList<svc::IDWriteFactoryObserver*> s_IDWriteFactoryObservers;
 
 void svc::Init(mj::AllocatorBase* pAllocator)
 {
+  ZoneScoped;
   s_WicFactoryObservers.Init(pAllocator);
   s_ID2D1RenderTargetObservers.Init(pAllocator);
   s_IDWriteFactoryObservers.Init(pAllocator);
@@ -25,6 +27,7 @@ void svc::Init(mj::AllocatorBase* pAllocator)
 
 void svc::Destroy()
 {
+  ZoneScoped;
   s_WicFactoryObservers.Destroy();
   s_ID2D1RenderTargetObservers.Destroy();
   s_IDWriteFactoryObservers.Destroy();

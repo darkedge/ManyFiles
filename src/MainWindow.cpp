@@ -6,6 +6,7 @@
 #include <wincodec.h>
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
+#include "ResourcesD2D1.h"
 
 #define MJ_WM_SIZE (WM_USER + 0)
 
@@ -92,6 +93,7 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarge
 {
   this->pRenderTarget = pRenderTarget;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
+  res::d2d1::Load(pRenderTarget);
 
   // Make sure we bind to a DC before getting a WM_PAINT message
   this->Resize();
@@ -142,7 +144,7 @@ void mj::MainWindow::Resize()
       this->pRootControl->OnSize();
     }
 
-    MJ_ERR_HRESULT(pRenderTarget->BindDC(GetDC(hwnd), &clientArea));
+    MJ_ERR_HRESULT(pRenderTarget->BindDC(::GetDC(hwnd), &clientArea));
   }
 }
 
@@ -177,19 +179,23 @@ void mj::MainWindow::Destroy()
 {
   ZoneScoped;
 
-  for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
   {
-    Control* pControl = this->controls[i];
-    if (pControl)
+    ZoneScopedN("Controls");
+    for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
     {
-      pControl->Destroy();
-      svc::GeneralPurposeAllocator()->Free(pControl);
-      this->controls[i] = nullptr;
+      Control* pControl = this->controls[i];
+      if (pControl)
+      {
+        pControl->Destroy();
+        svc::GeneralPurposeAllocator()->Free(pControl);
+        this->controls[i] = nullptr;
+      }
     }
   }
 
   if (this->pRootControl)
   {
+    ZoneScopedN("pRootControl->Destroy()");
     this->pRootControl->Destroy();
     // TODO: We should store the allocator used for this allocation, somewhere.
     svc::GeneralPurposeAllocator()->Free(this->pRootControl);
@@ -198,6 +204,8 @@ void mj::MainWindow::Destroy()
 
   if (this->pRenderTarget)
   {
+    ZoneScopedN("RenderTarget");
+    res::d2d1::Destroy();
     svc::ProvideD2D1RenderTarget(nullptr);
     static_cast<void>(pRenderTarget->Release());
     this->pRenderTarget = nullptr;
@@ -205,7 +213,10 @@ void mj::MainWindow::Destroy()
 
   svc::Destroy();
 
-  ::CoUninitialize();
+  {
+    ZoneScopedN("CoUninitialize");
+    ::CoUninitialize();
+  }
 }
 
 namespace mj
@@ -353,6 +364,7 @@ void mj::MainWindow::Run()
   }
 
   {
+    res::d2d1::Init(pAllocator);
     svc::Init(pAllocator);
 
     this->pRootControl = pAllocator->New<HorizontalLayout>();

@@ -17,6 +17,7 @@
     <ClCompile Include="..\src\mj_stb_image.cpp" />
     <ClCompile Include="..\src\Control.cpp" />
     <ClCompile Include="..\src\HorizontalLayout.cpp" />
+    <ClCompile Include="..\src\ResourcesD2D1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -45,6 +46,7 @@
     <ClInclude Include="..\src\mj_macro.h" />
     <ClInclude Include="..\src\Control.h" />
     <ClInclude Include="..\src\HorizontalLayout.h" />
+    <ClInclude Include="..\src\ResourcesD2D1.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

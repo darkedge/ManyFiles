@@ -9,7 +9,6 @@
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "../vs/resource.h"
-#include "stb_image.h"
 #define STRICT_TYPED_ITEMIDS
 #include <Shlobj.h>
 
@@ -86,126 +85,32 @@ void mj::detail::EverythingQueryContext::OnDone()
   this->pParent->OnEverythingQuery();
 }
 
-namespace mj
+void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, WORD resource)
 {
-  namespace detail
+  if (resource == IDB_FOLDER)
   {
-    /// <summary>
-    /// Separated function for possible later use
-    /// </summary>
-    void LoadBitmapFromResource(DWORD resource, ID2D1Bitmap** ppBitmap)
+    for (auto& entry : this->entries)
     {
-      auto* pRenderTarget = svc::D2D1RenderTarget();
-      // Render target should have been assigned
-      // before starting tasks that call this function
-      // Should we make this a parameter?
-      MJ_EXIT_NULL(pRenderTarget);
-
-      // Resource management.
-      HGLOBAL imageResDataHandle = nullptr;
-      void* pImageFile           = nullptr;
-
-      // Locate the resource in the application's executable.
-      HRSRC imageResHandle = ::FindResourceW(nullptr, MAKEINTRESOURCEW(resource), L"PNG");
-      MJ_ERR_IF(imageResHandle, nullptr);
-
-      // Load the resource to the HGLOBAL.
+      if (entry.type == EEntryType::Directory)
       {
-        ZoneScopedN("LoadResource");
-        imageResDataHandle = ::LoadResource(nullptr, imageResHandle);
-        MJ_ERR_IF(imageResDataHandle, nullptr);
+        entry.pIcon = pIconBitmap;
+        pIconBitmap->AddRef();
       }
-
-      auto size = ::SizeofResource(nullptr, imageResHandle);
-
-      // Lock the resource to retrieve memory pointer.
+    }
+    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+  }
+  else if (resource == IDB_DOCUMENT)
+  {
+    for (auto& entry : this->entries)
+    {
+      if (entry.type == EEntryType::File)
       {
-        ZoneScopedN("LockResource");
-        pImageFile = ::LockResource(imageResDataHandle);
-        // Does not specify GetLastError
-        MJ_EXIT_NULL(pImageFile);
+        entry.pIcon = pIconBitmap;
+        pIconBitmap->AddRef();
       }
-
-      int numComponents = 4;
-      MJ_UNINITIALIZED int x, y, n;
-      // ... process data if not NULL ...
-      // ... x = width, y = height, n = # 8-bit components per pixel ...
-      // ... replace '0' with '1'..'4' to force that many components per pixel
-      // ... but 'n' will always be the number that it would have been if you said 0
-      uint32_t* data = reinterpret_cast<uint32_t*>(
-          ::stbi_load_from_memory(static_cast<stbi_uc*>(pImageFile), size, &x, &y, &n, numComponents));
-      MJ_DEFER(::stbi_image_free(data));
-
-      MJ_ERR_HRESULT(pRenderTarget->CreateBitmap(
-          D2D1::SizeU(x, y), data, x * numComponents,
-          D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)),
-          ppBitmap));
     }
-  } // namespace detail
-} // namespace mj
-
-void mj::detail::LoadFolderIconTask::Execute()
-{
-  ZoneScoped;
-  mj::detail::LoadBitmapFromResource(this->resource, &this->pBitmap);
-}
-
-void mj::detail::LoadFolderIconTask::OnDone()
-{
-  ZoneScoped;
-  this->pBitmap->AddRef();
-  this->pParent->OnLoadFolderIconTaskDone(this);
-}
-
-void mj::detail::LoadFolderIconTask::Destroy()
-{
-  ZoneScoped;
-  MJ_SAFE_RELEASE(this->pBitmap);
-}
-
-void mj::detail::LoadFileIconTask::Execute()
-{
-  ZoneScoped;
-  mj::detail::LoadBitmapFromResource(this->resource, &this->pBitmap);
-}
-
-void mj::detail::LoadFileIconTask::OnDone()
-{
-  ZoneScoped;
-  this->pBitmap->AddRef();
-  this->pParent->OnLoadFileIconTaskDone(this);
-}
-
-void mj::detail::LoadFileIconTask::Destroy()
-{
-  ZoneScoped;
-  MJ_SAFE_RELEASE(this->pBitmap);
-}
-
-void mj::DirectoryNavigationPanel::OnLoadFolderIconTaskDone(mj::detail::LoadFolderIconTask* pTask)
-{
-  this->pFolderIcon = pTask->pBitmap;
-  for (auto& entry : this->entries)
-  {
-    if (entry.type == EEntryType::Directory)
-    {
-      entry.pIcon = this->pFolderIcon;
-    }
+    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
   }
-  mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
-}
-
-void mj::DirectoryNavigationPanel::OnLoadFileIconTaskDone(mj::detail::LoadFileIconTask* pTask)
-{
-  this->pFileIcon = pTask->pBitmap;
-  for (auto& entry : this->entries)
-  {
-    if (entry.type == EEntryType::File)
-    {
-      entry.pIcon = this->pFileIcon;
-    }
-  }
-  mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
 bool mj::detail::ListFolderContentsTask::Add(mj::ArrayList<size_t>& list, size_t index)
@@ -333,8 +238,8 @@ void mj::DirectoryNavigationPanel::OpenFolder()
 void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 {
   ZoneScoped;
-  svc::AddID2D1RenderTargetObserver(this);
   svc::AddIDWriteFactoryObserver(this);
+  res::d2d1::AddBitmapObserver(this);
 
   // Allocator setup
   this->pAllocator    = pAllocator;
@@ -375,7 +280,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 {
   ZoneScoped;
   auto* pFactory = svc::DWriteFactory();
-  if (pFactory && queryDone && this->pFolderIcon && svc::D2D1RenderTarget())
+  if (pFactory && queryDone && res::d2d1::FolderIcon() && svc::D2D1RenderTarget())
   {
     // Display results.
     DWORD numResults = Everything_GetNumResults();
@@ -411,7 +316,7 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
       }
       else if (Everything_IsFolderResult(i))
       {
-        entry.pIcon = this->pFolderIcon;
+        entry.pIcon = res::d2d1::FolderIcon();
       }
     }
   }
@@ -454,7 +359,7 @@ void mj::DirectoryNavigationPanel::OnPaint()
               0,                          //
               this->width,                //
               viewHeight);
-          pRenderTarget->FillRectangle(rect, this->pScrollbarBackgroundBrush);
+          pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarBackgroundBrush());
         }
         {
           D2D1_RECT_F rect = D2D1::RectF( //
@@ -462,7 +367,7 @@ void mj::DirectoryNavigationPanel::OnPaint()
               top,                        //
               this->width,                //
               top + viewHeight * viewHeight / pixelHeight);
-          pRenderTarget->FillRectangle(rect, this->pScrollbarForegroundBrush);
+          pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarForegroundBrush());
         }
       }
     }
@@ -471,15 +376,15 @@ void mj::DirectoryNavigationPanel::OnPaint()
     {
       if (entry.pTextLayout)
       {
-        pRenderTarget->DrawTextLayout(point, entry.pTextLayout, this->pBlackBrush);
+        pRenderTarget->DrawTextLayout(point, entry.pTextLayout, res::d2d1::BlackBrush());
       }
 
-      if (entry.type == EEntryType::Directory && this->pFolderIcon)
+      if (entry.type == EEntryType::Directory && res::d2d1::FolderIcon())
       {
-        auto iconSize = this->pFolderIcon->GetPixelSize();
+        auto iconSize = res::d2d1::FolderIcon()->GetPixelSize();
         float width   = static_cast<float>(iconSize.width);
         float height  = static_cast<float>(iconSize.height);
-        pRenderTarget->DrawBitmap(this->pFolderIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
+        pRenderTarget->DrawBitmap(res::d2d1::FolderIcon(), D2D1::RectF(0.0f, point.y, width, point.y + height));
       }
       else if (entry.pIcon)
       {
@@ -493,9 +398,9 @@ void mj::DirectoryNavigationPanel::OnPaint()
       point.y += this->entryHeight;
     }
 
-    if (this->pHoveredEntry && this->pEntryHighlightBrush)
+    if (this->pHoveredEntry && res::d2d1::EntryHighlightBrush())
     {
-      pRenderTarget->DrawRectangle(&this->highlightRect, this->pEntryHighlightBrush);
+      pRenderTarget->DrawRectangle(&this->highlightRect, res::d2d1::EntryHighlightBrush());
     }
   }
 }
@@ -513,13 +418,6 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->ClearEntries();
   this->entries.Destroy();
 
-  MJ_SAFE_RELEASE(this->pBlackBrush);
-  MJ_SAFE_RELEASE(this->pScrollbarForegroundBrush);
-  MJ_SAFE_RELEASE(this->pScrollbarBackgroundBrush);
-  MJ_SAFE_RELEASE(this->pEntryHighlightBrush);
-  MJ_SAFE_RELEASE(this->pFolderIcon);
-  MJ_SAFE_RELEASE(this->pFileIcon);
-
   this->listFolderContentsTaskResult.files.Destroy();
   this->listFolderContentsTaskResult.folders.Destroy();
   this->listFolderContentsTaskResult.stringCache.Destroy();
@@ -530,8 +428,8 @@ void mj::DirectoryNavigationPanel::Destroy()
     this->pListFolderContentsTask            = nullptr;
   }
 
-  svc::RemoveID2D1RenderTargetObserver(this);
   svc::RemoveIDWriteFactoryObserver(this);
+  res::d2d1::RemoveBitmapObserver(this);
 }
 
 mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RECT* pRect)
@@ -777,7 +675,7 @@ void mj::DirectoryNavigationPanel::OnListFolderContentsDone(detail::ListFolderCo
   this->pListFolderContentsTask = nullptr;
 }
 
-void mj::detail::CreateTextFormatTask::Execute()
+void mj::detail::CreateTextLayoutTask::Execute()
 {
   ZoneScoped;
 
@@ -789,7 +687,7 @@ void mj::detail::CreateTextFormatTask::Execute()
                                                         &this->pTextLayout));
 }
 
-void mj::detail::CreateTextFormatTask::OnDone()
+void mj::detail::CreateTextLayoutTask::OnDone()
 {
   ZoneScoped;
   this->pTextLayout->AddRef();
@@ -807,7 +705,7 @@ void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextL
   }
 }
 
-void mj::detail::CreateTextFormatTask::Destroy()
+void mj::detail::CreateTextLayoutTask::Destroy()
 {
   this->pTextLayout->Release();
 }
@@ -837,9 +735,9 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
         entry       = {};
         entry.type  = EEntryType::Directory;
         entry.pName = &this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.folders[i]];
-        entry.pIcon = this->pFolderIcon;
+        entry.pIcon = res::d2d1::FolderIcon();
 
-        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextFormatTask>();
+        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
         pTask->pParent = this;
         pTask->pEntry  = &entry;
         mj::ThreadpoolSubmitTask(pTask);
@@ -852,9 +750,9 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
         entry       = {};
         entry.type  = EEntryType::File;
         entry.pName = &this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.files[i]];
-        entry.pIcon = this->pFileIcon;
+        entry.pIcon = res::d2d1::FileIcon();
 
-        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextFormatTask>();
+        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
         pTask->pParent = this;
         pTask->pEntry  = &entry;
         mj::ThreadpoolSubmitTask(pTask);
@@ -868,7 +766,7 @@ void mj::DirectoryNavigationPanel::ClearEntries()
   for (auto& element : this->entries)
   {
     // Only release if icon exists and is not a shared icon
-    if (element.pIcon && element.pIcon != this->pFolderIcon && element.pIcon != this->pFileIcon)
+    if (element.pIcon && element.pIcon != res::d2d1::FolderIcon() && element.pIcon != res::d2d1::FileIcon())
     {
       element.pIcon->Release();
     }
@@ -878,29 +776,6 @@ void mj::DirectoryNavigationPanel::ClearEntries()
     }
   }
   this->entries.Clear();
-}
-
-void mj::DirectoryNavigationPanel::OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pRenderTarget)
-{
-  ZoneScoped;
-
-  {
-    auto* pTask     = mj::ThreadpoolCreateTask<mj::detail::LoadFolderIconTask>();
-    pTask->pParent  = this;
-    pTask->resource = IDB_FOLDER;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-  {
-    auto* pTask     = mj::ThreadpoolCreateTask<mj::detail::LoadFileIconTask>();
-    pTask->pParent  = this;
-    pTask->resource = IDB_DOCUMENT;
-    mj::ThreadpoolSubmitTask(pTask);
-  }
-
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &this->pBlackBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xC2C3C9), &this->pScrollbarForegroundBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE8E8EC), &this->pScrollbarBackgroundBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xFF0000), &this->pEntryHighlightBrush));
 }
 
 void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFactory)
@@ -915,5 +790,5 @@ void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFa
                                             ::ConvertPointSizeToDIP(9.0f), // Font size
                                             L"",                           // Locale name
                                             &this->pTextFormat));
-  this->CheckEverythingQueryPrerequisites();
+  // this->CheckEverythingQueryPrerequisites();
 }

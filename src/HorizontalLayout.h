@@ -23,7 +23,6 @@ namespace mj
     void Add(Control* pControl);
 
   private:
-    bool resizable = false;
     ArrayList<Control*> controls;
   };
 } // namespace mj
