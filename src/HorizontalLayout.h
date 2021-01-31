@@ -8,7 +8,7 @@ namespace mj
   {
   public:
     virtual void Init(AllocatorBase* pAllocator) override;
-    virtual void OnPaint() override;
+    virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
     virtual void Destroy() override;
     virtual void OnSize() override;
     

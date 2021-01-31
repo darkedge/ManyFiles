@@ -323,85 +323,66 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
   mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
-void mj::DirectoryNavigationPanel::OnPaint()
+void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  ZoneScoped;
-  auto* pRenderTarget = svc::D2D1RenderTarget();
+  auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
-  // Implies that our brushes are also created
-  if (pRenderTarget)
+  // Draw scrollbar
+  if (this->height > 0 && this->entries.Size() > 0)
   {
-    MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
-    pRenderTarget->GetTransform(&transform);
-    pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->x, this->y)) * transform);
-    MJ_DEFER(pRenderTarget->SetTransform(&transform));
-
-    pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
-    MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
-
-    D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
-    pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
-    MJ_DEFER(pRenderTarget->SetAntialiasMode(antialiasMode));
-
-    auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
-
-    // Draw scrollbar
-    if (this->height > 0 && this->entries.Size() > 0)
+    FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
+    FLOAT viewHeight  = this->height;
+    if (pixelHeight > viewHeight)
     {
-      FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
-      FLOAT viewHeight  = this->height;
-      if (pixelHeight > viewHeight)
+      FLOAT top = -this->scrollOffset * viewHeight / pixelHeight;
       {
-        FLOAT top = -this->scrollOffset * viewHeight / pixelHeight;
-        {
-          D2D1_RECT_F rect = D2D1::RectF( //
-              this->width - 16.0f,        //
-              0,                          //
-              this->width,                //
-              viewHeight);
-          pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarBackgroundBrush());
-        }
-        {
-          D2D1_RECT_F rect = D2D1::RectF( //
-              this->width - 16.0f,        //
-              top,                        //
-              this->width,                //
-              top + viewHeight * viewHeight / pixelHeight);
-          pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarForegroundBrush());
-        }
+        D2D1_RECT_F rect = D2D1::RectF( //
+            this->width - 16.0f,        //
+            0,                          //
+            this->width,                //
+            viewHeight);
+        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarBackgroundBrush());
+      }
+      {
+        D2D1_RECT_F rect = D2D1::RectF( //
+            this->width - 16.0f,        //
+            top,                        //
+            this->width,                //
+            top + viewHeight * viewHeight / pixelHeight);
+        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarForegroundBrush());
       }
     }
+  }
 
-    for (const auto& entry : this->entries)
+  for (const auto& entry : this->entries)
+  {
+    if (entry.pTextLayout)
     {
-      if (entry.pTextLayout)
-      {
-        pRenderTarget->DrawTextLayout(point, entry.pTextLayout, res::d2d1::BlackBrush());
-      }
-
-      if (entry.type == EEntryType::Directory && res::d2d1::FolderIcon())
-      {
-        auto iconSize = res::d2d1::FolderIcon()->GetPixelSize();
-        float width   = static_cast<float>(iconSize.width);
-        float height  = static_cast<float>(iconSize.height);
-        pRenderTarget->DrawBitmap(res::d2d1::FolderIcon(), D2D1::RectF(0.0f, point.y, width, point.y + height));
-      }
-      else if (entry.pIcon)
-      {
-        auto iconSize = entry.pIcon->GetPixelSize();
-        float width   = static_cast<float>(iconSize.width);
-        float height  = static_cast<float>(iconSize.height);
-        pRenderTarget->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
-      }
-
-      // Always draw images on integer coordinates
-      point.y += this->entryHeight;
+      pRenderTarget->DrawTextLayout(point, entry.pTextLayout, res::d2d1::BlackBrush());
     }
 
-    if (this->pHoveredEntry && res::d2d1::EntryHighlightBrush())
+    if (entry.type == EEntryType::Directory && res::d2d1::FolderIcon())
     {
-      pRenderTarget->DrawRectangle(&this->highlightRect, res::d2d1::EntryHighlightBrush());
+      auto iconSize = res::d2d1::FolderIcon()->GetPixelSize();
+      float width   = static_cast<float>(iconSize.width);
+      float height  = static_cast<float>(iconSize.height);
+      pRenderTarget->DrawBitmap(res::d2d1::FolderIcon(), D2D1::RectF(0.0f, point.y, width, point.y + height));
     }
+    else if (entry.pIcon)
+    {
+      auto iconSize = entry.pIcon->GetPixelSize();
+      float width   = static_cast<float>(iconSize.width);
+      float height  = static_cast<float>(iconSize.height);
+      pRenderTarget->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
+    }
+
+    // Always draw images on integer coordinates
+    point.y += this->entryHeight;
+  }
+
+  if (this->pHoveredEntry && res::d2d1::EntryHighlightBrush())
+  {
+    pRenderTarget->DrawRectangle(&this->highlightRect, res::d2d1::EntryHighlightBrush());
   }
 }
 

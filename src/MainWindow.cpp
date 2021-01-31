@@ -137,10 +137,10 @@ void mj::MainWindow::Resize()
 
     if (this->pRootControl)
     {
-      this->pRootControl->x      = 0;
-      this->pRootControl->y      = 0;
-      this->pRootControl->width  = static_cast<int16_t>(clientArea.right - clientArea.left);
-      this->pRootControl->height = static_cast<int16_t>(clientArea.bottom - clientArea.top);
+      this->pRootControl->xParent = 0;
+      this->pRootControl->yParent = 0;
+      this->pRootControl->width   = static_cast<int16_t>(clientArea.right - clientArea.left);
+      this->pRootControl->height  = static_cast<int16_t>(clientArea.bottom - clientArea.top);
       this->pRootControl->OnSize();
     }
 
