@@ -1,5 +1,6 @@
 #pragma once
 #include "HorizontalLayout.h"
+#include "VerticalLayout.h"
 #include "mj_win32.h"
 #include "mj_allocator.h"
 #include <d2d1_1.h>
@@ -11,8 +12,11 @@ namespace mj
   class MainWindow
   {
   private:
-    Control* controls[3];
-    HorizontalLayout* pRootControl;
+    static constexpr const size_t WIDTH = 3;
+    static constexpr const size_t HEIGHT = 2;
+    Control* controls[WIDTH * HEIGHT];
+    HorizontalLayout* pHorizontalLayouts[HEIGHT];
+    VerticalLayout* pRootControl;
     ID2D1DCRenderTarget* pRenderTarget = nullptr;
     bool s_Resize                      = false;
 

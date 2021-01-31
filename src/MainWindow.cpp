@@ -193,6 +193,20 @@ void mj::MainWindow::Destroy()
     }
   }
 
+  {
+    ZoneScopedN("HorizontalLayouts");
+    for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
+    {
+      HorizontalLayout* pLayout = this->pHorizontalLayouts[i];
+      if (pLayout)
+      {
+        pLayout->Destroy();
+        svc::GeneralPurposeAllocator()->Free(pLayout);
+        this->pHorizontalLayouts[i] = nullptr;
+      }
+    }
+  }
+
   if (this->pRootControl)
   {
     ZoneScopedN("pRootControl->Destroy()");
@@ -367,13 +381,23 @@ void mj::MainWindow::Run()
     res::d2d1::Init(pAllocator);
     svc::Init(pAllocator);
 
-    this->pRootControl = pAllocator->New<HorizontalLayout>();
+    this->pRootControl = pAllocator->New<VerticalLayout>();
     this->pRootControl->Init(pAllocator);
+
+    for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
+    {
+      this->pHorizontalLayouts[i] = pAllocator->New<HorizontalLayout>();
+      this->pHorizontalLayouts[i]->Init(pAllocator);
+
+      this->pRootControl->Add(this->pHorizontalLayouts[i]);
+    }
+    
     for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
     {
       this->controls[i] = pAllocator->New<DirectoryNavigationPanel>();
       this->controls[i]->Init(pAllocator);
-      this->pRootControl->Add(this->controls[i]);
+
+      this->pHorizontalLayouts[i / WIDTH]->Add(this->controls[i]);
     }
   }
 
