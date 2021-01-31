@@ -19,6 +19,7 @@
     <ClCompile Include="..\src\HorizontalLayout.cpp" />
     <ClCompile Include="..\src\ResourcesD2D1.cpp" />
     <ClCompile Include="..\src\VerticalLayout.cpp" />
+    <ClCompile Include="..\src\LinearLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -49,6 +50,7 @@
     <ClInclude Include="..\src\HorizontalLayout.h" />
     <ClInclude Include="..\src\ResourcesD2D1.h" />
     <ClInclude Include="..\src\VerticalLayout.h" />
+    <ClInclude Include="..\src\LinearLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
