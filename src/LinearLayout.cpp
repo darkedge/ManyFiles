@@ -1,5 +1,6 @@
 #include "LinearLayout.h"
 #include "ResourcesD2D1.h"
+#include "ServiceLocator.h"
 
 static constexpr const int16_t s_ResizeControlWidth = 8;
 
@@ -11,17 +12,87 @@ void mj::LinearLayout::Init(AllocatorBase* pAllocator)
 
 void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
 {
-  // TODO: If resizable and dragging: resize two controls
-  for (Control* pControl : this->controls)
+  if (this->resizeControlIndex != 0)
   {
+    Control* pFirst = this->controls[this->resizeControlIndex - 1];
+    Control* pResizeControl = this->controls[this->resizeControlIndex];
+    Control* pSecond = this->controls[this->resizeControlIndex + 1];
+    
+    int16_t dx = x - this->dragStartX;
+    int16_t dy = y - this->dragStartY;
+
+    this->MoveResizeControl(pFirst, pResizeControl, pSecond, dx, dy);
+
+    this->dragStartX = x;
+    this->dragStartY = y;
+
+    ::InvalidateRect(svc::MainWindowHandle(), nullptr, false);
+  }
+  else
+  {
+    for (Control* pControl : this->controls)
+    {
+      int16_t clientX = x;
+      int16_t clientY = y;
+      if (pControl->TranslateClientPoint(&clientX, &clientY))
+      {
+        pControl->OnMouseMove(clientX, clientY);
+        break;
+      }
+    }
+  }
+}
+
+bool mj::LinearLayout::OnLeftButtonDown(int16_t x, int16_t y)
+{
+  for (size_t i = 0; i < this->controls.Size(); i++)
+  {
+    Control* pControl = this->controls[i];
+
     int16_t clientX = x;
     int16_t clientY = y;
     if (pControl->TranslateClientPoint(&clientX, &clientY))
     {
-      pControl->OnMouseMove(clientX, clientY);
+      if (pControl->OnLeftButtonDown(clientX, clientY))
+      {
+        if (i & 1)
+        {
+          // Start resizing
+          this->resizeControlIndex = i;
+          this->dragStartX = x;
+          this->dragStartY = y;
+        }
+        return true;
+      }
       break;
     }
   }
+
+  return false;
+}
+
+bool mj::LinearLayout::OnLeftButtonUp(int16_t x, int16_t y)
+{
+  // Stop resizing
+  this->resizeControlIndex = 0;
+
+  for (size_t i = 0; i < this->controls.Size(); i++)
+  {
+    Control* pControl = this->controls[i];
+
+    int16_t clientX = x;
+    int16_t clientY = y;
+    if (pControl->TranslateClientPoint(&clientX, &clientY))
+    {
+      if (pControl->OnLeftButtonUp(clientX, clientY))
+      {
+        return true;
+      }
+      break;
+    }
+  }
+
+  return false;
 }
 
 void mj::LinearLayout::OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)

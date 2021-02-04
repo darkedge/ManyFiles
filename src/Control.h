@@ -58,6 +58,28 @@ namespace mj
     /// </summary>
     virtual void OnSize(){};
 
+    /// <summary>
+    /// Returns true if the mouse event is handled
+    /// and no other controls should attempt to handle this event.
+    /// </summary>
+    [[nodiscard]] virtual bool OnLeftButtonDown(int16_t x, int16_t y)
+    {
+      static_cast<void>(x);
+      static_cast<void>(y);
+      return false;
+    }
+
+    /// <summary>
+    /// Returns true if the mouse event is handled
+    /// and no other controls should attempt to handle this event.
+    /// </summary>
+    [[nodiscard]] virtual bool OnLeftButtonUp(int16_t x, int16_t y)
+    {
+      static_cast<void>(x);
+      static_cast<void>(y);
+      return false;
+    }
+
     void OnPaint();
 
     /// <summary>

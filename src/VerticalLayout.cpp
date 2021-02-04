@@ -18,6 +18,17 @@ void mj::VerticalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
   }
 }
 
+void mj::VerticalLayout::MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
+                                           int16_t dy)
+{
+  static_cast<void>(dx);
+
+  pFirst->height += dy;
+  pResizeControl->yParent += dy;
+  pSecond->yParent += dy;
+  pSecond->height -= dy;
+}
+
 void mj::VerticalLayout::Destroy()
 {
   // We currently do not own the controls,

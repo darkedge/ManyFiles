@@ -18,3 +18,8 @@ void mj::VerticalResizeControl::Paint(ID2D1RenderTarget* pRenderTarget)
 void mj::VerticalResizeControl::Destroy()
 {
 }
+
+bool mj::VerticalResizeControl::OnLeftButtonDown(int16_t x, int16_t y)
+{
+  return true;
+}

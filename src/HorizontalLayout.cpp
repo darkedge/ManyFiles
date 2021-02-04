@@ -10,6 +10,17 @@ void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
   }
 }
 
+void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
+                                             int16_t dy)
+{
+  static_cast<void>(dy);
+
+  pFirst->width += dx;
+  pResizeControl->xParent += dx;
+  pSecond->xParent += dx;
+  pSecond->width -= dx;
+}
+
 void mj::HorizontalLayout::Destroy()
 {
   // We currently do not own the controls,

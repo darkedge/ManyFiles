@@ -304,6 +304,27 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     }
     return 0;
   }
+  // Note: "Left" means "Primary" when dealing with mouse buttons.
+  // If GetSystemMetrics(SM_SWAPBUTTON) is nonzero, the right mouse button
+  // will trigger left mouse button actions, and vice versa.
+  case WM_LBUTTONDOWN:
+  {
+    POINTS ptClient = MAKEPOINTS(lParam);
+    if (pMainWindow->pRootControl)
+    {
+      static_cast<void>(pMainWindow->pRootControl->OnLeftButtonDown(ptClient.x, ptClient.y));
+    }
+    return 0;
+  }
+  case WM_LBUTTONUP:
+  {
+    POINTS ptClient = MAKEPOINTS(lParam);
+    if (pMainWindow->pRootControl)
+    {
+      static_cast<void>(pMainWindow->pRootControl->OnLeftButtonUp(ptClient.x, ptClient.y));
+    }
+    return 0;
+  }
   case WM_LBUTTONDBLCLK:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
@@ -391,7 +412,7 @@ void mj::MainWindow::Run()
 
       this->pRootControl->Add(this->pHorizontalLayouts[i]);
     }
-    
+
     for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
     {
       this->controls[i] = pAllocator->New<DirectoryNavigationPanel>();

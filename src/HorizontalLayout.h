@@ -15,5 +15,9 @@ namespace mj
     /// Does not own the Control.
     /// </summary>
     void Add(Control* pControl);
+
+  protected:
+    virtual void MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
+                                   int16_t dy) override;
   };
 } // namespace mj
