@@ -9,7 +9,6 @@ namespace mj
   public:
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
     virtual void OnSize() override;
-    virtual void Destroy() override;
 
     /// <summary>
     /// Does not own the Control.

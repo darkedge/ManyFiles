@@ -8,6 +8,7 @@ namespace mj
   {
   public:
     virtual void Init(AllocatorBase* pAllocator) override;
+    virtual void Destroy() override;
 
     virtual void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
     virtual void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;

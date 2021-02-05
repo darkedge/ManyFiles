@@ -1,15 +1,9 @@
 #include "VerticalLayout.h"
-#include "ResourcesD2D1.h"
-
-static constexpr const int16_t s_ResizeControlHeight = 8;
+#include "HorizontalResizeControl.h"
 
 void mj::VerticalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  auto pBrush = res::d2d1::ResizeControlBrush();
-  if (pBrush)
-  {
-    // pRenderTarget->FillRectangle(D2D1::RectF(x, 0, x2, this->height), pBrush);
-  }
+  static_cast<void>(pRenderTarget);
 
   for (size_t i = 0; i < this->controls.Size(); i++)
   {
@@ -29,51 +23,45 @@ void mj::VerticalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCont
   pSecond->height -= dy;
 }
 
-void mj::VerticalLayout::Destroy()
-{
-  // We currently do not own the controls,
-  // So we leave individual control destruction up to the owner.
-
-  // Of course, we still have to clean up our own resources
-  // TODO: Destroy all HorizontalResizeControl (which we own)
-  this->controls.Destroy();
-
-  // We don't own the allocator, so just remove the reference.
-  this->pAllocator = nullptr;
-}
-
 void mj::VerticalLayout::OnSize()
 {
-  if (this->controls.Size() > 0)
+  const int16_t numControls = static_cast<int16_t>(this->controls.Size());
+
+  if (numControls > 0)
   {
-    int16_t numResizeControls         = this->controls.Size() - 1;
-    int16_t totalResizeControlsHeight = numResizeControls * s_ResizeControlHeight;
+    int16_t numResizeControls         = numControls / 2;
+    int16_t numPanels                 = numResizeControls + 1;
+    int16_t totalResizeControlsHeight = numResizeControls * HorizontalResizeControl::HEIGHT;
 
     // TODO: This integer division can leave blank columns if there is a remainder
-    int16_t controlHeight = (this->height - totalResizeControlsHeight) / this->controls.Size();
-    int16_t y             = 0;
+    int16_t panelHeight = (this->height - totalResizeControlsHeight) / numPanels;
+    int16_t y           = 0;
 
-    for (size_t i = 0; i < this->controls.Size(); i++)
+    for (size_t i = 0; i < numControls; i++)
     {
       Control* pControl = this->controls[i];
 
       pControl->xParent = 0;
       pControl->yParent = y;
-      pControl->width   = width;
-      pControl->height  = controlHeight;
-      pControl->OnSize();
-      y += controlHeight;
-
-      if ((i + 1) < this->controls.Size())
+      if (!(i & 1))
       {
-        y += s_ResizeControlHeight;
+        pControl->height = panelHeight;
       }
+      pControl->width = this->width;
+      pControl->OnSize();
+
+      y += pControl->height;
     }
   }
 }
 
 void mj::VerticalLayout::Add(mj::Control* pControl)
 {
-  // TODO: Add HorizontalResizeControl
+  if (this->controls.Size() > 0)
+  {
+    Control* pResizeControl = this->pAllocator->New<HorizontalResizeControl>();
+    pResizeControl->Init(this->pAllocator);
+    this->controls.Add(pResizeControl);
+  }
   this->controls.Add(pControl);
 }

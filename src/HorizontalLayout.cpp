@@ -3,6 +3,8 @@
 
 void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
 {
+  static_cast<void>(pRenderTarget);
+
   for (size_t i = 0; i < this->controls.Size(); i++)
   {
     Control* pControl = this->controls[i];
@@ -21,31 +23,13 @@ void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCo
   pSecond->width -= dx;
 }
 
-void mj::HorizontalLayout::Destroy()
-{
-  // We currently do not own the controls,
-  // So we leave individual control destruction up to the owner.
-  // Of course, we still have to clean up our own resources
-
-  // We own all resize controls, so destroy those
-  for (size_t i = 1; i < this->controls.Size(); i += 2)
-  {
-    Control* pControl = this->controls[i];
-    pControl->Destroy();
-    this->pAllocator->Free(pControl);
-    this->controls[i] = nullptr;
-  }
-  this->controls.Destroy();
-
-  // We don't own the allocator, so just remove the reference.
-  this->pAllocator = nullptr;
-}
-
 void mj::HorizontalLayout::OnSize()
 {
-  if (this->controls.Size() > 0)
+  const int16_t numControls = static_cast<int16_t>(this->controls.Size());
+  
+  if (numControls > 0)
   {
-    int16_t numResizeControls        = this->controls.Size() / 2;
+    int16_t numResizeControls        = numControls / 2;
     int16_t numPanels                = numResizeControls + 1;
     int16_t totalResizeControlsWidth = numResizeControls * VerticalResizeControl::WIDTH;
 
@@ -53,7 +37,7 @@ void mj::HorizontalLayout::OnSize()
     int16_t panelWidth = (this->width - totalResizeControlsWidth) / numPanels;
     int16_t x          = 0;
 
-    for (size_t i = 0; i < this->controls.Size(); i++)
+    for (size_t i = 0; i < numControls; i++)
     {
       Control* pControl = this->controls[i];
 
@@ -75,7 +59,7 @@ void mj::HorizontalLayout::Add(mj::Control* pControl)
 {
   if (this->controls.Size() > 0)
   {
-    auto* pResizeControl = this->pAllocator->New<VerticalResizeControl>();
+    Control* pResizeControl = this->pAllocator->New<VerticalResizeControl>();
     pResizeControl->Init(this->pAllocator);
     this->controls.Add(pResizeControl);
   }

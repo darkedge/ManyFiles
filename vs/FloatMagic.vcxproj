@@ -109,6 +109,7 @@
     <ClInclude Include="..\src\ErrorExit.h" />
     <ClInclude Include="..\src\Control.h" />
     <ClInclude Include="..\src\HorizontalLayout.h" />
+    <ClInclude Include="..\src\HorizontalResizeControl.h" />
     <ClInclude Include="..\src\LinearLayout.h" />
     <ClInclude Include="..\src\MainWindow.h" />
     <ClInclude Include="..\src\mj_allocator.h" />
@@ -149,6 +150,7 @@
     <ClCompile Include="..\src\ErrorExit.cpp" />
     <ClCompile Include="..\src\Control.cpp" />
     <ClCompile Include="..\src\HorizontalLayout.cpp" />
+    <ClCompile Include="..\src\HorizontalResizeControl.cpp" />
     <ClCompile Include="..\src\LinearLayout.cpp" />
     <ClCompile Include="..\src\MainWindow.cpp" />
     <ClCompile Include="..\src\mj_allocator.cpp" />

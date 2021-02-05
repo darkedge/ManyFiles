@@ -14,10 +14,10 @@ void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
 {
   if (this->resizeControlIndex != 0)
   {
-    Control* pFirst = this->controls[this->resizeControlIndex - 1];
+    Control* pFirst         = this->controls[this->resizeControlIndex - 1];
     Control* pResizeControl = this->controls[this->resizeControlIndex];
-    Control* pSecond = this->controls[this->resizeControlIndex + 1];
-    
+    Control* pSecond        = this->controls[this->resizeControlIndex + 1];
+
     int16_t dx = x - this->dragStartX;
     int16_t dy = y - this->dragStartY;
 
@@ -26,6 +26,12 @@ void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
     this->dragStartX = x;
     this->dragStartY = y;
 
+    // TODO: This call breaks resizing, but it should be called
+    // to recursively adjust all sizes.
+    // OnSize should *not* split the container into evenly sized panels.
+    // this->OnSize();
+
+    // Child controls might call this but it is not guaranteed
     ::InvalidateRect(svc::MainWindowHandle(), nullptr, false);
   }
   else
@@ -41,6 +47,26 @@ void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
       }
     }
   }
+}
+
+void mj::LinearLayout::Destroy()
+{
+  // We currently do not own the controls,
+  // So we leave individual control destruction up to the owner.
+  // Of course, we still have to clean up our own resources
+
+  // We own all resize controls, so destroy those
+  for (size_t i = 1; i < this->controls.Size(); i += 2)
+  {
+    Control* pControl = this->controls[i];
+    pControl->Destroy();
+    this->pAllocator->Free(pControl);
+    this->controls[i] = nullptr;
+  }
+  this->controls.Destroy();
+
+  // We don't own the allocator, so just remove the reference.
+  this->pAllocator = nullptr;
 }
 
 bool mj::LinearLayout::OnLeftButtonDown(int16_t x, int16_t y)
@@ -59,8 +85,8 @@ bool mj::LinearLayout::OnLeftButtonDown(int16_t x, int16_t y)
         {
           // Start resizing
           this->resizeControlIndex = i;
-          this->dragStartX = x;
-          this->dragStartY = y;
+          this->dragStartX         = x;
+          this->dragStartY         = y;
         }
         return true;
       }
