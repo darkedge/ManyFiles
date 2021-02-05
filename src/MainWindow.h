@@ -18,7 +18,6 @@ namespace mj
     HorizontalLayout* pHorizontalLayouts[HEIGHT];
     VerticalLayout* pRootControl;
     ID2D1DCRenderTarget* pRenderTarget = nullptr;
-    bool s_Resize                      = false;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 

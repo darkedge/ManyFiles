@@ -7,8 +7,7 @@
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "ResourcesD2D1.h"
-
-#define MJ_WM_SIZE (WM_USER + 0)
+#include <dwmapi.h>
 
 struct CreateIWICImagingFactoryContext : public mj::Task
 {
@@ -269,18 +268,16 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     svc::ProvideMainWindowHandle(hWnd);
     pMainWindow->Resize();
 
+    // Disable animations, even before presenting the window
+    BOOL ani = TRUE;
+    ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
+
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
   case WM_SIZE:
-    // Do not resize while dragging the window border
-    pMainWindow->s_Resize = true;
-    return 0;
-  case MJ_WM_SIZE:
-  {
     pMainWindow->Resize();
     MJ_ERR_ZERO(::InvalidateRect(hWnd, nullptr, FALSE));
     return 0;
-  }
   case WM_DESTROY:
     ::PostQuitMessage(0);
     return 0;
@@ -486,12 +483,6 @@ void mj::MainWindow::Run()
         // Although its meaning depends on the message being dispatched,
         // the return value generally is ignored.
         static_cast<void>(::DispatchMessageW(&msg));
-
-        if (s_Resize)
-        {
-          s_Resize = false;
-          MJ_ERR_ZERO(::PostMessageW(hWnd, MJ_WM_SIZE, 0, 0));
-        }
 
         if (msg.message == WM_QUIT)
         {
