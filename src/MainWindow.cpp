@@ -50,8 +50,8 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 
   virtual void Execute() override
   {
-#if 0
     ZoneScoped;
+#if 0
     // Create a DC render target.
     D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
         D2D1_RENDER_TARGET_TYPE_HARDWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE), 0, 0,
