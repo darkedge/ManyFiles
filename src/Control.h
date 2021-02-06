@@ -80,7 +80,7 @@ namespace mj
       return false;
     }
 
-    void OnPaint();
+    void OnPaint(ID2D1RenderTarget* pRenderTarget);
 
     /// <summary>
     /// For use with mouse events.

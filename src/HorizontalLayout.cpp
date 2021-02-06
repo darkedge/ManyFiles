@@ -8,7 +8,7 @@ void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
   for (size_t i = 0; i < this->controls.Size(); i++)
   {
     Control* pControl = this->controls[i];
-    pControl->OnPaint();
+    pControl->OnPaint(pRenderTarget);
   }
 }
 
@@ -26,7 +26,7 @@ void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCo
 void mj::HorizontalLayout::OnSize()
 {
   const int16_t numControls = static_cast<int16_t>(this->controls.Size());
-  
+
   if (numControls > 0)
   {
     int16_t numResizeControls        = numControls / 2;

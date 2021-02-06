@@ -26,26 +26,21 @@ bool mj::Control::TranslateClientPoint(int16_t* pX, int16_t* pY)
   return false;
 }
 
-void mj::Control::OnPaint()
+void mj::Control::OnPaint(ID2D1RenderTarget* pRenderTarget)
 {
   ZoneScoped;
-  auto* pRenderTarget = svc::D2D1RenderTarget();
 
-  // Implies that our brushes are also created
-  if (pRenderTarget)
-  {
-    MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
-    pRenderTarget->GetTransform(&transform);
-    pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->xParent, this->yParent)) * transform);
-    MJ_DEFER(pRenderTarget->SetTransform(&transform));
+  MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
+  pRenderTarget->GetTransform(&transform);
+  pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->xParent, this->yParent)) * transform);
+  MJ_DEFER(pRenderTarget->SetTransform(&transform));
 
-    pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
-    MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
+  pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
+  MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
 
-    D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
-    pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
-    MJ_DEFER(pRenderTarget->SetAntialiasMode(antialiasMode));
+  D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
+  pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+  MJ_DEFER(pRenderTarget->SetAntialiasMode(antialiasMode));
 
-    this->Paint(pRenderTarget);
-  }
+  this->Paint(pRenderTarget);
 }

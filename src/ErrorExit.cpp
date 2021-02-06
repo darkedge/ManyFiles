@@ -44,10 +44,12 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
       mj::StringBuilder sb;
       sb.SetArrayList(&arrayList);
 
+      // The string is formatted such that you can double-click the output from
+      // OutputDebugString and go to the error source
       auto string = sb.Append(fileName)                   //
-                        .Append(L":")                     //
+                        .Append(L"(")                     //
                         .Append(lineNumber)               //
-                        .Append(L" - ")                   //
+                        .Append(L"): ")                   //
                         .Append(expression)               //
                         .Append(L" failed with error 0x") //
                         .AppendHex32(dw)                  //
@@ -55,7 +57,7 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
                         .Append(msgString)                //
                         .ToStringClosed();
 
-      // static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
+      ::OutputDebugStringW(string.ptr);
       ::DebugBreak();
     }
 
@@ -96,14 +98,16 @@ void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& 
     mj::StringBuilder sb;
     sb.SetArrayList(&arrayList);
 
+    // The string is formatted such that you can double-click the output from
+    // OutputDebugString and go to the error source
     auto string = sb.Append(fileName)                   //
-                      .Append(L":")                     //
+                      .Append(L"(")                     //
                       .Append(lineNumber)               //
-                      .Append(L" - Pointer was null: ") //
+                      .Append(L"): Pointer was null: ") //
                       .Append(expression)               //
                       .ToStringClosed();
 
-    // static_cast<void>(::MessageBoxW(nullptr, string.ptr, L"Error", MB_OK));
+    ::OutputDebugStringW(string.ptr);
     ::DebugBreak();
   }
 

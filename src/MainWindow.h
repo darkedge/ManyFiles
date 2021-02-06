@@ -17,10 +17,9 @@ namespace mj
     static constexpr const size_t HEIGHT = 2;
     Control* controls[WIDTH * HEIGHT];
     HorizontalLayout* pHorizontalLayouts[HEIGHT];
-    VerticalLayout* pRootControl;
-    ID2D1RenderTarget* pRenderTarget = nullptr;
-    IDXGISwapChain1* pSwapChain      = nullptr;
-    IDCompositionDevice* dcompDevice = nullptr;
+    VerticalLayout* pRootControl            = nullptr;
+    IDCompositionDesktopDevice* dcompDevice = nullptr;
+    IDCompositionVirtualSurface* pSurface   = nullptr;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -28,14 +27,9 @@ namespace mj
     void OnPaint();
     void Destroy();
 
-    void ReleaseUnusedObjects();
-
   public:
     void Run();
-    void OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevice1* pDxgiDevice);
-    void OnCreateID2D1RenderTarget(ID2D1RenderTarget* pRenderTarget, IDXGISwapChain1* pSwapChain,
-                                   IDCompositionDevice* dcompDevice);
-    void OnCreateIDXGISwapChain1(IDXGISwapChain1* pSwapChain);
+    void OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice, ID2D1RenderTarget* pRenderTarget);
   };
 
 } // namespace mj

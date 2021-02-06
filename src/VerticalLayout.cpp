@@ -8,7 +8,7 @@ void mj::VerticalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
   for (size_t i = 0; i < this->controls.Size(); i++)
   {
     Control* pControl = this->controls[i];
-    pControl->OnPaint();
+    pControl->OnPaint(pRenderTarget);
   }
 }
 

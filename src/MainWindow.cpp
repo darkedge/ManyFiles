@@ -47,8 +47,7 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 
   // Out
   MJ_UNINITIALIZED ID2D1RenderTarget* pRenderTarget;
-  MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
-  MJ_UNINITIALIZED IDCompositionDevice* pDCompDevice;
+  MJ_UNINITIALIZED IDCompositionDesktopDevice* pDCompDevice;
 
   virtual void Execute() override
   {
@@ -88,14 +87,13 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 
       MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
       // Obtain the Direct2D device for 2-D rendering.
+      MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
       {
-        MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
         MJ_ERR_HRESULT(
             ::D2D1CreateDevice(pDxgiDevice,
                                D2D1::CreationProperties(D2D1_THREADING_MODE_MULTI_THREADED,
                                                         D2D1_DEBUG_LEVEL_INFORMATION, D2D1_DEVICE_CONTEXT_OPTIONS_NONE),
                                &pD2d1Device));
-        MJ_DEFER(pD2d1Device->Release());
 
         // Get Direct2D device's corresponding device context object.
         MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
@@ -114,67 +112,14 @@ struct CreateID2D1RenderTargetContext : public mj::Task
           MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
           MJ_DEFER(pDxgiFactory->Release());
 
-          // Allocate a descriptor.
-          DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-          swapChainDesc.Format                = DXGI_FORMAT_B8G8R8A8_UNORM; // this is the most common swapchain format
-          swapChainDesc.Stereo                = false;
-          swapChainDesc.SampleDesc.Count      = 1; // don't use multi-sampling
-          swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-          swapChainDesc.BufferCount           = 2;                                // use double buffering to enable flip
-          swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // all apps must use this SwapEffect
-          swapChainDesc.Flags                 = s_SwapChainFlags;
-          swapChainDesc.AlphaMode             = DXGI_ALPHA_MODE_PREMULTIPLIED;
-
-          swapChainDesc.Width  = rect.right - rect.left;
-          swapChainDesc.Height = rect.bottom - rect.top;
-
-          // Get the final swap chain for this window from the DXGI factory.
-
-          MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForComposition(pDxgiDevice,    //
-                                                                     &swapChainDesc, //
-                                                                     nullptr,        // allow on all displays
-                                                                     &this->pSwapChain));
-
-          // Retrieve the swap chain's back buffer
-          IDXGISurface2* pSurface;
-          MJ_ERR_HRESULT(this->pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pSurface)));
-          // Create a Direct2D bitmap that points to the swap chain surface
-          D2D1_BITMAP_PROPERTIES1 properties = {};
-          properties.pixelFormat.alphaMode   = D2D1_ALPHA_MODE_PREMULTIPLIED;
-          properties.pixelFormat.format      = DXGI_FORMAT_B8G8R8A8_UNORM;
-          properties.bitmapOptions           = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-          ID2D1Bitmap1* pBitmap;
-          {
-            ZoneScopedN("CreateBitmapFromDxgiSurface");
-            MJ_ERR_HRESULT(pDeviceContext->CreateBitmapFromDxgiSurface(pSurface, properties, &pBitmap));
-          }
-          MJ_DEFER(pBitmap->Release());
-          // Point the device context to the bitmap for rendering
-          pDeviceContext->SetTarget(pBitmap);
-
           {
             ZoneScopedN("DCompositionCreateDevice");
-            MJ_ERR_HRESULT(::DCompositionCreateDevice(pDxgiDevice, IID_PPV_ARGS(&pDCompDevice)));
+            MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&pDCompDevice)));
           }
 
-          // TODO: This is a race
-          HWND hWnd = svc::MainWindowHandle();
-          IDCompositionTarget* pTarget;
-          {
-            ZoneScopedN("CreateTargetForHwnd");
-            MJ_ERR_HRESULT(pDCompDevice->CreateTargetForHwnd(hWnd,
-                                                             true, // Top most
-                                                             &pTarget));
-          }
-          // TODO: Release IDCompositionTarget on Destroy()
-          // MJ_DEFER(pTarget->Release());
-
-          IDCompositionVisual* pVisual;
+          MJ_UNINITIALIZED IDCompositionVisual2* pVisual;
           MJ_ERR_HRESULT(pDCompDevice->CreateVisual(&pVisual));
           MJ_DEFER(pVisual->Release());
-          MJ_ERR_HRESULT(pVisual->SetContent(pSwapChain));
-          MJ_ERR_HRESULT(pTarget->SetRoot(pVisual));
-          MJ_ERR_HRESULT(pDCompDevice->Commit());
         }
       }
     }
@@ -182,7 +127,7 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 
   virtual void OnDone() override
   {
-    this->pMainWindow->OnCreateID2D1RenderTarget(this->pRenderTarget, this->pSwapChain, this->pDCompDevice);
+    this->pMainWindow->OnCreateID2D1RenderTarget(this->pDCompDevice, this->pRenderTarget);
   }
 };
 
@@ -209,12 +154,12 @@ struct CreateDWriteFactoryTask : public mj::Task
   }
 };
 
-void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1RenderTarget* pRenderTarget, IDXGISwapChain1* pSwapChain,
-                                               IDCompositionDevice* dcompDevice)
+void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice,
+                                               ID2D1RenderTarget* pRenderTarget)
 {
-  this->pRenderTarget = pRenderTarget;
-  this->pSwapChain    = pSwapChain;
-  this->dcompDevice   = dcompDevice;
+  dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &this->pSurface);
+
+  this->dcompDevice = dcompDevice;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
   res::d2d1::Load(pRenderTarget);
 
@@ -252,16 +197,19 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1RenderTarget* pRenderTarget,
 void mj::MainWindow::Resize()
 {
   ZoneScoped;
-  auto hwnd = svc::MainWindowHandle();
-  if (pRenderTarget && hwnd)
+  HWND hWnd = svc::MainWindowHandle();
+  if (hWnd)
   {
     MJ_UNINITIALIZED RECT clientArea;
-    ::GetClientRect(hwnd, &clientArea);
+    MJ_ERR_IF(::GetClientRect(hWnd, &clientArea), 0);
 
     UINT width  = clientArea.right - clientArea.left;
     UINT height = clientArea.bottom - clientArea.top;
 
-    // pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, s_SwapChainFlags);
+    if (this->pSurface)
+    {
+      this->pSurface->Resize(width, height);
+    }
 
     if (this->pRootControl)
     {
@@ -271,39 +219,39 @@ void mj::MainWindow::Resize()
       this->pRootControl->height  = static_cast<int16_t>(height);
       this->pRootControl->OnSize();
     }
-
-    // MJ_ERR_HRESULT(pRenderTarget->BindDC(::GetDC(hwnd), &clientArea));
   }
 }
 
 void mj::MainWindow::OnPaint()
 {
   ZoneScoped;
-  if (this->pRenderTarget)
+
+  if (this->pSurface)
   {
-    {
-      ZoneScopedN("BeginDraw");
-      this->pRenderTarget->BeginDraw();
-    }
+    MJ_UNINITIALIZED ID2D1DeviceContext* pContext;
+    MJ_UNINITIALIZED POINT offset;
+    MJ_ERR_HRESULT(this->pSurface->BeginDraw(nullptr, IID_PPV_ARGS(&pContext), &offset));
+
+    MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
+    pContext->GetTransform(&transform);
+    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)) * transform);
+    MJ_DEFER(pContext->SetTransform(&transform));
 
     {
       ZoneScopedN("Clear");
-      this->pRenderTarget->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
+      pContext->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
     }
 
     if (this->pRootControl)
     {
-      this->pRootControl->OnPaint();
+      this->pRootControl->OnPaint(pContext);
     }
 
     {
       ZoneScopedN("EndDraw");
-      MJ_ERR_HRESULT(this->pRenderTarget->EndDraw());
+      MJ_ERR_HRESULT(this->pSurface->EndDraw());
+      MJ_ERR_HRESULT(this->dcompDevice->Commit());
     }
-
-    // Make the swap chain available to the composition engine
-    MJ_ERR_HRESULT(this->pSwapChain->Present(1,   // sync
-                                             0)); // flags
   }
 }
 
@@ -348,17 +296,18 @@ void mj::MainWindow::Destroy()
     this->pRootControl = nullptr;
   }
 
-  if (this->pRenderTarget)
+  res::d2d1::Destroy();
+
+  ID2D1RenderTarget* pRenderTarget = svc::D2D1RenderTarget();
+  if (pRenderTarget)
   {
     ZoneScopedN("RenderTarget");
-    res::d2d1::Destroy();
     svc::ProvideD2D1RenderTarget(nullptr);
     static_cast<void>(pRenderTarget->Release());
-    this->pRenderTarget = nullptr;
+    pRenderTarget = nullptr;
   }
 
   MJ_SAFE_RELEASE(this->dcompDevice);
-  MJ_SAFE_RELEASE(this->pSwapChain);
 
   svc::Destroy();
 

@@ -31,7 +31,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4458;4146</DisableSpecificWarnings>
       <TreatSpecificWarningsAsErrors>4834;4456;4702</TreatSpecificWarningsAsErrors>
-      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;UNICODE;_UNICODE;_WIN32_WINNT=0x0602;_HAS_EXCEPTIONS=0</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;UNICODE;_UNICODE;_WIN32_WINNT=0x0603;_HAS_EXCEPTIONS=0</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\3rdparty\Everything</AdditionalIncludeDirectories>
       <WholeProgramOptimization>false</WholeProgramOptimization>
