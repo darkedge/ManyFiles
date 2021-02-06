@@ -41,27 +41,148 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 {
   // In
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
+  MJ_UNINITIALIZED RECT rect;
 
   // Out
-  MJ_UNINITIALIZED ID2D1DCRenderTarget* pRenderTarget;
+  MJ_UNINITIALIZED ID2D1RenderTarget* pRenderTarget;
+  MJ_UNINITIALIZED IDXGISwapChain1* pSwapChain;
+  MJ_UNINITIALIZED IDCompositionDevice* dcompDevice;
 
   virtual void Execute() override
   {
+#if 0
     ZoneScoped;
     // Create a DC render target.
     D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-        D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE), 0, 0,
+        D2D1_RENDER_TARGET_TYPE_HARDWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE), 0, 0,
         D2D1_RENDER_TARGET_USAGE_NONE, D2D1_FEATURE_LEVEL_DEFAULT);
 
     MJ_UNINITIALIZED ID2D1Factory* pFactory;
     MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory));
     MJ_ERR_HRESULT(pFactory->CreateDCRenderTarget(&props, &this->pRenderTarget));
     pFactory->Release();
+#else
+#ifdef _DEBUG
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
+    UINT dxgiFlags     = DXGI_CREATE_FACTORY_DEBUG;
+#else
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+    UINT dxgiFlags     = 0;
+#endif
+    MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
+    MJ_ERR_HRESULT(::D3D11CreateDevice(nullptr,                  // specify null to use the default adapter
+                                       D3D_DRIVER_TYPE_HARDWARE, // Use the fast software driver which loads faster
+                                       0,                        //
+                                       creationFlags,     // optionally set debug and Direct2D compatibility flags
+                                       nullptr,           // list of feature levels this app can support
+                                       0,                 // number of possible feature levels
+                                       D3D11_SDK_VERSION, //
+                                       &pD3d11Device,     // returns the Direct3D device created
+                                       nullptr,           // returns feature level of device created
+                                       nullptr            // No ID3D11DeviceContext will be returned.
+                                       ));
+    MJ_DEFER(pD3d11Device->Release());
+
+    // Obtain the underlying DXGI device of the Direct3D11 device.
+    {
+      MJ_UNINITIALIZED IDXGIDevice1* pDxgiDevice;
+      MJ_ERR_HRESULT(pD3d11Device->QueryInterface<IDXGIDevice1>(&pDxgiDevice));
+      MJ_DEFER(pDxgiDevice->Release());
+
+      // Ensure that DXGI doesn't queue more than one frame at a time.
+      // MJ_ERR_HRESULT(pDxgiDevice->SetMaximumFrameLatency(1));
+
+      MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
+      // Obtain the Direct2D device for 2-D rendering.
+      {
+        MJ_UNINITIALIZED ID2D1Factory1* pD2d1Factory;
+        MJ_ERR_HRESULT(::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2d1Factory));
+        MJ_DEFER(pD2d1Factory->Release());
+
+        {
+          MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
+          MJ_ERR_HRESULT(pD2d1Factory->CreateDevice(pDxgiDevice, &pD2d1Device));
+          MJ_DEFER(pD2d1Device->Release());
+
+          // Get Direct2D device's corresponding device context object.
+          MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
+          this->pRenderTarget = pDeviceContext;
+        }
+      }
+
+      // Identify the physical adapter (GPU or card) this device is runs on.
+      {
+        MJ_UNINITIALIZED IDXGIAdapter* pDxgiAdapter;
+        MJ_ERR_HRESULT(pDxgiDevice->GetAdapter(&pDxgiAdapter));
+        MJ_DEFER(pDxgiAdapter->Release());
+
+        // Get the factory object that created the DXGI device.
+        {
+          MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
+          MJ_ERR_HRESULT(
+              ::CreateDXGIFactory2(dxgiFlags, __uuidof(pDxgiFactory), reinterpret_cast<void**>(&pDxgiFactory)));
+          // MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
+          // MJ_DEFER(pDxgiFactory->Release());
+
+          // Allocate a descriptor.
+          DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+          swapChainDesc.Format                = DXGI_FORMAT_B8G8R8A8_UNORM; // this is the most common swapchain format
+          swapChainDesc.Stereo                = false;
+          swapChainDesc.SampleDesc.Count      = 1; // don't use multi-sampling
+          swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+          swapChainDesc.BufferCount           = 2;                                // use double buffering to enable flip
+          swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // all apps must use this SwapEffect
+          swapChainDesc.Flags                 = 0;
+          swapChainDesc.AlphaMode             = DXGI_ALPHA_MODE_PREMULTIPLIED;
+
+          swapChainDesc.Width  = rect.right - rect.left;
+          swapChainDesc.Height = rect.bottom - rect.top;
+
+          // Get the final swap chain for this window from the DXGI factory.
+
+          MJ_ERR_HRESULT(pDxgiFactory->CreateSwapChainForComposition(pDxgiDevice,    //
+                                                                     &swapChainDesc, //
+                                                                     nullptr,        // allow on all displays
+                                                                     &this->pSwapChain));
+
+          // Retrieve the swap chain's back buffer
+          IDXGISurface2* pSurface;
+          MJ_ERR_HRESULT(this->pSwapChain->GetBuffer(0, // index
+                                                     __uuidof(pSurface), reinterpret_cast<void**>(&pSurface)));
+          // Create a Direct2D bitmap that points to the swap chain surface
+          D2D1_BITMAP_PROPERTIES1 properties = {};
+          properties.pixelFormat.alphaMode   = D2D1_ALPHA_MODE_PREMULTIPLIED;
+          properties.pixelFormat.format      = DXGI_FORMAT_B8G8R8A8_UNORM;
+          properties.bitmapOptions           = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+          ID2D1Bitmap1* pBitmap;
+          MJ_ERR_HRESULT(pDeviceContext->CreateBitmapFromDxgiSurface(pSurface, properties, &pBitmap));
+          // Point the device context to the bitmap for rendering
+          pDeviceContext->SetTarget(pBitmap);
+
+          MJ_ERR_HRESULT(
+              ::DCompositionCreateDevice(pDxgiDevice, __uuidof(dcompDevice), reinterpret_cast<void**>(&dcompDevice)));
+
+          // TODO: This is a race
+          HWND hWnd = svc::MainWindowHandle();
+          IDCompositionTarget* target;
+          MJ_ERR_HRESULT(dcompDevice->CreateTargetForHwnd(hWnd,
+                                                                       true, // Top most
+                                                                       &target));
+
+          IDCompositionVisual* visual;
+          MJ_ERR_HRESULT(dcompDevice->CreateVisual(&visual));
+          MJ_ERR_HRESULT(visual->SetContent(pSwapChain));
+          MJ_ERR_HRESULT(target->SetRoot(visual));
+          MJ_ERR_HRESULT(dcompDevice->Commit());
+        }
+      }
+    }
+#endif
   }
 
   virtual void OnDone() override
   {
-    this->pMainWindow->OnCreateID2D1RenderTarget(this->pRenderTarget);
+    this->pMainWindow->OnCreateID2D1RenderTarget(this->pRenderTarget, this->pSwapChain, this->dcompDevice);
   }
 };
 
@@ -88,9 +209,12 @@ struct CreateDWriteFactoryTask : public mj::Task
   }
 };
 
-void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1DCRenderTarget* pRenderTarget)
+void mj::MainWindow::OnCreateID2D1RenderTarget(ID2D1RenderTarget* pRenderTarget, IDXGISwapChain1* pSwapChain,
+                                               IDCompositionDevice* dcompDevice)
 {
   this->pRenderTarget = pRenderTarget;
+  this->pSwapChain    = pSwapChain;
+  this->dcompDevice   = dcompDevice;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
   res::d2d1::Load(pRenderTarget);
 
@@ -143,7 +267,7 @@ void mj::MainWindow::Resize()
       this->pRootControl->OnSize();
     }
 
-    MJ_ERR_HRESULT(pRenderTarget->BindDC(::GetDC(hwnd), &clientArea));
+    // MJ_ERR_HRESULT(pRenderTarget->BindDC(::GetDC(hwnd), &clientArea));
   }
 }
 
@@ -171,6 +295,10 @@ void mj::MainWindow::OnPaint()
       ZoneScopedN("EndDraw");
       MJ_ERR_HRESULT(this->pRenderTarget->EndDraw());
     }
+
+    // Make the swap chain available to the composition engine
+    MJ_ERR_HRESULT(this->pSwapChain->Present(1,   // sync
+                                             0)); // flags
   }
 }
 
@@ -387,6 +515,10 @@ void mj::MainWindow::Run()
   {
     auto pTask         = mj::ThreadpoolCreateTask<CreateID2D1RenderTargetContext>();
     pTask->pMainWindow = this;
+    pTask->rect.left   = 0;
+    pTask->rect.right  = 1280;
+    pTask->rect.top    = 0;
+    pTask->rect.bottom = 720;
     mj::ThreadpoolSubmitTask(pTask);
   }
   {
@@ -433,10 +565,11 @@ void mj::MainWindow::Run()
   MJ_UNINITIALIZED HWND hWnd;
   {
     ZoneScopedN("CreateWindowExW");
-    hWnd = ::CreateWindowExW(0,                                       // Optional window styles.
-                             classAtom,                               // Window class
-                             L"Window Title",                         // Window text
-                             WS_OVERLAPPEDWINDOW | WS_VISIBLE,        // Window style
+    hWnd = ::CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP,        // Optional window styles.
+                             classAtom,                        // Window class
+                             L"Window Title",                  // Window text
+                             WS_OVERLAPPEDWINDOW | WS_VISIBLE, // Window style
+                             // WS_POPUP | WS_VISIBLE,                   // Window style
                              CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, // Size and pCurrent
                              nullptr,                                 // Parent window
                              nullptr,                                 // Menu
