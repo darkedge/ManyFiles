@@ -116,10 +116,6 @@ struct CreateID2D1RenderTargetContext : public mj::Task
             ZoneScopedN("DCompositionCreateDevice");
             MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&pDCompDevice)));
           }
-
-          MJ_UNINITIALIZED IDCompositionVisual2* pVisual;
-          MJ_ERR_HRESULT(pDCompDevice->CreateVisual(&pVisual));
-          MJ_DEFER(pVisual->Release());
         }
       }
     }
@@ -157,13 +153,23 @@ struct CreateDWriteFactoryTask : public mj::Task
 void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice,
                                                ID2D1RenderTarget* pRenderTarget)
 {
-  dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED, &this->pSurface);
 
   this->dcompDevice = dcompDevice;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
   res::d2d1::Load(pRenderTarget);
 
-  // Make sure we bind to a DC before getting a WM_PAINT message
+  MJ_UNINITIALIZED IDCompositionVisual2* pVisual;
+  MJ_ERR_HRESULT(this->dcompDevice->CreateVisual(&pVisual));
+  MJ_DEFER(pVisual->Release());
+
+  MJ_UNINITIALIZED IDCompositionTarget* pTarget;
+  MJ_ERR_HRESULT(this->dcompDevice->CreateTargetForHwnd(svc::MainWindowHandle(), true, &pTarget));
+  pTarget->SetRoot(pVisual);
+
+  this->dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED,
+                                          &this->pSurface);
+  pVisual->SetContent(this->pSurface);
+
   this->Resize();
 }
 
