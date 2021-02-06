@@ -20,7 +20,7 @@ namespace mj
     VerticalLayout* pRootControl;
     ID2D1RenderTarget* pRenderTarget = nullptr;
     IDXGISwapChain1* pSwapChain      = nullptr;
-    IDCompositionDevice* dcompDevice      = nullptr;
+    IDCompositionDevice* dcompDevice = nullptr;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -33,7 +33,8 @@ namespace mj
   public:
     void Run();
     void OnCreateID3D11Device(ID3D11Device* pD3d11Device, IDXGIDevice1* pDxgiDevice);
-    void OnCreateID2D1RenderTarget(ID2D1RenderTarget* pRenderTarget, IDXGISwapChain1* pSwapChain, IDCompositionDevice* dcompDevice);
+    void OnCreateID2D1RenderTarget(ID2D1RenderTarget* pRenderTarget, IDXGISwapChain1* pSwapChain,
+                                   IDCompositionDevice* dcompDevice);
     void OnCreateIDXGISwapChain1(IDXGISwapChain1* pSwapChain);
   };
 
