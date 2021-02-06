@@ -53,11 +53,13 @@ struct CreateID2D1RenderTargetContext : public mj::Task
   {
     ZoneScoped;
 #ifdef _DEBUG
-    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-    UINT dxgiFlags     = DXGI_CREATE_FACTORY_DEBUG;
+    UINT creationFlags              = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
+    UINT dxgiFlags                  = DXGI_CREATE_FACTORY_DEBUG;
+    D2D1_DEBUG_LEVEL d2d1DebugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #else
-    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-    UINT dxgiFlags     = 0;
+    UINT creationFlags              = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+    UINT dxgiFlags                  = 0;
+    D2D1_DEBUG_LEVEL d2d1DebugLevel = D2D1_DEBUG_LEVEL_NONE;
 #endif
     MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
     {
@@ -89,11 +91,10 @@ struct CreateID2D1RenderTargetContext : public mj::Task
       // Obtain the Direct2D device for 2-D rendering.
       MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
       {
-        MJ_ERR_HRESULT(
-            ::D2D1CreateDevice(pDxgiDevice,
-                               D2D1::CreationProperties(D2D1_THREADING_MODE_MULTI_THREADED,
-                                                        D2D1_DEBUG_LEVEL_INFORMATION, D2D1_DEVICE_CONTEXT_OPTIONS_NONE),
-                               &pD2d1Device));
+        MJ_ERR_HRESULT(::D2D1CreateDevice(pDxgiDevice,
+                                          D2D1::CreationProperties(D2D1_THREADING_MODE_MULTI_THREADED, d2d1DebugLevel,
+                                                                   D2D1_DEVICE_CONTEXT_OPTIONS_NONE),
+                                          &pD2d1Device));
 
         // Get Direct2D device's corresponding device context object.
         MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
@@ -237,6 +238,7 @@ void mj::MainWindow::OnPaint()
     MJ_UNINITIALIZED ID2D1DeviceContext* pContext;
     MJ_UNINITIALIZED POINT offset;
     MJ_ERR_HRESULT(this->pSurface->BeginDraw(nullptr, IID_PPV_ARGS(&pContext), &offset));
+    MJ_DEFER(pContext->Release());
 
     MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
     pContext->GetTransform(&transform);
