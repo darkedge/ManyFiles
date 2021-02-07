@@ -52,11 +52,9 @@ struct CreateID2D1RenderTargetContext : public mj::Task
     ZoneScoped;
 #ifdef _DEBUG
     UINT creationFlags              = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-    //UINT dxgiFlags                  = DXGI_CREATE_FACTORY_DEBUG;
     D2D1_DEBUG_LEVEL d2d1DebugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #else
     UINT creationFlags              = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-    //UINT dxgiFlags                  = 0;
     D2D1_DEBUG_LEVEL d2d1DebugLevel = D2D1_DEBUG_LEVEL_NONE;
 #endif
     MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
@@ -106,14 +104,8 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 
         // Get the factory object that created the DXGI device.
         {
-          //MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
-          //MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
-          //MJ_DEFER(pDxgiFactory->Release());
-
-          {
-            ZoneScopedN("DCompositionCreateDevice");
-            MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&this->pDCompDevice)));
-          }
+          ZoneScopedN("DCompositionCreateDevice");
+          MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&this->pDCompDevice)));
         }
       }
     }
@@ -160,14 +152,12 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcomp
   MJ_ERR_HRESULT(this->dcompDevice->CreateVisual(&pVisual));
   MJ_DEFER(pVisual->Release());
 
-  MJ_UNINITIALIZED IDCompositionTarget* pTarget;
-  MJ_ERR_HRESULT(this->dcompDevice->CreateTargetForHwnd(svc::MainWindowHandle(), true, &pTarget));
-  MJ_DEFER(pTarget->Release());
-  pTarget->SetRoot(pVisual);
+  MJ_ERR_HRESULT(this->dcompDevice->CreateTargetForHwnd(svc::MainWindowHandle(), true, &this->pTarget));
+  this->pTarget->SetRoot(pVisual);
 
-  this->dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED,
-                                          &this->pSurface);
-  pVisual->SetContent(this->pSurface);
+  MJ_ERR_HRESULT(this->dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM,
+                                                         DXGI_ALPHA_MODE_PREMULTIPLIED, &this->pSurface));
+  MJ_ERR_HRESULT(pVisual->SetContent(this->pSurface));
 
   this->Resize();
 }
@@ -313,7 +303,8 @@ void mj::MainWindow::Destroy()
     static_cast<void>(pRenderTarget->Release());
     pRenderTarget = nullptr;
   }
-  
+
+  MJ_SAFE_RELEASE(this->pTarget);
   MJ_SAFE_RELEASE(this->pSurface);
   MJ_SAFE_RELEASE(this->dcompDevice);
 
@@ -497,7 +488,7 @@ void mj::MainWindow::Run()
   this->pRootControl = pAllocator->New<VerticalLayout>();
   this->pRootControl->Init(pAllocator);
 
-#if 0
+#if 1
   for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
   {
     this->pHorizontalLayouts[i] = pAllocator->New<HorizontalLayout>();
@@ -513,11 +504,6 @@ void mj::MainWindow::Run()
 
     this->pHorizontalLayouts[i / WIDTH]->Add(this->controls[i]);
   }
-#else
-  // this->controls[0] = pAllocator->New<DirectoryNavigationPanel>();
-  // this->controls[0]->Init(pAllocator);
-
-  // this->pRootControl->Add(this->controls[0]);
 #endif
 
   MJ_UNINITIALIZED ATOM cls;

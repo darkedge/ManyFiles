@@ -20,6 +20,7 @@ namespace mj
     VerticalLayout* pRootControl                 = nullptr;
     IDCompositionDesktopDevice* dcompDevice      = nullptr;
     IDCompositionVirtualSurface* pSurface        = nullptr;
+    IDCompositionTarget* pTarget                 = nullptr;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
