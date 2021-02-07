@@ -9,8 +9,6 @@
 #include "ResourcesD2D1.h"
 #include <dwmapi.h>
 
-static constexpr const UINT s_SwapChainFlags = 0;
-
 struct CreateIWICImagingFactoryContext : public mj::Task
 {
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
@@ -46,7 +44,7 @@ struct CreateID2D1RenderTargetContext : public mj::Task
   MJ_UNINITIALIZED RECT rect;
 
   // Out
-  MJ_UNINITIALIZED ID2D1RenderTarget* pRenderTarget;
+  MJ_UNINITIALIZED ID2D1DeviceContext* pRenderTarget;
   MJ_UNINITIALIZED IDCompositionDesktopDevice* pDCompDevice;
 
   virtual void Execute() override
@@ -54,11 +52,11 @@ struct CreateID2D1RenderTargetContext : public mj::Task
     ZoneScoped;
 #ifdef _DEBUG
     UINT creationFlags              = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
-    UINT dxgiFlags                  = DXGI_CREATE_FACTORY_DEBUG;
+    //UINT dxgiFlags                  = DXGI_CREATE_FACTORY_DEBUG;
     D2D1_DEBUG_LEVEL d2d1DebugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #else
     UINT creationFlags              = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-    UINT dxgiFlags                  = 0;
+    //UINT dxgiFlags                  = 0;
     D2D1_DEBUG_LEVEL d2d1DebugLevel = D2D1_DEBUG_LEVEL_NONE;
 #endif
     MJ_UNINITIALIZED ID3D11Device* pD3d11Device;
@@ -87,7 +85,6 @@ struct CreateID2D1RenderTargetContext : public mj::Task
       // Ensure that DXGI doesn't queue more than one frame at a time.
       // MJ_ERR_HRESULT(pDxgiDevice->SetMaximumFrameLatency(1));
 
-      MJ_UNINITIALIZED ID2D1DeviceContext* pDeviceContext;
       // Obtain the Direct2D device for 2-D rendering.
       MJ_UNINITIALIZED ID2D1Device* pD2d1Device;
       {
@@ -97,9 +94,9 @@ struct CreateID2D1RenderTargetContext : public mj::Task
                                           &pD2d1Device));
 
         // Get Direct2D device's corresponding device context object.
-        MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &pDeviceContext));
-        this->pRenderTarget = pDeviceContext;
+        MJ_ERR_HRESULT(pD2d1Device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &this->pRenderTarget));
       }
+      MJ_DEFER(pD2d1Device->Release());
 
       // Identify the physical adapter (GPU or card) this device is runs on.
       {
@@ -109,13 +106,13 @@ struct CreateID2D1RenderTargetContext : public mj::Task
 
         // Get the factory object that created the DXGI device.
         {
-          MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
-          MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
-          MJ_DEFER(pDxgiFactory->Release());
+          //MJ_UNINITIALIZED IDXGIFactory2* pDxgiFactory;
+          //MJ_ERR_HRESULT(pDxgiAdapter->GetParent(IID_PPV_ARGS(&pDxgiFactory)));
+          //MJ_DEFER(pDxgiFactory->Release());
 
           {
             ZoneScopedN("DCompositionCreateDevice");
-            MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&pDCompDevice)));
+            MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&this->pDCompDevice)));
           }
         }
       }
@@ -165,6 +162,7 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcomp
 
   MJ_UNINITIALIZED IDCompositionTarget* pTarget;
   MJ_ERR_HRESULT(this->dcompDevice->CreateTargetForHwnd(svc::MainWindowHandle(), true, &pTarget));
+  MJ_DEFER(pTarget->Release());
   pTarget->SetRoot(pVisual);
 
   this->dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_ALPHA_MODE_PREMULTIPLIED,
@@ -215,7 +213,7 @@ void mj::MainWindow::Resize()
 
     if (this->pSurface)
     {
-      this->pSurface->Resize(width, height);
+      MJ_ERR_HRESULT(this->pSurface->Resize(width, height));
     }
 
     if (this->pRootControl)
@@ -227,6 +225,7 @@ void mj::MainWindow::Resize()
       this->pRootControl->OnSize();
     }
   }
+  MJ_ERR_ZERO(::InvalidateRect(hWnd, nullptr, FALSE));
 }
 
 void mj::MainWindow::OnPaint()
@@ -314,7 +313,8 @@ void mj::MainWindow::Destroy()
     static_cast<void>(pRenderTarget->Release());
     pRenderTarget = nullptr;
   }
-
+  
+  MJ_SAFE_RELEASE(this->pSurface);
   MJ_SAFE_RELEASE(this->dcompDevice);
 
   svc::Destroy();
@@ -369,7 +369,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_SIZE:
     pMainWindow->Resize();
-    MJ_ERR_ZERO(::InvalidateRect(hWnd, nullptr, FALSE));
     return 0;
   case WM_DESTROY:
     ::PostQuitMessage(0);
@@ -492,29 +491,34 @@ void mj::MainWindow::Run()
     mj::ThreadpoolSubmitTask(pTask);
   }
 
+  res::d2d1::Init(pAllocator);
+  svc::Init(pAllocator);
+
+  this->pRootControl = pAllocator->New<VerticalLayout>();
+  this->pRootControl->Init(pAllocator);
+
+#if 0
+  for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
   {
-    res::d2d1::Init(pAllocator);
-    svc::Init(pAllocator);
+    this->pHorizontalLayouts[i] = pAllocator->New<HorizontalLayout>();
+    this->pHorizontalLayouts[i]->Init(pAllocator);
 
-    this->pRootControl = pAllocator->New<VerticalLayout>();
-    this->pRootControl->Init(pAllocator);
-
-    for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
-    {
-      this->pHorizontalLayouts[i] = pAllocator->New<HorizontalLayout>();
-      this->pHorizontalLayouts[i]->Init(pAllocator);
-
-      this->pRootControl->Add(this->pHorizontalLayouts[i]);
-    }
-
-    for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
-    {
-      this->controls[i] = pAllocator->New<DirectoryNavigationPanel>();
-      this->controls[i]->Init(pAllocator);
-
-      this->pHorizontalLayouts[i / WIDTH]->Add(this->controls[i]);
-    }
+    this->pRootControl->Add(this->pHorizontalLayouts[i]);
   }
+
+  for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
+  {
+    this->controls[i] = pAllocator->New<DirectoryNavigationPanel>();
+    this->controls[i]->Init(pAllocator);
+
+    this->pHorizontalLayouts[i / WIDTH]->Add(this->controls[i]);
+  }
+#else
+  // this->controls[0] = pAllocator->New<DirectoryNavigationPanel>();
+  // this->controls[0]->Init(pAllocator);
+
+  // this->pRootControl->Add(this->controls[0]);
+#endif
 
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};
