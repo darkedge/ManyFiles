@@ -1,5 +1,6 @@
 #include "VerticalResizeControl.h"
 #include "ResourcesD2D1.h"
+#include <d2d1.h>
 
 void mj::VerticalResizeControl::Init(AllocatorBase* pAllocator)
 {

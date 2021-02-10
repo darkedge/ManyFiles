@@ -1,15 +1,17 @@
 #pragma once
-#include "HorizontalLayout.h"
-#include "VerticalLayout.h"
 #include "mj_win32.h"
-#include "mj_allocator.h"
-#include <d2d1_1.h>
-#include <dxgi1_3.h>
-#include <d3d11.h>
-#include <dcomp.h>
+
+struct IDCompositionDesktopDevice;
+struct IDCompositionVirtualSurface;
+struct IDCompositionTarget;
+struct ID2D1RenderTarget;
 
 namespace mj
 {
+  class Control;
+  class HorizontalLayout;
+  class VerticalLayout;
+
   class MainWindow
   {
   private:

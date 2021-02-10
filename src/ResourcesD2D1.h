@@ -1,6 +1,14 @@
 #pragma once
-#include "mj_allocator.h"
-#include <d2d1.h>
+#include <stdint.h>
+
+struct ID2D1Bitmap;
+struct ID2D1SolidColorBrush;
+struct ID2D1RenderTarget;
+
+namespace mj
+{
+  class AllocatorBase;
+}
 
 namespace res
 {
@@ -9,7 +17,7 @@ namespace res
     class BitmapObserver
     {
     public:
-      virtual void OnIconBitmapAvailable(ID2D1Bitmap* pBitmap, WORD resource) = 0;
+      virtual void OnIconBitmapAvailable(ID2D1Bitmap* pBitmap, uint16_t resource) = 0;
     };
     void AddBitmapObserver(BitmapObserver* pObserver);
     void RemoveBitmapObserver(BitmapObserver* pObserver);

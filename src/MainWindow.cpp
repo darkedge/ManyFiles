@@ -3,11 +3,17 @@
 #include "ServiceProvider.h"
 #include "DirectoryNavigationPanel.h"
 #include <dwrite.h>
-#include <wincodec.h>
+#include <wincodec.h> // WIC
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "ResourcesD2D1.h"
+
+#include "HorizontalLayout.h"
+#include "VerticalLayout.h"
+
 #include <dwmapi.h>
+#include <d3d11.h>
+#include <dcomp.h>
 
 struct CreateIWICImagingFactoryContext : public mj::Task
 {
@@ -96,17 +102,9 @@ struct CreateID2D1RenderTargetContext : public mj::Task
       }
       MJ_DEFER(pD2d1Device->Release());
 
-      // Identify the physical adapter (GPU or card) this device is runs on.
       {
-        MJ_UNINITIALIZED IDXGIAdapter* pDxgiAdapter;
-        MJ_ERR_HRESULT(pDxgiDevice->GetAdapter(&pDxgiAdapter));
-        MJ_DEFER(pDxgiAdapter->Release());
-
-        // Get the factory object that created the DXGI device.
-        {
-          ZoneScopedN("DCompositionCreateDevice");
-          MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&this->pDCompDevice)));
-        }
+        ZoneScopedN("DCompositionCreateDevice");
+        MJ_ERR_HRESULT(::DCompositionCreateDevice2(pD2d1Device, IID_PPV_ARGS(&this->pDCompDevice)));
       }
     }
   }
@@ -153,7 +151,7 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcomp
   MJ_DEFER(pVisual->Release());
 
   MJ_ERR_HRESULT(this->dcompDevice->CreateTargetForHwnd(svc::MainWindowHandle(), true, &this->pTarget));
-  this->pTarget->SetRoot(pVisual);
+  MJ_ERR_HRESULT(this->pTarget->SetRoot(pVisual));
 
   MJ_ERR_HRESULT(this->dcompDevice->CreateVirtualSurface(0, 0, DXGI_FORMAT_B8G8R8A8_UNORM,
                                                          DXGI_ALPHA_MODE_PREMULTIPLIED, &this->pSurface));
@@ -367,10 +365,12 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case WM_PAINT:
   {
     static constexpr const char* pFrameMark = STR(WM_PAINT);
+    // We don't present at regular intervals (like a video game)
+    // so we use FrameMarkStart/FrameMarkEnd to mark our rendering.
     FrameMarkStart(pFrameMark);
     MJ_UNINITIALIZED PAINTSTRUCT ps;
     static_cast<void>(::BeginPaint(hWnd, &ps));
-    pMainWindow->OnPaint();
+    //pMainWindow->OnPaint();
     static_cast<void>(::EndPaint(hWnd, &ps));
     FrameMarkEnd(pFrameMark);
     return 0;
@@ -488,7 +488,7 @@ void mj::MainWindow::Run()
   this->pRootControl = pAllocator->New<VerticalLayout>();
   this->pRootControl->Init(pAllocator);
 
-#if 1
+#if 0
   for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
   {
     this->pHorizontalLayouts[i] = pAllocator->New<HorizontalLayout>();

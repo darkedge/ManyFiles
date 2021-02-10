@@ -85,7 +85,7 @@ void mj::detail::EverythingQueryContext::OnDone()
   this->pParent->OnEverythingQuery();
 }
 
-void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, WORD resource)
+void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, uint16_t resource)
 {
   if (resource == IDB_FOLDER)
   {

@@ -5,6 +5,7 @@
 #include "Threadpool.h"
 #include "ServiceLocator.h"
 #include "stb_image.h"
+#include <d2d1.h>
 
 static ID2D1SolidColorBrush* pBlackBrush;
 static ID2D1SolidColorBrush* pScrollbarForegroundBrush;

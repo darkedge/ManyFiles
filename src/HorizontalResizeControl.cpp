@@ -1,5 +1,6 @@
 #include "HorizontalResizeControl.h"
 #include "ResourcesD2D1.h"
+#include <d2d1.h>
 
 void mj::HorizontalResizeControl::Init(AllocatorBase* pAllocator)
 {
