@@ -373,7 +373,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     FrameMarkStart(pFrameMark);
     MJ_UNINITIALIZED PAINTSTRUCT ps;
     static_cast<void>(::BeginPaint(hWnd, &ps));
-    //pMainWindow->OnPaint();
+    pMainWindow->OnPaint();
     static_cast<void>(::EndPaint(hWnd, &ps));
     FrameMarkEnd(pFrameMark);
     return 0;
@@ -491,7 +491,6 @@ void mj::MainWindow::Run()
   this->pRootControl = pAllocator->New<VerticalLayout>();
   this->pRootControl->Init(pAllocator);
 
-#if 0
   for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
   {
     this->pHorizontalLayouts[i] = pAllocator->New<HorizontalLayout>();
@@ -507,7 +506,6 @@ void mj::MainWindow::Run()
 
     this->pHorizontalLayouts[i / WIDTH]->Add(this->controls[i]);
   }
-#endif
 
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};
