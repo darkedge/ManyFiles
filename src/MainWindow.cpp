@@ -302,8 +302,11 @@ void mj::MainWindow::Destroy()
     pRenderTarget = nullptr;
   }
 
-  MJ_SAFE_RELEASE(this->pTarget);
+  // Note: We have to release these objects in the right order,
+  // otherwise the Direct2D debug layer will report memory leaks.
+  // Surface, target, device.
   MJ_SAFE_RELEASE(this->pSurface);
+  MJ_SAFE_RELEASE(this->pTarget);
   MJ_SAFE_RELEASE(this->dcompDevice);
 
   svc::Destroy();
