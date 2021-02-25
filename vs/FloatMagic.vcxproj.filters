@@ -22,6 +22,7 @@
     <ClCompile Include="..\src\LinearLayout.cpp" />
     <ClCompile Include="..\src\VerticalResizeControl.cpp" />
     <ClCompile Include="..\src\HorizontalResizeControl.cpp" />
+    <ClCompile Include="..\src\mj_random.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="FloatMagic.manifest" />
@@ -55,6 +56,7 @@
     <ClInclude Include="..\src\LinearLayout.h" />
     <ClInclude Include="..\src\VerticalResizeControl.h" />
     <ClInclude Include="..\src\HorizontalResizeControl.h" />
+    <ClInclude Include="..\src\mj_random.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

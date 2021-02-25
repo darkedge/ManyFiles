@@ -117,6 +117,7 @@
     <ClInclude Include="..\src\mj_hashtable.h" />
     <ClInclude Include="..\src\mj_macro.h" />
     <ClInclude Include="..\src\mj_math.h" />
+    <ClInclude Include="..\src\mj_random.h" />
     <ClInclude Include="..\src\mj_win32.h" />
     <ClInclude Include="..\src\ncrt_memory.h" />
     <ClInclude Include="..\src\ResourcesD2D1.h" />
@@ -156,6 +157,7 @@
     <ClCompile Include="..\src\mj_allocator.cpp" />
     <ClCompile Include="..\src\mj_common.cpp" />
     <ClCompile Include="..\src\mj_math.cpp" />
+    <ClCompile Include="..\src\mj_random.cpp" />
     <ClCompile Include="..\src\mj_stb_image.cpp" />
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
