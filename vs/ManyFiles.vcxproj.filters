@@ -25,10 +25,10 @@
     <ClCompile Include="..\src\mj_random.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="FloatMagic.manifest" />
+    <CustomBuild Include="ManyFiles.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="FloatMagic.ruleset" />
+    <None Include="ManyFiles.ruleset" />
     <None Include="..\3rdparty\Everything\Everything64.dll" />
   </ItemGroup>
   <ItemGroup>
