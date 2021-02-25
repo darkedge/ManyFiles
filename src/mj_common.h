@@ -40,6 +40,20 @@ namespace mj
   }
 
   template <typename T>
+  T clamp(const T& value, const T& minVal, const T& maxVal)
+  {
+    if (value < minVal)
+    {
+      return minVal;
+    }
+    else if (value > maxVal)
+    {
+      return maxVal;
+    }
+    return value;
+  }
+
+  template <typename T>
   void swap(T& a, T& b)
   {
     T c = a;

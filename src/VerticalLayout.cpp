@@ -16,6 +16,7 @@ void mj::VerticalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCont
                                            int16_t dy)
 {
   static_cast<void>(dx);
+  dy = mj::clamp<int16_t>(dy, pFirst->yParent - pResizeControl->yParent + MIN_PANEL_SIZE, pSecond->height - MIN_PANEL_SIZE);
 
   pFirst->height += dy;
   pResizeControl->yParent += dy;

@@ -16,6 +16,7 @@ void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCo
                                              int16_t dy)
 {
   static_cast<void>(dy);
+  dx = mj::clamp<int16_t>(dx, pFirst->xParent - pResizeControl->xParent + MIN_PANEL_SIZE, pSecond->width - MIN_PANEL_SIZE);
 
   pFirst->width += dx;
   pResizeControl->xParent += dx;
