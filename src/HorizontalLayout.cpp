@@ -12,16 +12,17 @@ void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
   }
 }
 
-void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
-                                             int16_t dy)
+void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t* pDx,
+                                             int16_t* pDy)
 {
-  static_cast<void>(dy);
-  dx = mj::clamp<int16_t>(dx, pFirst->xParent - pResizeControl->xParent + MIN_PANEL_SIZE, pSecond->width - MIN_PANEL_SIZE);
+  static_cast<void>(pDy);
+  *pDx = mj::clamp<int16_t>(*pDx, pFirst->xParent - pResizeControl->xParent + MIN_PANEL_SIZE,
+                            pSecond->width - MIN_PANEL_SIZE);
 
-  pFirst->width += dx;
-  pResizeControl->xParent += dx;
-  pSecond->xParent += dx;
-  pSecond->width -= dx;
+  pFirst->width += *pDx;
+  pResizeControl->xParent += *pDx;
+  pSecond->xParent += *pDx;
+  pSecond->width -= *pDx;
 }
 
 void mj::HorizontalLayout::OnSize()

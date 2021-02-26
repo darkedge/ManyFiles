@@ -16,7 +16,7 @@ namespace mj
     void Add(Control* pControl);
 
   protected:
-    virtual void MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
-                                   int16_t dy) override;
+    virtual void MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t* pDx,
+                                   int16_t* pDy) override;
   };
 } // namespace mj

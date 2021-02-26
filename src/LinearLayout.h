@@ -23,8 +23,8 @@ namespace mj
     AllocatorBase* pAllocator = nullptr;
     ArrayList<Control*> controls;
 
-    virtual void MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
-                                   int16_t dy) = 0;
+    virtual void MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t* pDx,
+                                   int16_t* pDy) = 0;
 
   private:
     /// <summary>

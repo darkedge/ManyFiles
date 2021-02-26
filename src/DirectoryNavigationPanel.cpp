@@ -666,6 +666,9 @@ void mj::detail::CreateTextLayoutTask::Execute()
                                                         1024.0f,                                       //
                                                         1024.0f,                                       //
                                                         &this->pTextLayout));
+
+  // FIXME: If this task is slow, InvalidateRect does not show everything...
+  // ::Sleep(1000);
 }
 
 void mj::detail::CreateTextLayoutTask::OnDone()
@@ -673,6 +676,11 @@ void mj::detail::CreateTextLayoutTask::OnDone()
   ZoneScoped;
   this->pTextLayout->AddRef();
   this->pParent->SetTextLayout(this->pEntry, this->pTextLayout);
+}
+
+void mj::detail::CreateTextLayoutTask::Destroy()
+{
+  this->pTextLayout->Release();
 }
 
 void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextLayout* pTextLayout)
@@ -684,11 +692,6 @@ void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextL
     this->scrollOffset = 0;
     mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
   }
-}
-
-void mj::detail::CreateTextLayoutTask::Destroy()
-{
-  this->pTextLayout->Release();
 }
 
 void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()

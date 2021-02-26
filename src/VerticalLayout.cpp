@@ -12,16 +12,17 @@ void mj::VerticalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
   }
 }
 
-void mj::VerticalLayout::MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t dx,
-                                           int16_t dy)
+void mj::VerticalLayout::MoveResizeControl(Control* pFirst, Control* pResizeControl, Control* pSecond, int16_t* pDx,
+                                           int16_t* pDy)
 {
-  static_cast<void>(dx);
-  dy = mj::clamp<int16_t>(dy, pFirst->yParent - pResizeControl->yParent + MIN_PANEL_SIZE, pSecond->height - MIN_PANEL_SIZE);
+  static_cast<void>(pDx);
+  *pDy = mj::clamp<int16_t>(*pDy, pFirst->yParent - pResizeControl->yParent + MIN_PANEL_SIZE,
+                            pSecond->height - MIN_PANEL_SIZE);
 
-  pFirst->height += dy;
-  pResizeControl->yParent += dy;
-  pSecond->yParent += dy;
-  pSecond->height -= dy;
+  pFirst->height += *pDy;
+  pResizeControl->yParent += *pDy;
+  pSecond->yParent += *pDy;
+  pSecond->height -= *pDy;
 }
 
 void mj::VerticalLayout::OnSize()

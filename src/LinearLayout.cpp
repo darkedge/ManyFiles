@@ -21,10 +21,10 @@ void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
     int16_t dx = x - this->dragStartX;
     int16_t dy = y - this->dragStartY;
 
-    this->MoveResizeControl(pFirst, pResizeControl, pSecond, dx, dy);
+    this->MoveResizeControl(pFirst, pResizeControl, pSecond, &dx, &dy);
 
-    this->dragStartX = x;
-    this->dragStartY = y;
+    this->dragStartX += dx;
+    this->dragStartY += dy;
 
     // TODO: This call breaks resizing, but it should be called
     // to recursively adjust all sizes.
