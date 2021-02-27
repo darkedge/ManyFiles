@@ -15,6 +15,8 @@
 #include <d3d11.h>
 #include <dcomp.h>
 
+#define WM_MJTASKFINISH (WM_USER + 1)
+
 struct CreateIWICImagingFactoryContext : public mj::Task
 {
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
@@ -456,11 +458,7 @@ void mj::MainWindow::Run()
   svc::ProvideGeneralPurposeAllocator(pAllocator);
 
   // Initialize thread pool
-  MJ_UNINITIALIZED MSG msg;
-  MJ_UNINITIALIZED HANDLE iocp;
-  MJ_ERR_IF(iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
-  MJ_DEFER(::CloseHandle(iocp));
-  mj::ThreadpoolInit(iocp);
+  mj::ThreadpoolInit(::GetCurrentThreadId(), WM_MJTASKFINISH);
   MJ_DEFER(mj::ThreadpoolDestroy());
 
   // Start a bunch of tasks
@@ -532,59 +530,28 @@ void mj::MainWindow::Run()
   }
 
   // Run the message loop.
-  while (true)
+  MJ_UNINITIALIZED MSG msg;
+  while (::GetMessageW(&msg, nullptr, 0, 0))
   {
-    MJ_UNINITIALIZED DWORD waitObject;
-    {
-      //waitObject = ::MsgWaitForMultipleObjects(1, &iocp, FALSE, INFINITE, QS_ALLEVENTS);
-      waitObject = ::MsgWaitForMultipleObjectsEx(1, &iocp, INFINITE, QS_ALLEVENTS,MWMO_INPUTAVAILABLE );
-    }
-    switch (waitObject)
-    {
-    case WAIT_OBJECT_0: // IOCP
-    {
-      MJ_UNINITIALIZED DWORD numBytes;
-      MJ_UNINITIALIZED mj::Task* pTask;
-      MJ_UNINITIALIZED LPOVERLAPPED pOverlapped;
+    // If the message is translated, the return value is nonzero.
+    // If the message is not translated, the return value is zero.
+    static_cast<void>(::TranslateMessage(&msg));
 
-      BOOL ret =
-          ::GetQueuedCompletionStatus(iocp, &numBytes, reinterpret_cast<PULONG_PTR>(&pTask), &pOverlapped, INFINITE);
-      if (ret == FALSE && ::GetLastError() == ERROR_ABANDONED_WAIT_0)
-      {
-        return;
-      }
-      else if (pTask)
-      {
-        mj::ThreadpoolTaskEnd(pTask);
-      }
-    }
-    break;
-    case WAIT_OBJECT_0 + 1: // Window message
+    // The return value specifies the value returned by the window procedure.
+    // Although its meaning depends on the message being dispatched,
+    // the return value generally is ignored.
+    static_cast<void>(::DispatchMessageW(&msg));
+
+    if (msg.message == WM_QUIT)
     {
-      while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
-      {
-        // If the message is translated, the return value is nonzero.
-        // If the message is not translated, the return value is zero.
-        static_cast<void>(::TranslateMessage(&msg));
-
-        // The return value specifies the value returned by the window procedure.
-        // Although its meaning depends on the message being dispatched,
-        // the return value generally is ignored.
-        static_cast<void>(::DispatchMessageW(&msg));
-
-        if (msg.message == WM_QUIT)
-        {
-          return;
-        }
-      }
+      return;
     }
-    break;
-    case WAIT_FAILED:
-      DebugBreak();
-      break;
-    default:
-      // TODO: Show error on WAIT_FAILED
-      break;
+    else if (msg.message == WM_MJTASKFINISH)
+    {
+      // Threadpool notifies the main thread using PostThreadMessage.
+      // These messages are not associated with a window, so they must be
+      // handled here, instead of in the WindowProc.
+      mj::ThreadpoolTaskEnd(reinterpret_cast<mj::Task*>(msg.wParam));
     }
   }
 }

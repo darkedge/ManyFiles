@@ -9,7 +9,8 @@ static constexpr auto MAX_TASKS   = 1024;
 static constexpr auto NUM_THREADS = 8;
 static mj::TaskContext s_TaskContextArray[MAX_TASKS];
 static mj::TaskContext* s_pTaskHead;
-static HANDLE s_IocpMainThread;
+static DWORD s_MainThreadId;
+static UINT s_Msg;
 static HANDLE s_Threads[NUM_THREADS];
 static HANDLE s_Iocp;
 
@@ -67,8 +68,8 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
       pTask->Execute();
 
       {
-        ZoneScopedNC("PostQueuedCompletionStatus", 0x31332C);
-        MJ_ERR_ZERO(::PostQueuedCompletionStatus(s_IocpMainThread, 0, reinterpret_cast<ULONG_PTR>(pTask), nullptr));
+        ZoneScopedNC("PostMessageW", 0x31332C);
+        MJ_ERR_ZERO(::PostThreadMessageW(s_MainThreadId, s_Msg, reinterpret_cast<WPARAM>(pTask), 0));
       }
     }
   }
@@ -76,11 +77,17 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
   return 0;
 }
 
-void mj::ThreadpoolInit(HANDLE pHandle)
+void mj::ThreadpoolInit(DWORD threadId, UINT userMessage)
 {
   ZoneScoped;
 
-  s_IocpMainThread = pHandle;
+  s_MainThreadId = threadId;
+  s_Msg          = userMessage;
+
+  // Initialize message queue for this thread
+  // TODO: Check if this is necessary
+  // MJ_UNINITIALIZED MSG msg;
+  // static_cast<void>(::PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE));
 
   MJ_ERR_IF(s_Iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
 

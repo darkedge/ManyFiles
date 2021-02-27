@@ -64,8 +64,9 @@ namespace mj
   /// <summary>
   /// Initializes the threadpool system.
   /// </summary>
-  /// <param name="msg">The message ID to send. Should be WM_USER + some number.</param>
-  void ThreadpoolInit(HANDLE pHandle);
+  /// <param name="threadId">Thread ID of the window message queue</param>
+  /// <param name="userMessage">The message to send. Should be WM_USER + some number.</param>
+  void ThreadpoolInit(DWORD threadId, UINT userMessage);
 
   template <class T>
   T* ThreadpoolCreateTask(ITaskCompletionHandler* pHandler = nullptr)
