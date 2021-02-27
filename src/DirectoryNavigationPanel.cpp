@@ -710,7 +710,7 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
     if (this->entries.Emplace(numItems))
     {
       // Variable number of tasks with the same cancellation token
-      numEntriesDoneLoading = 0;
+      this->numEntriesDoneLoading = 0;
 
       // Folders
       for (auto i = 0; i < this->listFolderContentsTaskResult.folders.Size(); i++)

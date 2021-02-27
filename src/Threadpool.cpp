@@ -2,7 +2,6 @@
 #include "mj_win32.h"
 #include "mj_common.h"
 #include "ErrorExit.h"
-#include "ServiceLocator.h"
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "../3rdparty/tracy/common/TracySystem.hpp"
 
@@ -69,7 +68,7 @@ static DWORD WINAPI ThreadMain(LPVOID lpThreadParameter)
 
       {
         ZoneScopedNC("PostQueuedCompletionStatus", 0x31332C);
-        ::PostQueuedCompletionStatus(s_IocpMainThread, 0, reinterpret_cast<ULONG_PTR>(pTask), nullptr);
+        MJ_ERR_ZERO(::PostQueuedCompletionStatus(s_IocpMainThread, 0, reinterpret_cast<ULONG_PTR>(pTask), nullptr));
       }
     }
   }

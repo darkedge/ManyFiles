@@ -157,7 +157,9 @@ void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcomp
                                                          DXGI_ALPHA_MODE_PREMULTIPLIED, &this->pSurface));
   MJ_ERR_HRESULT(pVisual->SetContent(this->pSurface));
 
-  this->Resize();
+  // If the window was previously visible, the return value is nonzero.
+  // If the window was previously hidden, the return value is zero.
+  static_cast<void>(::ShowWindow(svc::MainWindowHandle(), SW_SHOW));
 }
 
 #if 0
@@ -351,11 +353,11 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     pMainWindow       = reinterpret_cast<mj::MainWindow*>(pcs->lpCreateParams);
     MJ_ERR_ZERO_VALID(::SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pMainWindow)));
     svc::ProvideMainWindowHandle(hWnd);
-    pMainWindow->Resize();
 
     // Disable animations, even before presenting the window
-    BOOL ani = TRUE;
-    ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
+    // TODO: It is better to leave this as a configuration option.
+    // BOOL ani = TRUE;
+    // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
@@ -371,10 +373,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // We don't present at regular intervals (like a video game)
     // so we use FrameMarkStart/FrameMarkEnd to mark our rendering.
     FrameMarkStart(pFrameMark);
-    MJ_UNINITIALIZED PAINTSTRUCT ps;
-    static_cast<void>(::BeginPaint(hWnd, &ps));
     pMainWindow->OnPaint();
-    static_cast<void>(::EndPaint(hWnd, &ps));
     FrameMarkEnd(pFrameMark);
     return 0;
   }
@@ -521,11 +520,10 @@ void mj::MainWindow::Run()
   MJ_UNINITIALIZED HWND hWnd;
   {
     ZoneScopedN("CreateWindowExW");
-    hWnd = ::CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP,        // Optional window styles.
-                             classAtom,                        // Window class
-                             L"Window Title",                  // Window text
-                             WS_OVERLAPPEDWINDOW | WS_VISIBLE, // Window style
-                             // WS_POPUP | WS_VISIBLE,                   // Window style
+    hWnd = ::CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP,               // Optional window styles.
+                             classAtom,                               // Window class
+                             L"Window Title",                         // Window text
+                             WS_OVERLAPPEDWINDOW,                     // Window style
                              CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, // Size and pCurrent
                              nullptr,                                 // Parent window
                              nullptr,                                 // Menu
@@ -538,7 +536,8 @@ void mj::MainWindow::Run()
   {
     MJ_UNINITIALIZED DWORD waitObject;
     {
-      waitObject = ::MsgWaitForMultipleObjects(1, &iocp, FALSE, INFINITE, QS_ALLEVENTS);
+      //waitObject = ::MsgWaitForMultipleObjects(1, &iocp, FALSE, INFINITE, QS_ALLEVENTS);
+      waitObject = ::MsgWaitForMultipleObjectsEx(1, &iocp, INFINITE, QS_ALLEVENTS,MWMO_INPUTAVAILABLE );
     }
     switch (waitObject)
     {
@@ -580,6 +579,9 @@ void mj::MainWindow::Run()
       }
     }
     break;
+    case WAIT_FAILED:
+      DebugBreak();
+      break;
     default:
       // TODO: Show error on WAIT_FAILED
       break;
