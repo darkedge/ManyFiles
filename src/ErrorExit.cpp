@@ -45,7 +45,7 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
       sb.SetArrayList(&arrayList);
 
       // The string is formatted such that you can double-click the output from
-      // OutputDebugString and go to the error source
+      // OutputDebugString in Visual Studio's Output window to go to the error source
       auto string = sb.Append(fileName)                   //
                         .Append(L"(")                     //
                         .Append(lineNumber)               //
@@ -58,13 +58,10 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
                         .ToStringClosed();
 
       ::OutputDebugStringW(string.ptr);
-      ::DebugBreak();
     }
 
     static_cast<void>(::LocalFree(lpMsgBuf));
   }
-
-  ::ExitProcess(dw);
 }
 
 /// <summary>
@@ -99,7 +96,7 @@ void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& 
     sb.SetArrayList(&arrayList);
 
     // The string is formatted such that you can double-click the output from
-    // OutputDebugString and go to the error source
+    // OutputDebugString in Visual Studio's Output window to go to the error source
     auto string = sb.Append(fileName)                   //
                       .Append(L"(")                     //
                       .Append(lineNumber)               //
@@ -108,8 +105,5 @@ void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& 
                       .ToStringClosed();
 
     ::OutputDebugStringW(string.ptr);
-    ::DebugBreak();
   }
-
-  ::ExitProcess(EXCEPTION_ACCESS_VIOLATION);
 }

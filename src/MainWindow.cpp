@@ -195,7 +195,8 @@ void mj::MainWindow::Resize()
 {
   ZoneScoped;
   HWND hWnd = svc::MainWindowHandle();
-  if (hWnd)
+  // TODO: Check if IsIconic() can be removed after adding a WM_NCCALCSIZE message handler
+  if (hWnd && !::IsIconic(hWnd))
   {
     MJ_UNINITIALIZED RECT clientArea;
     MJ_ERR_IF(::GetClientRect(hWnd, &clientArea), 0);
@@ -341,6 +342,14 @@ namespace mj
 /// </summary>
 LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+#if 0 // Add later: DWM handling of messages
+  MJ_UNINITIALIZED LRESULT result;
+  if (::DwmDefWindowProc(hWnd, message, wParam, lParam, &result))
+  {
+    return result;
+  }
+#endif
+
   mj::MainWindow* pMainWindow = reinterpret_cast<mj::MainWindow*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 
   switch (message)
@@ -363,6 +372,26 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
 
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
+#if 0 // Add later
+  case WM_NCCALCSIZE:
+  {
+    auto client_area_needs_calculating = static_cast<bool>(wParam);
+
+    if (client_area_needs_calculating)
+    {
+
+      auto parameters = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+
+      auto& requested_client_area = parameters->rgrc[0];
+      requested_client_area.right -= GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+      requested_client_area.left += GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+      requested_client_area.bottom -= GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+
+      return 0;
+    }
+  }
+  break;
+#endif
   case WM_SIZE:
     pMainWindow->Resize();
     return 0;
@@ -509,7 +538,7 @@ void mj::MainWindow::Run()
   wc.cbSize        = sizeof(WNDCLASSEX);
   wc.lpfnWndProc   = mj::MainWindow::WindowProc;
   wc.hInstance     = HINST_THISCOMPONENT;
-  wc.lpszClassName = L"Class Name";
+  wc.lpszClassName = L"ManyFiles";
   wc.hCursor       = ::LoadCursorW(nullptr, IDC_ARROW);
   wc.style         = CS_DBLCLKS;
   MJ_ERR_ZERO(cls = ::RegisterClassExW(&wc));
@@ -520,7 +549,7 @@ void mj::MainWindow::Run()
     ZoneScopedN("CreateWindowExW");
     hWnd = ::CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP,               // Optional window styles.
                              classAtom,                               // Window class
-                             L"Window Title",                         // Window text
+                             L"ManyFiles",                            // Window text
                              WS_OVERLAPPEDWINDOW,                     // Window style
                              CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, // Size and pCurrent
                              nullptr,                                 // Parent window
