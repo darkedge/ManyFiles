@@ -329,9 +329,13 @@ mj::StringView* mj::StringCache::end() const
   return this->strings.end();
 }
 
-mj::StringView& mj::StringCache::operator[](size_t index)
+mj::StringView* mj::StringCache::operator[](size_t index)
 {
-  return this->strings[index];
+  if (index < this->Size())
+  {
+    return &this->strings[index];
+  }
+  return nullptr;
 }
 
 mj::StringCache::operator mj::ArrayListView<const mj::StringView>()

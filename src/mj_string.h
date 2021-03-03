@@ -98,7 +98,7 @@ namespace mj
 
     StringView* end() const;
 
-    StringView& operator[](size_t index);
+    StringView* operator[](size_t index);
 
     operator mj::ArrayListView<const StringView>();
   };

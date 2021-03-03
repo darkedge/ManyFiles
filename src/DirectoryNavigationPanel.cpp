@@ -26,6 +26,37 @@ struct InvalidateRectTask : public mj::Task
   }
 };
 
+void mj::DirectoryNavigationPanel::Breadcrumb::Init(AllocatorBase* pAllocator)
+{
+  this->breadcrumb.Init(pAllocator);
+}
+
+void mj::DirectoryNavigationPanel::Breadcrumb::Destroy()
+{
+  this->breadcrumb.Destroy();
+}
+
+bool mj::DirectoryNavigationPanel::Breadcrumb::Add(const wchar_t* pStringLiteral)
+{
+  return this->breadcrumb.Add(pStringLiteral);
+}
+
+bool mj::DirectoryNavigationPanel::Breadcrumb::Add(const StringView& string)
+{
+  return this->breadcrumb.Add(string);
+}
+
+mj::StringView* mj::DirectoryNavigationPanel::Breadcrumb::Last()
+{
+  size_t size = this->breadcrumb.Size();
+  if (size > 0)
+  {
+    return this->breadcrumb[size - 1];
+  }
+
+  return nullptr;
+}
+
 ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
 {
   ZoneScoped;
@@ -207,12 +238,11 @@ void mj::detail::ListFolderContentsTask::Destroy()
 
 void mj::DirectoryNavigationPanel::OpenSubFolder(const wchar_t* pFolder)
 {
-  auto breadcrumbSize = this->breadcrumb.Size();
-  if (breadcrumbSize > 0)
+  StringView* pLast = this->breadcrumb.Last();
+  if (pLast)
   {
-    auto currentPath = this->breadcrumb[breadcrumbSize - 1];
     this->sbOpenFolder.Clear();
-    this->sbOpenFolder.Append(currentPath);
+    this->sbOpenFolder.Append(*pLast);
     this->sbOpenFolder.Append(L"\\");
     this->sbOpenFolder.Append(pFolder);
   }
@@ -261,7 +291,7 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 
   // Start tasks
   this->sbOpenFolder.Clear();
-  this->sbOpenFolder.Append(this->breadcrumb[0]);
+  this->sbOpenFolder.Append(*this->breadcrumb.Last());
   this->OpenFolder();
 
 #if 0
@@ -325,8 +355,6 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
-
   // Draw scrollbar
   if (this->height > 0 && this->entries.Size() > 0)
   {
@@ -353,6 +381,14 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
       }
     }
   }
+
+  auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
+
+  if (this->pCurrentFolderTextLayout)
+  {
+    pRenderTarget->DrawTextLayout(point, this->pCurrentFolderTextLayout, res::d2d1::BlackBrush());
+  }
+  point.y += this->entryHeight;
 
   for (const auto& entry : this->entries)
   {
@@ -544,12 +580,11 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t client
       MJ_ERR_HRESULT(::SHGetDesktopFolder(&pDesktop));
       MJ_DEFER(pDesktop->Release());
 
-      auto breadcrumbSize = this->breadcrumb.Size();
-      if (breadcrumbSize > 0)
+      StringView* pLast = this->breadcrumb.Last();
+      if (pLast)
       {
-        auto currentPath = this->breadcrumb[breadcrumbSize - 1];
         this->sbOpenFolder.Clear();
-        this->sbOpenFolder.Append(currentPath);
+        this->sbOpenFolder.Append(*pLast);
         this->sbOpenFolder.Append(L"\\");
         this->sbOpenFolder.Append(*pEntry->pName);
 
@@ -718,7 +753,7 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
         auto& entry = this->entries[i];
         entry       = {};
         entry.type  = EEntryType::Directory;
-        entry.pName = &this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.folders[i]];
+        entry.pName = this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.folders[i]];
         entry.pIcon = res::d2d1::FolderIcon();
 
         auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
@@ -733,7 +768,7 @@ void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
         auto& entry = this->entries[i + this->listFolderContentsTaskResult.folders.Size()];
         entry       = {};
         entry.type  = EEntryType::File;
-        entry.pName = &this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.files[i]];
+        entry.pName = this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.files[i]];
         entry.pIcon = res::d2d1::FileIcon();
 
         auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();

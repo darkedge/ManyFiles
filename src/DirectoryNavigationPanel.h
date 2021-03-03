@@ -17,6 +17,7 @@ namespace mj
       Directory,
     };
   };
+
   struct Entry
   {
     EEntryType::Enum type;
@@ -39,15 +40,46 @@ namespace mj
                                    public res::d2d1::BitmapObserver
   {
   private:
+    class Breadcrumb
+    {
+    private:
+      StringCache breadcrumb;
+
+    public:
+      /// <summary>
+      /// Does no allocation on construction.
+      /// </summary>
+      /// <returns></returns>
+      void Init(AllocatorBase* pAllocator);
+
+      /// <summary>
+      /// Data is freed using the assigned allocator.
+      /// </summary>
+      void Destroy();
+
+      bool Add(const wchar_t* pStringLiteral);
+
+bool Add(const StringView& string);
+
+      StringView* Last();
+    };
+
     friend struct detail::ListFolderContentsTask;
     friend struct detail::CreateTextLayoutTask;
     friend struct detail::LoadFolderIconTask;
     friend struct detail::LoadFileIconTask;
     friend struct detail::EverythingQueryContext;
 
+    /// <summary>
+    /// The format of text used for text layouts
+    /// </summary>
     IDWriteTextFormat* pTextFormat = nullptr;
-    const Entry* pHoveredEntry     = nullptr;
-    StringCache breadcrumb;
+    /// <summary>
+    /// Points to the last entry in the breadcrumb
+    /// </summary>
+    IDWriteTextLayout* pCurrentFolderTextLayout = nullptr;
+    const Entry* pHoveredEntry                  = nullptr;
+    Breadcrumb breadcrumb;
 
     // Open folder
     ArrayList<wchar_t> alOpenFolder;
