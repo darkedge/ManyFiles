@@ -371,9 +371,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // BOOL ani = TRUE;
     // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
-    // Prevent hourglass (spinning circle) cursor stalling at startup
-    res::win32::SetCursor(res::win32::ECursor::Arrow);
-
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
 #if 0 // Add later
@@ -412,12 +409,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     FrameMarkEnd(pFrameMark);
     return 0;
   }
-  case WM_SETCURSOR:
-    if (HIWORD(lParam) == WM_MOUSEMOVE)
-    {
-      return TRUE;
-    }
-    break;
   case WM_MOUSEMOVE:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
@@ -427,11 +418,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
       mouseMoveEvent.x = ptClient.x;
       mouseMoveEvent.y = ptClient.y;
       pMainWindow->pRootControl->OnMouseMove(&mouseMoveEvent);
-      if (pMainWindow->lastCursor != mouseMoveEvent.cursor)
-      {
-        res::win32::SetCursor(mouseMoveEvent.cursor);
-        pMainWindow->lastCursor = mouseMoveEvent.cursor;
-      }
+      res::win32::SetCursor(mouseMoveEvent.cursor);
     }
     return 0;
   }
