@@ -409,6 +409,12 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     FrameMarkEnd(pFrameMark);
     return 0;
   }
+  case WM_SETCURSOR:
+    if (LOWORD(lParam) == HTCLIENT)
+    {
+      return TRUE;
+    }
+    break;
   case WM_MOUSEMOVE:
   {
     POINTS ptClient = MAKEPOINTS(lParam);

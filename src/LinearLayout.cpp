@@ -12,6 +12,7 @@ void mj::LinearLayout::Init(AllocatorBase* pAllocator)
 
 void mj::LinearLayout::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 {
+  // Resizing
   if (this->resizeControlIndex != 0)
   {
     Control* pFirst         = this->controls[this->resizeControlIndex - 1];
@@ -33,6 +34,9 @@ void mj::LinearLayout::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 
     // Child controls might call this but it is not guaranteed
     ::InvalidateRect(svc::MainWindowHandle(), nullptr, false);
+
+    // OnMouseMove for resize controls sets the correct mouse cursor
+    pResizeControl->OnMouseMove(pMouseMoveEvent);
   }
   else
   {
