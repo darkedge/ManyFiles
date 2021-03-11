@@ -4,7 +4,7 @@
 
 void mj::HorizontalResizeControl::Init(AllocatorBase* pAllocator)
 {
-  this->height = HEIGHT;
+  this->width = WIDTH;
 }
 
 void mj::HorizontalResizeControl::Paint(ID2D1RenderTarget* pRenderTarget)

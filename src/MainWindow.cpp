@@ -409,6 +409,8 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     FrameMarkEnd(pFrameMark);
     return 0;
   }
+  case WM_SETCURSOR:
+    return 1;
   case WM_MOUSEMOVE:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
@@ -418,13 +420,17 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
       mouseMoveEvent.x = ptClient.x;
       mouseMoveEvent.y = ptClient.y;
       pMainWindow->pRootControl->OnMouseMove(&mouseMoveEvent);
-      res::win32::SetCursor(mouseMoveEvent.cursor);
+      if (pMainWindow->lastCursor != mouseMoveEvent.cursor)
+      {
+        res::win32::SetCursor(mouseMoveEvent.cursor);
+        pMainWindow->lastCursor = mouseMoveEvent.cursor;
+      }
     }
     return 0;
   }
   // Note: "Left" means "Primary" when dealing with mouse buttons.
   // If GetSystemMetrics(SM_SWAPBUTTON) is nonzero, the right mouse button
-  // will trigger left mouse button actions, and vice versa.
+  // will fire WM_LBUTTONDOWN, and vice versa.
   case WM_LBUTTONDOWN:
   {
     POINTS ptClient = MAKEPOINTS(lParam);

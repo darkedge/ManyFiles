@@ -1,5 +1,5 @@
 #pragma once
-#include "mj_win32.h"
+#include "ResourcesWin32.h"
 
 struct IDCompositionDesktopDevice;
 struct IDCompositionVirtualSurface;
@@ -23,6 +23,7 @@ namespace mj
     IDCompositionDesktopDevice* dcompDevice      = nullptr;
     IDCompositionVirtualSurface* pSurface        = nullptr;
     IDCompositionTarget* pTarget                 = nullptr;
+    res::win32::ECursor::Enum lastCursor         = res::win32::ECursor::Arrow;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 

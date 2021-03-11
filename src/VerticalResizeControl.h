@@ -10,7 +10,7 @@ namespace mj
   class VerticalResizeControl : public Control
   {
   public:
-    static constexpr const auto WIDTH = 8;
+    static constexpr const auto HEIGHT = 8;
 
     virtual void Init(AllocatorBase* pAllocator) override;
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
@@ -19,7 +19,7 @@ namespace mj
 
     virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent) override
     {
-      pMouseMoveEvent->cursor = res::win32::ECursor::Horizontal;
+      pMouseMoveEvent->cursor = res::win32::ECursor::Vertical;
     }
   };
 } // namespace mj

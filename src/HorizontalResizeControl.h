@@ -10,7 +10,7 @@ namespace mj
   class HorizontalResizeControl : public Control
   {
   public:
-    static constexpr const auto HEIGHT = 8;
+    static constexpr const auto WIDTH = 8;
 
     virtual void Init(AllocatorBase* pAllocator) override;
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;

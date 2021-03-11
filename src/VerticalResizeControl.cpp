@@ -4,7 +4,7 @@
 
 void mj::VerticalResizeControl::Init(AllocatorBase* pAllocator)
 {
-  this->width = WIDTH;
+  this->height = HEIGHT;
 }
 
 void mj::VerticalResizeControl::Paint(ID2D1RenderTarget* pRenderTarget)

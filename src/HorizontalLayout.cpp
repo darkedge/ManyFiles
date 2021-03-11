@@ -1,5 +1,5 @@
 #include "HorizontalLayout.h"
-#include "VerticalResizeControl.h"
+#include "HorizontalResizeControl.h"
 
 void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
 {
@@ -33,7 +33,7 @@ void mj::HorizontalLayout::OnSize()
   {
     int16_t numResizeControls        = numControls / 2;
     int16_t numPanels                = numResizeControls + 1;
-    int16_t totalResizeControlsWidth = numResizeControls * VerticalResizeControl::WIDTH;
+    int16_t totalResizeControlsWidth = numResizeControls * HorizontalResizeControl::WIDTH;
 
     // TODO: This integer division can leave blank columns if there is a remainder
     int16_t panelWidth = (this->width - totalResizeControlsWidth) / numPanels;
@@ -61,7 +61,7 @@ void mj::HorizontalLayout::Add(mj::Control* pControl)
 {
   if (this->controls.Size() > 0)
   {
-    Control* pResizeControl = this->pAllocator->New<VerticalResizeControl>();
+    Control* pResizeControl = this->pAllocator->New<HorizontalResizeControl>();
     pResizeControl->Init(this->pAllocator);
     this->controls.Add(pResizeControl);
   }
