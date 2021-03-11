@@ -7,6 +7,7 @@
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "ResourcesD2D1.h"
+#include "ResourcesWin32.h"
 
 #include "HorizontalLayout.h"
 #include "VerticalLayout.h"
@@ -413,7 +414,11 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     POINTS ptClient = MAKEPOINTS(lParam);
     if (pMainWindow->pRootControl)
     {
-      pMainWindow->pRootControl->OnMouseMove(ptClient.x, ptClient.y);
+      MouseMoveEvent mouseMoveEvent; // Initialized
+      mouseMoveEvent.x = ptClient.x;
+      mouseMoveEvent.y = ptClient.y;
+      pMainWindow->pRootControl->OnMouseMove(&mouseMoveEvent);
+      res::win32::SetCursor(mouseMoveEvent.cursor);
     }
     return 0;
   }
@@ -511,6 +516,7 @@ void mj::MainWindow::Run()
     mj::ThreadpoolSubmitTask(pTask);
   }
 
+  res::win32::Init();
   res::d2d1::Init(pAllocator);
   svc::Init(pAllocator);
 

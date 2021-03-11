@@ -10,7 +10,7 @@ void mj::LinearLayout::Init(AllocatorBase* pAllocator)
   this->controls.Init(pAllocator);
 }
 
-void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
+void mj::LinearLayout::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 {
   if (this->resizeControlIndex != 0)
   {
@@ -18,8 +18,8 @@ void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
     Control* pResizeControl = this->controls[this->resizeControlIndex];
     Control* pSecond        = this->controls[this->resizeControlIndex + 1];
 
-    int16_t dx = x - this->dragStartX;
-    int16_t dy = y - this->dragStartY;
+    int16_t dx = pMouseMoveEvent->x - this->dragStartX;
+    int16_t dy = pMouseMoveEvent->y - this->dragStartY;
 
     this->MoveResizeControl(pFirst, pResizeControl, pSecond, &dx, &dy);
 
@@ -38,11 +38,11 @@ void mj::LinearLayout::OnMouseMove(int16_t x, int16_t y)
   {
     for (Control* pControl : this->controls)
     {
-      int16_t clientX = x;
-      int16_t clientY = y;
-      if (pControl->TranslateClientPoint(&clientX, &clientY))
+      MouseMoveEvent mouseMoveEvent = *pMouseMoveEvent;
+      if (pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y))
       {
-        pControl->OnMouseMove(clientX, clientY);
+        pControl->OnMouseMove(&mouseMoveEvent);
+        *pMouseMoveEvent = mouseMoveEvent;
         break;
       }
     }

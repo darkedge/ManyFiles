@@ -1,11 +1,27 @@
 #pragma once
 #include "mj_allocator.h"
-#include <Windows.h>
+#include "ResourcesWin32.h"
 
 struct ID2D1RenderTarget;
 
 namespace mj
 {
+  class Control;
+
+  /// <summary>
+  /// Zeroed out (can be initialized either way)
+  /// </summary>
+  struct MouseMoveEvent
+  {
+    int16_t x = 0;
+    int16_t y = 0;
+
+    /// <summary>
+    /// Leaf node sets this field. Used by MainWindow to set the cursor after the query.
+    /// </summary>
+    res::win32::ECursor::Enum cursor = res::win32::ECursor::Arrow;
+  };
+
   class Control
   {
   public:
@@ -13,10 +29,9 @@ namespace mj
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) = 0;
     virtual void Destroy()                               = 0;
 
-    virtual void OnMouseMove(int16_t x, int16_t y)
+    virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
     {
-      static_cast<void>(x);
-      static_cast<void>(y);
+      static_cast<void>(pMouseMoveEvent);
     }
 
     /// <param name="mkMask">Key State Masks for Mouse Messages (MK_*, see WinUser.h)</param>

@@ -121,6 +121,7 @@
     <ClInclude Include="..\src\mj_win32.h" />
     <ClInclude Include="..\src\ncrt_memory.h" />
     <ClInclude Include="..\src\ResourcesD2D1.h" />
+    <ClInclude Include="..\src\ResourcesWin32.h" />
     <ClInclude Include="..\src\ServiceLocator.h" />
     <ClInclude Include="..\src\ServiceProvider.h" />
     <ClInclude Include="..\src\sse_mathfun.h" />
@@ -162,6 +163,7 @@
     <ClCompile Include="..\src\ncrt_math_float.cpp" />
     <ClCompile Include="..\src\ncrt_memory.cpp" />
     <ClCompile Include="..\src\ResourcesD2D1.cpp" />
+    <ClCompile Include="..\src\ResourcesWin32.cpp" />
     <ClCompile Include="..\src\ServiceLocator.cpp" />
     <ClCompile Include="..\src\mj_string.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />

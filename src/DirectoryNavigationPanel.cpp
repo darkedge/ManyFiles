@@ -488,13 +488,13 @@ mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RE
   return nullptr;
 }
 
-void mj::DirectoryNavigationPanel::OnMouseMove(int16_t x, int16_t y)
+void mj::DirectoryNavigationPanel::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 {
   auto pHoveredPrev   = this->pHoveredEntry;
   this->pHoveredEntry = nullptr;
 
   MJ_UNINITIALIZED RECT rect;
-  mj::Entry* pEntry = this->TestMouseEntry(x, y, &rect);
+  mj::Entry* pEntry = this->TestMouseEntry(pMouseMoveEvent->x, pMouseMoveEvent->y, &rect);
   if (pEntry)
   {
     this->pHoveredEntry        = pEntry;

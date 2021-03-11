@@ -23,6 +23,7 @@
     <ClCompile Include="..\src\VerticalResizeControl.cpp" />
     <ClCompile Include="..\src\HorizontalResizeControl.cpp" />
     <ClCompile Include="..\src\mj_random.cpp" />
+    <ClCompile Include="..\src\ResourcesWin32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ManyFiles.manifest" />
@@ -57,6 +58,7 @@
     <ClInclude Include="..\src\VerticalResizeControl.h" />
     <ClInclude Include="..\src\HorizontalResizeControl.h" />
     <ClInclude Include="..\src\mj_random.h" />
+    <ClInclude Include="..\src\ResourcesWin32.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
