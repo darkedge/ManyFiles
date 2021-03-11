@@ -1,5 +1,6 @@
 #include "HorizontalLayout.h"
-#include "HorizontalResizeControl.h"
+#include "ResourcesD2D1.h"
+#include <d2d1.h>
 
 void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
 {
@@ -66,4 +67,26 @@ void mj::HorizontalLayout::Add(mj::Control* pControl)
     this->controls.Add(pResizeControl);
   }
   this->controls.Add(pControl);
+}
+
+void mj::HorizontalResizeControl::Init(AllocatorBase* pAllocator)
+{
+  static_cast<void>(pAllocator);
+  this->width = WIDTH;
+}
+
+void mj::HorizontalResizeControl::Paint(ID2D1RenderTarget* pRenderTarget)
+{
+  auto pBrush = res::d2d1::ResizeControlBrush();
+  if (pBrush)
+  {
+    pRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, this->width, this->height), pBrush);
+  }
+}
+
+bool mj::HorizontalResizeControl::OnLeftButtonDown(int16_t x, int16_t y)
+{
+  static_cast<void>(x);
+  static_cast<void>(y);
+  return true;
 }

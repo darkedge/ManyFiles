@@ -27,7 +27,7 @@ namespace mj
   public:
     virtual void Init(AllocatorBase* pAllocator)         = 0;
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) = 0;
-    virtual void Destroy()                               = 0;
+    virtual void Destroy(){};
 
     virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
     {
