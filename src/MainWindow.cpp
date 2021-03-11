@@ -371,6 +371,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // BOOL ani = TRUE;
     // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
+    // Prevent hourglass (spinning circle) cursor stalling at startup
+    res::win32::SetCursor(res::win32::ECursor::Arrow);
+
     return ::DefWindowProcW(hWnd, message, wParam, lParam);
   }
 #if 0 // Add later
@@ -410,7 +413,11 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     return 0;
   }
   case WM_SETCURSOR:
-    return 1;
+    if (HIWORD(lParam) == WM_MOUSEMOVE)
+    {
+      return TRUE;
+    }
+    break;
   case WM_MOUSEMOVE:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
