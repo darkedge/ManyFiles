@@ -24,6 +24,9 @@ void mj::HorizontalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCo
   pResizeControl->xParent += *pDx;
   pSecond->xParent += *pDx;
   pSecond->width -= *pDx;
+
+  pFirst->OnSize();
+  pSecond->OnSize();
 }
 
 void mj::HorizontalLayout::OnSize()

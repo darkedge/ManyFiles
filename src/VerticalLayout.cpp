@@ -24,6 +24,9 @@ void mj::VerticalLayout::MoveResizeControl(Control* pFirst, Control* pResizeCont
   pResizeControl->yParent += *pDy;
   pSecond->yParent += *pDy;
   pSecond->height -= *pDy;
+
+  pFirst->OnSize();
+  pSecond->OnSize();
 }
 
 void mj::VerticalLayout::OnSize()

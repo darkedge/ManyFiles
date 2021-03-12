@@ -27,11 +27,6 @@ void mj::LinearLayout::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
     this->dragStartX += dx;
     this->dragStartY += dy;
 
-    // TODO: This call breaks resizing, but it should be called
-    // to recursively adjust all sizes.
-    // OnSize should *not* split the container into evenly sized panels.
-    // this->OnSize();
-
     // Child controls might call this but it is not guaranteed
     ::InvalidateRect(svc::MainWindowHandle(), nullptr, false);
 

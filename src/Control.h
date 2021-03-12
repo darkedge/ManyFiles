@@ -106,16 +106,25 @@ namespace mj
     /// <summary>
     /// X position relative to parent control.
     /// Note: Use zero if you want to specify the left edge inside the Paint() method.
+    /// Call OnSize after this variable is modified.
     /// </summary>
     int16_t xParent = 0;
 
     /// <summary>
     /// Y position relative to parent control.
     /// Note: Use zero if you want to specify the top edge inside the Paint() method.
+    /// Call OnSize after this variable is modified.
     /// </summary>
     int16_t yParent = 0;
 
+    /// <summary>
+    /// Call OnSize after this variable is modified.
+    /// </summary>
     int16_t width  = 0;
+
+    /// <summary>
+    /// Call OnSize after this variable is modified.
+    /// </summary>
     int16_t height = 0;
   };
 } // namespace mj
