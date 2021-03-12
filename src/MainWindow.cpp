@@ -406,6 +406,10 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // so we use FrameMarkStart/FrameMarkEnd to mark our rendering.
     FrameMarkStart(pFrameMark);
     pMainWindow->OnPaint();
+    // Because we're not calling BeginPaint, we need to manually validate the client region,
+    // otherwise the system continues to generate WM_PAINT messages
+    // until the current update region is validated.
+    static_cast<void>(::ValidateRect(hWnd, nullptr));
     FrameMarkEnd(pFrameMark);
     return 0;
   }
