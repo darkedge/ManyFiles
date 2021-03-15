@@ -355,33 +355,6 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  // Draw scrollbar
-  if (this->height > 0 && this->entries.Size() > 0)
-  {
-    FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
-    FLOAT viewHeight  = this->height;
-    if (pixelHeight > viewHeight)
-    {
-      FLOAT top = -this->scrollOffset * viewHeight / pixelHeight;
-      {
-        D2D1_RECT_F rect = D2D1::RectF( //
-            this->width - 16.0f,        //
-            0,                          //
-            this->width,                //
-            viewHeight);
-        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarBackgroundBrush());
-      }
-      {
-        D2D1_RECT_F rect = D2D1::RectF( //
-            this->width - 16.0f,        //
-            top,                        //
-            this->width,                //
-            top + viewHeight * viewHeight / pixelHeight);
-        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarForegroundBrush());
-      }
-    }
-  }
-
   auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
   if (this->pCurrentFolderTextLayout)
@@ -419,6 +392,33 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
   if (this->pHoveredEntry && res::d2d1::EntryHighlightBrush())
   {
     pRenderTarget->DrawRectangle(&this->highlightRect, res::d2d1::EntryHighlightBrush());
+  }
+
+  // Draw scrollbar
+  if (this->height > 0 && this->entries.Size() > 0)
+  {
+    FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
+    FLOAT viewHeight  = this->height;
+    if (pixelHeight > viewHeight)
+    {
+      FLOAT top = -this->scrollOffset * viewHeight / pixelHeight;
+      {
+        D2D1_RECT_F rect = D2D1::RectF( //
+            this->width - 16.0f,        //
+            0,                          //
+            this->width,                //
+            viewHeight);
+        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarBackgroundBrush());
+      }
+      {
+        D2D1_RECT_F rect = D2D1::RectF( //
+            this->width - 16.0f,        //
+            top,                        //
+            this->width,                //
+            top + viewHeight * viewHeight / pixelHeight);
+        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarForegroundBrush());
+      }
+    }
   }
 }
 
