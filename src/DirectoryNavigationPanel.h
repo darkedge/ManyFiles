@@ -59,7 +59,7 @@ namespace mj
 
       bool Add(const wchar_t* pStringLiteral);
 
-bool Add(const StringView& string);
+      bool Add(const StringView& string);
 
       StringView* Last();
     };
@@ -129,6 +129,10 @@ bool Add(const StringView& string);
   public:
     virtual void Init(AllocatorBase* pAllocator) override;
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
+    virtual const wchar_t* GetType() override
+    {
+      return WSTR(DirectoryNavigationPanel);
+    }
     virtual void Destroy() override;
 
     virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent) override;

@@ -1,11 +1,16 @@
 #pragma once
 
-#define STR(x)         #x
-#define XSTR(x)        STR(x)
-#define WSTR(x)        L##x
-#define XWSTR(x)       WSTR(x)
-#define WFILE          XWSTR(__FILE__)
-#define __FILENAME__   WFILE
+#define MJ_CONCAT(x, y)    x##y
+#define MJ_XCONCAT(x, y)   MJ_CONCAT(x, y)
+#define MJ_DEFER_DETAIL(x) MJ_XCONCAT(x, __COUNTER__)
+#define MJ_DEFER(expr)     auto MJ_DEFER_DETAIL(_defer_) = mj::detail::defer([&]() { expr; })
+
+#define STR(x)       #x
+#define XSTR(x)      STR(x)
+#define WSTR(x)      MJ_CONCAT(L, #x)
+#define XWSTR(x)     WSTR(x)
+#define WFILE        XWSTR(__FILE__)
+#define __FILENAME__ WFILE
 
 // Annotation macros
 
@@ -39,8 +44,3 @@ namespace mj
     }
   } // namespace detail
 } // namespace mj
-
-#define MJ_CONCAT(x, y)    x##y
-#define MJ_XCONCAT(x, y)   MJ_CONCAT(x, y)
-#define MJ_DEFER_DETAIL(x) MJ_XCONCAT(x, __COUNTER__)
-#define MJ_DEFER(expr)     auto MJ_DEFER_DETAIL(_defer_) = mj::detail::defer([&]() { expr; })

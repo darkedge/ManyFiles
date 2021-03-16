@@ -175,6 +175,18 @@ mj::StringBuilder& mj::StringBuilder::Append(const wchar_t* pStringLiteral)
   return *this;
 }
 
+mj::StringBuilder& mj::StringBuilder::Indent(uint32_t numSpaces)
+{
+  MJ_UNINITIALIZED StringView sv;
+  sv.Init(L" ");
+  for (uint32_t i = 0; i < numSpaces; i++)
+  {
+    this->Append(sv);
+  }
+
+  return *this;
+}
+
 mj::StringView mj::StringBuilder::ToStringOpen()
 {
   auto length = this->pArrayList->Size();

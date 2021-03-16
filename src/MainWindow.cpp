@@ -587,11 +587,7 @@ void mj::MainWindow::Run()
     // the return value generally is ignored.
     static_cast<void>(::DispatchMessageW(&msg));
 
-    if (msg.message == WM_QUIT)
-    {
-      return;
-    }
-    else if (msg.message == WM_MJTASKFINISH)
+    if (msg.message == WM_MJTASKFINISH)
     {
       // Threadpool notifies the main thread using PostThreadMessage.
       // These messages are not associated with a window, so they must be
@@ -599,4 +595,31 @@ void mj::MainWindow::Run()
       mj::ThreadpoolTaskEnd(reinterpret_cast<mj::Task*>(msg.wParam));
     }
   }
+  this->SaveLayoutToFile();
+}
+
+void mj::MainWindow::SaveLayoutToFile()
+{
+  // Skip window x/y width/height for now.
+
+  MJ_UNINITIALIZED HANDLE file;
+  MJ_ERR_IF(file = ::CreateFileW(L"window_layout.txt", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
+                                 nullptr),
+            INVALID_HANDLE_VALUE);
+
+  ArrayList<wchar_t> al;
+  al.Init(svc::GeneralPurposeAllocator());
+  MJ_DEFER(al.Destroy());
+  StringBuilder sb;
+  sb.SetArrayList(&al);
+
+  this->pRootControl->SaveToString(sb, 0);
+
+  StringView sv = sb.ToStringOpen();
+  MJ_UNINITIALIZED DWORD bytesWritten;
+
+  // Write the UTF-16 LE BOM here, until we know what's best to do here.
+  uint16_t bom = 0xFEFF;
+  MJ_ERR_ZERO(::WriteFile(file, &bom, sizeof(bom), &bytesWritten, nullptr));
+  MJ_ERR_ZERO(::WriteFile(file, sv.ptr, sv.len * sizeof(wchar_t), &bytesWritten, nullptr));
 }

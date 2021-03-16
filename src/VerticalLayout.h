@@ -8,6 +8,10 @@ namespace mj
   {
   public:
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
+    virtual const wchar_t* GetType() override
+    {
+      return WSTR(VerticalLayout);
+    }
     virtual void OnSize() override;
 
     /// <summary>
@@ -31,6 +35,10 @@ namespace mj
 
     virtual void Init(AllocatorBase* pAllocator) override;
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
+    virtual const wchar_t* GetType() override
+    {
+      return WSTR(VerticalResizeControl);
+    }
     [[nodiscard]] virtual bool OnLeftButtonDown(int16_t x, int16_t y) override;
 
     virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent) override

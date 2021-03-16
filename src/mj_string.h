@@ -31,6 +31,7 @@ namespace mj
     StringBuilder& Append(const wchar_t* pStringLiteral);
     StringBuilder& Append(int32_t integer);
     StringBuilder& AppendHex32(uint32_t dw);
+    StringBuilder& Indent(uint32_t numSpaces);
 
     /// <summary>
     /// Does not add a null terminator.

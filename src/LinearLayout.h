@@ -9,7 +9,7 @@ namespace mj
   public:
     virtual void Init(AllocatorBase* pAllocator) override;
     virtual void Destroy() override;
-
+    
     virtual void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
     virtual void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;
     virtual void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY) override;
@@ -19,6 +19,8 @@ namespace mj
 
   protected:
     static constexpr const int16_t MIN_PANEL_SIZE = 39;
+    
+    virtual void SaveToStringInternal(StringBuilder sb, uint16_t offset) override;
 
     AllocatorBase* pAllocator = nullptr;
     ArrayList<Control*> controls;

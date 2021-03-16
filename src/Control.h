@@ -1,6 +1,7 @@
 #pragma once
 #include "mj_allocator.h"
 #include "ResourcesWin32.h"
+#include "mj_string.h"
 
 struct ID2D1RenderTarget;
 
@@ -27,6 +28,7 @@ namespace mj
   public:
     virtual void Init(AllocatorBase* pAllocator)         = 0;
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) = 0;
+    virtual const wchar_t* GetType()                     = 0;
     virtual void Destroy(){};
 
     virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
@@ -95,6 +97,35 @@ namespace mj
       return false;
     }
 
+    void SaveToString(StringBuilder sb, uint16_t offset)
+    {
+      uint16_t indent = 4;
+      sb.Indent(offset)
+          .Append(this->GetType())
+          .Append(L" {\n")
+          .Indent(offset + indent)
+          .Append(L"xParent = ")
+          .Append(xParent)
+          .Append(L"\n")
+          .Indent(offset + indent)
+          .Append(L"yParent = ")
+          .Append(yParent)
+          .Append(L"\n")
+          .Indent(offset + indent)
+          .Append(L"width = ")
+          .Append(width)
+          .Append(L"\n")
+          .Indent(offset + indent)
+          .Append(L"height = ")
+          .Append(height)
+          .Append(L"\n");
+
+      // Containers must list children
+      this->SaveToStringInternal(sb, offset + indent);
+
+      sb.Indent(offset).Append(L"}\n");
+    }
+
     void OnPaint(ID2D1RenderTarget* pRenderTarget);
 
     /// <summary>
@@ -120,11 +151,18 @@ namespace mj
     /// <summary>
     /// Call OnSize after this variable is modified.
     /// </summary>
-    int16_t width  = 0;
+    int16_t width = 0;
 
     /// <summary>
     /// Call OnSize after this variable is modified.
     /// </summary>
     int16_t height = 0;
+
+  protected:
+    virtual void SaveToStringInternal(StringBuilder sb, uint16_t offset)
+    {
+      static_cast<void>(sb);
+      static_cast<void>(offset);
+    }
   };
 } // namespace mj
