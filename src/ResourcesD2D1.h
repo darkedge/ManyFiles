@@ -31,6 +31,7 @@ namespace res
     ID2D1SolidColorBrush* ScrollbarBackgroundBrush();
     ID2D1SolidColorBrush* EntryHighlightBrush();
     ID2D1SolidColorBrush* ResizeControlBrush();
+    ID2D1SolidColorBrush* ControlBackgroundBrush();
     ID2D1Bitmap* FolderIcon();
     ID2D1Bitmap* FileIcon();
   } // namespace d2d1

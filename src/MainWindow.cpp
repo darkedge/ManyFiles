@@ -16,6 +16,8 @@
 #include <d3d11.h>
 #include <dcomp.h>
 
+#include <vssym32.h>
+
 #define WM_MJTASKFINISH (WM_USER + 1)
 
 struct CreateIWICImagingFactoryContext : public mj::Task
@@ -213,7 +215,7 @@ void mj::MainWindow::Resize()
     if (this->pRootControl)
     {
       this->pRootControl->xParent = 0;
-      this->pRootControl->yParent = 0;
+      this->pRootControl->yParent = this->captionHeight;
       this->pRootControl->width   = static_cast<int16_t>(width);
       this->pRootControl->height  = static_cast<int16_t>(height);
       this->pRootControl->OnSize();
@@ -233,15 +235,8 @@ void mj::MainWindow::OnPaint()
     MJ_ERR_HRESULT(this->pSurface->BeginDraw(nullptr, IID_PPV_ARGS(&pContext), &offset));
     MJ_DEFER(pContext->Release());
 
-    MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
-    pContext->GetTransform(&transform);
-    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)) * transform);
-    MJ_DEFER(pContext->SetTransform(&transform));
-
-    {
-      ZoneScopedN("Clear");
-      pContext->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f));
-    }
+    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)));
+    pContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 
     if (this->pRootControl)
     {
@@ -338,26 +333,100 @@ namespace mj
   }
 } // namespace mj
 
+static int compute_standard_caption_height_for_window(HWND window_handle)
+{
+  ZoneScoped;
+  SIZE caption_size{};
+  int accounting_for_borders = 2;
+  HTHEME theme               = ::OpenThemeData(window_handle, L"WINDOW");
+  UINT dpi                   = ::GetDpiForWindow(window_handle);
+  ::GetThemePartSize(theme, nullptr, WP_CAPTION, CS_ACTIVE, nullptr, TS_TRUE, &caption_size);
+  ::CloseThemeData(theme);
+
+  auto height = static_cast<float>(caption_size.cy * dpi) / 96.0f;
+  return static_cast<int>(height) + accounting_for_borders;
+}
+
+static LRESULT compute_sector_of_window(HWND window_handle, WPARAM, LPARAM lParam, LONG caption_height)
+{
+  // Acquire the window rect
+  MJ_UNINITIALIZED RECT rect;
+  MJ_ERR_ZERO(::GetWindowRect(window_handle, &rect));
+
+  LONG offset = 10;
+  POINTS p    = MAKEPOINTS(lParam);
+
+  if (p.y < rect.top + offset && p.x < rect.left + offset)
+  {
+    return HTTOPLEFT;
+  }
+  if (p.y < rect.top + offset && p.x > rect.right - offset)
+  {
+    return HTTOPRIGHT;
+  }
+  if (p.y > rect.bottom - offset && p.x > rect.right - offset)
+  {
+    return HTBOTTOMRIGHT;
+  }
+  if (p.y > rect.bottom - offset && p.x < rect.left + offset)
+  {
+    return HTBOTTOMLEFT;
+  }
+
+  if (p.x > rect.left && p.x < rect.right)
+  {
+    if (p.y < rect.top + offset)
+    {
+      return HTTOP;
+    }
+    else if (p.y > rect.bottom - offset)
+    {
+      return HTBOTTOM;
+    }
+  }
+  if (p.y > rect.top && p.y < rect.bottom)
+  {
+    if (p.x < rect.left + offset)
+    {
+      return HTLEFT;
+    }
+    else if (p.x > rect.right - offset)
+    {
+      return HTRIGHT;
+    }
+  }
+
+  if (p.x > rect.left && p.x < rect.right)
+  {
+    if (p.y < rect.top + caption_height)
+    {
+      return HTCAPTION;
+    }
+  }
+
+  return HTNOWHERE;
+}
+
 /// <summary>
 /// Main WindowProc function
 /// </summary>
 LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-#if 0 // Add later: DWM handling of messages
-  MJ_UNINITIALIZED LRESULT result;
-  if (::DwmDefWindowProc(hWnd, message, wParam, lParam, &result))
   {
-    return result;
+    MJ_UNINITIALIZED LRESULT result;
+    if (::DwmDefWindowProc(hWnd, message, wParam, lParam, &result))
+    {
+      return result;
+    }
   }
-#endif
 
   mj::MainWindow* pMainWindow = reinterpret_cast<mj::MainWindow*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 
   switch (message)
   {
-  case WM_NCCREATE:
+  case WM_CREATE:
   {
-    ZoneScopedN("WM_NCCREATE");
+    ZoneScopedN("WM_CREATE");
     // Loaded DLLs: uxtheme, combase, msctf, oleaut32
 
     // Copy the lpParam from CreateWindowEx to this window's user data
@@ -371,28 +440,43 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // BOOL ani = TRUE;
     // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
-    return ::DefWindowProcW(hWnd, message, wParam, lParam);
+    int offset_for_tabs = 10; // Arbitrary
+    int caption_height  = compute_standard_caption_height_for_window(hWnd);
+    pMainWindow->SetCaptionHeight(caption_height + offset_for_tabs);
+
+    MARGINS _margins = { 0, 0, pMainWindow->GetCaptionHeight(), 0 };
+    MJ_ERR_HRESULT(::DwmExtendFrameIntoClientArea(hWnd, &_margins));
+
+    // Make sure a WM_NCCALCSIZE message is fired that resizes the frame (wParam = true).
+    // This cannot be done inside WM_NCCREATE (probably makes sense)
+    MJ_ERR_ZERO(::SetWindowPos(hWnd, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE));
+
+    return 0;
   }
-#if 0 // Add later
   case WM_NCCALCSIZE:
-  {
-    auto client_area_needs_calculating = static_cast<bool>(wParam);
-
-    if (client_area_needs_calculating)
+    // Remove the non-client area.
+    if (wParam)
     {
+      NCCALCSIZE_PARAMS* pParams = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
 
-      auto parameters = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-
-      auto& requested_client_area = parameters->rgrc[0];
-      requested_client_area.right -= GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-      requested_client_area.left += GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-      requested_client_area.bottom -= GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-
-      return 0;
+      // Note: rgrc is an array of three RECTs, but we only need the first one.
+      RECT* pRect = pParams->rgrc;
+      int frameX  = ::GetSystemMetrics(SM_CXFRAME);
+      int border  = ::GetSystemMetrics(SM_CXPADDEDBORDER);
+      pRect->right -= frameX + border;
+      pRect->left += frameX + border;
+      pRect->bottom -= ::GetSystemMetrics(SM_CYFRAME) + border;
+    }
+    return 0;
+  case WM_NCHITTEST:
+  {
+    LRESULT result = compute_sector_of_window(hWnd, wParam, lParam, pMainWindow->GetCaptionHeight());
+    if (result != HTNOWHERE)
+    {
+      return result;
     }
   }
-  break;
-#endif
+  break; // Let DefWindowProcW handle WM_NCHITTEST
   case WM_SIZE:
     pMainWindow->Resize();
     return 0;
@@ -406,11 +490,12 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // so we use FrameMarkStart/FrameMarkEnd to mark our rendering.
     FrameMarkStart(pFrameMark);
     pMainWindow->OnPaint();
+    FrameMarkEnd(pFrameMark);
+
     // Because we're not calling BeginPaint, we need to manually validate the client region,
     // otherwise the system continues to generate WM_PAINT messages
     // until the current update region is validated.
     static_cast<void>(::ValidateRect(hWnd, nullptr));
-    FrameMarkEnd(pFrameMark);
     return 0;
   }
   case WM_SETCURSOR:
@@ -421,13 +506,16 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     break;
   case WM_MOUSEMOVE:
   {
-    POINTS ptClient = MAKEPOINTS(lParam);
-    if (pMainWindow->pRootControl)
+    POINTS ptClient   = MAKEPOINTS(lParam);
+    Control* pControl = pMainWindow->pRootControl;
+
+    MouseMoveEvent mouseMoveEvent; // Initialized
+    mouseMoveEvent.x = ptClient.x;
+    mouseMoveEvent.y = ptClient.y;
+
+    if (pControl && pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y))
     {
-      MouseMoveEvent mouseMoveEvent; // Initialized
-      mouseMoveEvent.x = ptClient.x;
-      mouseMoveEvent.y = ptClient.y;
-      pMainWindow->pRootControl->OnMouseMove(&mouseMoveEvent);
+      pControl->OnMouseMove(&mouseMoveEvent);
       res::win32::SetCursor(mouseMoveEvent.cursor);
     }
     return 0;
@@ -437,21 +525,22 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   // will fire WM_LBUTTONDOWN, and vice versa.
   case WM_LBUTTONDOWN:
   {
-    POINTS ptClient = MAKEPOINTS(lParam);
-    if (pMainWindow->pRootControl)
+    POINTS ptClient   = MAKEPOINTS(lParam);
+    Control* pControl = pMainWindow->pRootControl;
+    if (pControl && pControl->TranslateClientPoint(&ptClient.x, &ptClient.y))
     {
-      static_cast<void>(pMainWindow->pRootControl->OnLeftButtonDown(ptClient.x, ptClient.y));
+      static_cast<void>(pControl->OnLeftButtonDown(ptClient.x, ptClient.y));
     }
     return 0;
   }
   case WM_LBUTTONUP:
   {
-    POINTS ptClient = MAKEPOINTS(lParam);
-    if (pMainWindow->pRootControl)
+    POINTS ptClient   = MAKEPOINTS(lParam);
+    Control* pControl = pMainWindow->pRootControl;
+    if (pControl && pControl->TranslateClientPoint(&ptClient.x, &ptClient.y))
     {
-      static_cast<void>(pMainWindow->pRootControl->OnLeftButtonUp(ptClient.x, ptClient.y));
+      static_cast<void>(pControl->OnLeftButtonUp(ptClient.x, ptClient.y));
     }
-    return 0;
   }
   case WM_LBUTTONDBLCLK:
   {

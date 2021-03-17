@@ -12,6 +12,7 @@ static ID2D1SolidColorBrush* pScrollbarForegroundBrush;
 static ID2D1SolidColorBrush* pScrollbarBackgroundBrush;
 static ID2D1SolidColorBrush* pEntryHighlightBrush;
 static ID2D1SolidColorBrush* pResizeControlBrush;
+static ID2D1SolidColorBrush* pControlBackgroundBrush;
 static ID2D1Bitmap* pFolderIcon;
 static ID2D1Bitmap* pFileIcon;
 
@@ -129,6 +130,7 @@ void res::d2d1::Load(ID2D1RenderTarget* pRenderTarget)
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE8E8EC), &pScrollbarBackgroundBrush));
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xFF0000), &pEntryHighlightBrush));
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xD4D4D4), &pResizeControlBrush));
+  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xFFFFFF), &pControlBackgroundBrush));
 }
 
 void res::d2d1::Destroy()
@@ -138,6 +140,7 @@ void res::d2d1::Destroy()
   MJ_SAFE_RELEASE(pScrollbarBackgroundBrush);
   MJ_SAFE_RELEASE(pEntryHighlightBrush);
   MJ_SAFE_RELEASE(pResizeControlBrush);
+  MJ_SAFE_RELEASE(pControlBackgroundBrush);
   MJ_SAFE_RELEASE(pFolderIcon);
   MJ_SAFE_RELEASE(pFileIcon);
 }
@@ -170,6 +173,12 @@ ID2D1SolidColorBrush* res::d2d1::ResizeControlBrush()
 {
   MJ_EXIT_NULL(pResizeControlBrush);
   return pResizeControlBrush;
+}
+
+ID2D1SolidColorBrush* res::d2d1::ControlBackgroundBrush()
+{
+  MJ_EXIT_NULL(pControlBackgroundBrush);
+  return pControlBackgroundBrush;
 }
 
 ID2D1Bitmap* res::d2d1::FolderIcon()

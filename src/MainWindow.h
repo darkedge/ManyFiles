@@ -23,6 +23,7 @@ namespace mj
     IDCompositionDesktopDevice* dcompDevice      = nullptr;
     IDCompositionVirtualSurface* pSurface        = nullptr;
     IDCompositionTarget* pTarget                 = nullptr;
+    LONG captionHeight                           = 0;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -35,6 +36,14 @@ namespace mj
   public:
     void Run();
     void OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice, ID2D1RenderTarget* pRenderTarget);
+    LONG GetCaptionHeight()
+    {
+      return this->captionHeight;
+    }
+    void SetCaptionHeight(LONG captionHeight)
+    {
+      this->captionHeight = captionHeight;
+    }
   };
 
 } // namespace mj

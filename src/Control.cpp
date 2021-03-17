@@ -2,6 +2,7 @@
 #include "ErrorExit.h"
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "ServiceLocator.h"
+#include "ResourcesD2D1.h"
 #include <d2d1.h>
 
 bool mj::Control::TranslateClientPoint(int16_t* pX, int16_t* pY)
@@ -35,8 +36,11 @@ void mj::Control::OnPaint(ID2D1RenderTarget* pRenderTarget)
   pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->xParent, this->yParent)) * transform);
   MJ_DEFER(pRenderTarget->SetTransform(&transform));
 
-  pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, this->width, this->height), D2D1_ANTIALIAS_MODE_ALIASED);
+  D2D1_RECT_F rect = D2D1::RectF(0, 0, this->width, this->height);
+  pRenderTarget->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
   MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
+
+  pRenderTarget->FillRectangle(rect, res::d2d1::ControlBackgroundBrush());
 
   D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
   pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
