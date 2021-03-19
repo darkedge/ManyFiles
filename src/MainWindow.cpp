@@ -531,6 +531,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     {
       static_cast<void>(pControl->OnLeftButtonDown(ptClient.x, ptClient.y));
     }
+    // The return value is a handle to the window that had previously captured the mouse.
+    // If there is no such window, the return value is NULL.
+    static_cast<void>(::SetCapture(hWnd));
     return 0;
   }
   case WM_LBUTTONUP:
@@ -541,6 +544,8 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     {
       static_cast<void>(pControl->OnLeftButtonUp(ptClient.x, ptClient.y));
     }
+    MJ_ERR_ZERO(::ReleaseCapture());
+    return 0;
   }
   case WM_LBUTTONDBLCLK:
   {
