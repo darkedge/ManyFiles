@@ -36,6 +36,12 @@ namespace mj
       static_cast<void>(pMouseMoveEvent);
     }
 
+    virtual void MoveResizeControl(int16_t x, int16_t y)
+    {
+      static_cast<void>(x);
+      static_cast<void>(y);
+    }
+
     /// <param name="mkMask">Key State Masks for Mouse Messages (MK_*, see WinUser.h)</param>
     virtual void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)
     {

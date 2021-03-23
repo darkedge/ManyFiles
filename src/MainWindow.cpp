@@ -513,10 +513,24 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     mouseMoveEvent.x = ptClient.x;
     mouseMoveEvent.y = ptClient.y;
 
-    if (pControl && pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y))
+    if (pControl)
     {
-      pControl->OnMouseMove(&mouseMoveEvent);
-      res::win32::SetCursor(mouseMoveEvent.cursor);
+      bool inside       = pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y);
+      bool updateCursor = true;
+
+      if (::GetCapture() == hWnd)
+      {
+        pControl->MoveResizeControl(mouseMoveEvent.x, mouseMoveEvent.y);
+        updateCursor = false;
+      }
+      else if (inside)
+      {
+        pControl->OnMouseMove(&mouseMoveEvent);
+        if (updateCursor)
+        {
+          res::win32::SetCursor(mouseMoveEvent.cursor);
+        }
+      }
     }
     return 0;
   }
@@ -531,6 +545,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     {
       static_cast<void>(pControl->OnLeftButtonDown(ptClient.x, ptClient.y));
     }
+    // Continue receiving WM_MOUSEMOVE messages while the mouse is outside the window.
     // The return value is a handle to the window that had previously captured the mouse.
     // If there is no such window, the return value is NULL.
     static_cast<void>(::SetCapture(hWnd));

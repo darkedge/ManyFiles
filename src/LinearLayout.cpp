@@ -12,6 +12,20 @@ void mj::LinearLayout::Init(AllocatorBase* pAllocator)
 
 void mj::LinearLayout::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 {
+  for (Control* pControl : this->controls)
+  {
+    MouseMoveEvent mouseMoveEvent = *pMouseMoveEvent;
+    if (pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y))
+    {
+      pControl->OnMouseMove(&mouseMoveEvent);
+      *pMouseMoveEvent = mouseMoveEvent;
+      break;
+    }
+  }
+}
+
+void mj::LinearLayout::MoveResizeControl(int16_t x, int16_t y)
+{
   // Resizing
   if (this->resizeControlIndex != 0)
   {
@@ -19,31 +33,23 @@ void mj::LinearLayout::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
     Control* pResizeControl = this->controls[this->resizeControlIndex];
     Control* pSecond        = this->controls[this->resizeControlIndex + 1];
 
-    int16_t dx = pMouseMoveEvent->x - this->dragStartX;
-    int16_t dy = pMouseMoveEvent->y - this->dragStartY;
+    int16_t dx = x - this->dragStartX;
+    int16_t dy = y - this->dragStartY;
 
     this->MoveResizeControl(pFirst, pResizeControl, pSecond, &dx, &dy);
 
     this->dragStartX += dx;
     this->dragStartY += dy;
 
-    // Child controls might call this but it is not guaranteed
+    // Resizing a control will almost always result in invalidation,
+    // so we save some complexity by just doing it here.
     ::InvalidateRect(svc::MainWindowHandle(), nullptr, false);
-
-    // OnMouseMove for resize controls sets the correct mouse cursor
-    pResizeControl->OnMouseMove(pMouseMoveEvent);
   }
   else
   {
     for (Control* pControl : this->controls)
     {
-      MouseMoveEvent mouseMoveEvent = *pMouseMoveEvent;
-      if (pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y))
-      {
-        pControl->OnMouseMove(&mouseMoveEvent);
-        *pMouseMoveEvent = mouseMoveEvent;
-        break;
-      }
+      pControl->MoveResizeControl(x, y);
     }
   }
 }
