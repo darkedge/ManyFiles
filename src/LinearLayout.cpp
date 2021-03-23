@@ -113,13 +113,10 @@ bool mj::LinearLayout::OnLeftButtonUp(int16_t x, int16_t y)
 
     int16_t clientX = x;
     int16_t clientY = y;
-    if (pControl->TranslateClientPoint(&clientX, &clientY))
+    static_cast<void>(pControl->TranslateClientPoint(&clientX, &clientY));
+    if (pControl->OnLeftButtonUp(clientX, clientY))
     {
-      if (pControl->OnLeftButtonUp(clientX, clientY))
-      {
-        return true;
-      }
-      break;
+      return true;
     }
   }
 
