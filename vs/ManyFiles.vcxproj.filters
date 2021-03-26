@@ -22,6 +22,8 @@
     <ClCompile Include="..\src\LinearLayout.cpp" />
     <ClCompile Include="..\src\mj_random.cpp" />
     <ClCompile Include="..\src\ResourcesWin32.cpp" />
+    <ClCompile Include="..\src\TabControl.cpp" />
+    <ClCompile Include="..\src\TabLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ManyFiles.manifest" />
@@ -55,6 +57,8 @@
     <ClInclude Include="..\src\LinearLayout.h" />
     <ClInclude Include="..\src\mj_random.h" />
     <ClInclude Include="..\src\ResourcesWin32.h" />
+    <ClInclude Include="..\src\TabControl.h" />
+    <ClInclude Include="..\src\TabLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

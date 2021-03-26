@@ -126,6 +126,8 @@
     <ClInclude Include="..\src\sse_mathfun.h" />
     <ClInclude Include="..\src\stb_image.h" />
     <ClInclude Include="..\src\mj_string.h" />
+    <ClInclude Include="..\src\TabControl.h" />
+    <ClInclude Include="..\src\TabLayout.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\VerticalLayout.h" />
     <ClInclude Include="resource.h" />
@@ -163,6 +165,8 @@
     <ClCompile Include="..\src\ResourcesWin32.cpp" />
     <ClCompile Include="..\src\ServiceLocator.cpp" />
     <ClCompile Include="..\src\mj_string.cpp" />
+    <ClCompile Include="..\src\TabControl.cpp" />
+    <ClCompile Include="..\src\TabLayout.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\VerticalLayout.cpp" />
   </ItemGroup>

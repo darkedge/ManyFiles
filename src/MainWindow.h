@@ -9,21 +9,17 @@ struct ID2D1RenderTarget;
 namespace mj
 {
   class Control;
-  class HorizontalLayout;
-  class VerticalLayout;
 
   class MainWindow
   {
   private:
-    static constexpr const size_t WIDTH          = 3;
-    static constexpr const size_t HEIGHT         = 2;
-    Control* controls[WIDTH * HEIGHT]            = {};
-    HorizontalLayout* pHorizontalLayouts[HEIGHT] = {};
-    VerticalLayout* pRootControl                 = nullptr;
-    IDCompositionDesktopDevice* dcompDevice      = nullptr;
-    IDCompositionVirtualSurface* pSurface        = nullptr;
-    IDCompositionTarget* pTarget                 = nullptr;
-    LONG captionHeight                           = 0;
+    static constexpr const size_t WIDTH     = 3;
+    static constexpr const size_t HEIGHT    = 2;
+    Control* pRootControl                   = nullptr;
+    IDCompositionDesktopDevice* dcompDevice = nullptr;
+    IDCompositionVirtualSurface* pSurface   = nullptr;
+    IDCompositionTarget* pTarget            = nullptr;
+    LONG captionHeight                      = 0;
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -31,6 +27,7 @@ namespace mj
     void OnPaint();
     void Destroy();
 
+    void LoadLayoutFromFile();
     void SaveLayoutToFile();
 
   public:
