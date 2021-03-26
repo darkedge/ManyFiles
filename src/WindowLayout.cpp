@@ -5,6 +5,255 @@
 
 static constexpr const wchar_t* s_WindowLayoutFilename = L"window_layout.txt";
 
+struct ETokenType
+{
+  enum Enum
+  {
+    Identifier,
+    Dot,
+    OpenBrace,
+    CloseBrace,
+    Equals,
+    Number
+  };
+};
+
+struct ELexerState
+{
+  enum Enum
+  {
+    AcceptAny,
+    AfterAlpha,
+    AfterDigit,
+    Done
+  };
+};
+
+static void PrintTokenType(ETokenType::Enum parserState)
+{
+  ::OutputDebugStringW(L"Token type: ");
+  switch (parserState)
+  {
+  case ETokenType::Identifier:
+    ::OutputDebugStringW(L"Identifier\n");
+    break;
+  case ETokenType::Dot:
+    ::OutputDebugStringW(L"Dot\n");
+    break;
+  case ETokenType::OpenBrace:
+    ::OutputDebugStringW(L"OpenBrace\n");
+    break;
+  case ETokenType::CloseBrace:
+    ::OutputDebugStringW(L"CloseBrace\n");
+    break;
+  case ETokenType::Equals:
+    ::OutputDebugStringW(L"Equals\n");
+    break;
+  case ETokenType::Number:
+    ::OutputDebugStringW(L"Number\n");
+    break;
+  default:
+    break;
+  }
+};
+
+struct EParserState
+{
+  enum Enum
+  {
+    ExpectType,      // Identifier
+    AfterDot,        // Identifier
+    AfterType,       // OpenBrace
+    AfterOpenBrace,  // Identifier or Dot
+    AfterCloseBrace, // Identifier or Dot
+    AfterField,      // Equals
+    AfterEquals,     // OpenBrace or Number
+    AfterValue,      // CloseBrace or Dot
+    Error,
+  };
+};
+
+static void PrintParserState(EParserState::Enum parserState)
+{
+  ::OutputDebugStringW(L"Parser state: ");
+  switch (parserState)
+  {
+  case EParserState::ExpectType:
+    ::OutputDebugStringW(L"ExpectType\n");
+    break;
+  case EParserState::AfterDot:
+    ::OutputDebugStringW(L"AfterDot\n");
+    break;
+  case EParserState::AfterType:
+    ::OutputDebugStringW(L"AfterType\n");
+    break;
+  case EParserState::AfterOpenBrace:
+    ::OutputDebugStringW(L"AfterOpenBrace\n");
+    break;
+  case EParserState::AfterCloseBrace:
+    ::OutputDebugStringW(L"AfterCloseBrace\n");
+    break;
+  case EParserState::AfterField:
+    ::OutputDebugStringW(L"AfterField\n");
+    break;
+  case EParserState::AfterEquals:
+    ::OutputDebugStringW(L"AfterEquals\n");
+    break;
+  case EParserState::AfterValue:
+    ::OutputDebugStringW(L"AfterValue\n");
+    break;
+  case EParserState::Error:
+    ::OutputDebugStringW(L"Error\n");
+    break;
+  default:
+    break;
+  }
+};
+
+struct Token
+{
+  ETokenType::Enum tokenType;
+  mj::StringView sv;
+};
+
+struct ECharacterClass
+{
+  enum Enum
+  {
+    Unknown,
+    Dot,
+    Alpha,
+    Digit,
+    Equals,
+    OpenBrace,
+    CloseBrace,
+  };
+};
+
+static ECharacterClass::Enum ClassifyCharacter(wchar_t c)
+{
+  if (c == 0x2E)
+  {
+    return ECharacterClass::Dot;
+  }
+  else if (c < 0x30)
+  {
+    return ECharacterClass::Unknown;
+  }
+  else if (c < 0x3A)
+  {
+    return ECharacterClass::Digit;
+  }
+  else if (c == 0x3D)
+  {
+    return ECharacterClass::Equals;
+  }
+  else if (c < 0x41)
+  {
+    return ECharacterClass::Unknown;
+  }
+  else if (c < 0x5B)
+  {
+    return ECharacterClass::Alpha;
+  }
+  else if (c < 0x61)
+  {
+    return ECharacterClass::Unknown;
+  }
+  else if (c < 0x7B)
+  {
+    return ECharacterClass::Alpha;
+  }
+  else if (c == 0x7B)
+  {
+    return ECharacterClass::OpenBrace;
+  }
+  else if (c == 0x7D)
+  {
+    return ECharacterClass::CloseBrace;
+  }
+
+  return ECharacterClass::Unknown;
+};
+
+struct LexerContext
+{
+  wchar_t* pLexemeStart;
+  wchar_t* pLexemeEnd;
+  const wchar_t* pEndOfFile;
+};
+
+static bool GetNextToken(LexerContext* pContext, Token* pToken)
+{
+  ELexerState::Enum lexerState = ELexerState::AcceptAny;
+  while (lexerState != ELexerState::Done)
+  {
+    if (pContext->pLexemeEnd >= pContext->pEndOfFile)
+    {
+      ::OutputDebugStringW(L"== End of file ==\n");
+      return false;
+    }
+
+    ECharacterClass::Enum cc = ClassifyCharacter(*pContext->pLexemeEnd);
+    pContext->pLexemeEnd++;
+    switch (lexerState)
+    {
+    case ELexerState::AcceptAny:
+      switch (cc)
+      {
+      case ECharacterClass::Dot:
+        pToken->tokenType = ETokenType::Dot;
+        lexerState        = ELexerState::Done;
+        break;
+      case ECharacterClass::Alpha:
+        lexerState = ELexerState::AfterAlpha;
+        break;
+      case ECharacterClass::Digit:
+        lexerState = ELexerState::AfterDigit;
+        break;
+      case ECharacterClass::Equals:
+        pToken->tokenType = ETokenType::Equals;
+        lexerState        = ELexerState::Done;
+        break;
+      case ECharacterClass::OpenBrace:
+        pToken->tokenType = ETokenType::OpenBrace;
+        lexerState        = ELexerState::Done;
+        break;
+      case ECharacterClass::CloseBrace:
+        pToken->tokenType = ETokenType::CloseBrace;
+        lexerState        = ELexerState::Done;
+        break;
+      default:
+        // Skip first characters until they are known
+        pContext->pLexemeStart++;
+        break;
+      }
+      break;
+    case ELexerState::AfterAlpha:
+      if (cc != ECharacterClass::Alpha)
+      {
+        pToken->tokenType = ETokenType::Identifier;
+        lexerState        = ELexerState::Done;
+      }
+      break;
+    case ELexerState::AfterDigit:
+      if (cc != ECharacterClass::Digit)
+      {
+        pToken->tokenType = ETokenType::Number;
+        lexerState        = ELexerState::Done;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+
+  pToken->sv.Init(pContext->pLexemeStart, pContext->pLexemeEnd - pContext->pLexemeStart);
+  pContext->pLexemeStart = pContext->pLexemeEnd;
+
+  return true;
+};
+
 void mj::LoadWindowLayout()
 {
   // Read file into memory
@@ -22,247 +271,11 @@ void mj::LoadWindowLayout()
   mj::Allocation allocation = pAllocator->Allocation(fileSize);
   MJ_DEFER(pAllocator->Free(allocation.pAddress));
 
-  struct ETokenType
-  {
-    enum Enum
-    {
-      Identifier,
-      Dot,
-      OpenBrace,
-      CloseBrace,
-      Equals,
-      Number
-    };
-  };
+  MJ_UNINITIALIZED LexerContext lexerContext;
 
-  struct ELexerState
-  {
-    enum Enum
-    {
-      AcceptAny,
-      AfterAlpha,
-      AfterDigit,
-      Done
-    };
-  };
-
-  auto PrintTokenType = [](ETokenType::Enum parserState) {
-    ::OutputDebugStringW(L"Token type: ");
-    switch (parserState)
-    {
-    case ETokenType::Identifier:
-      ::OutputDebugStringW(L"Identifier\n");
-      break;
-    case ETokenType::Dot:
-      ::OutputDebugStringW(L"Dot\n");
-      break;
-    case ETokenType::OpenBrace:
-      ::OutputDebugStringW(L"OpenBrace\n");
-      break;
-    case ETokenType::CloseBrace:
-      ::OutputDebugStringW(L"CloseBrace\n");
-      break;
-    case ETokenType::Equals:
-      ::OutputDebugStringW(L"Equals\n");
-      break;
-    case ETokenType::Number:
-      ::OutputDebugStringW(L"Number\n");
-      break;
-    default:
-      break;
-    }
-  };
-
-  struct EParserState
-  {
-    enum Enum
-    {
-      ExpectType,      // Identifier
-      AfterDot,        // Identifier
-      AfterType,       // OpenBrace
-      AfterOpenBrace,  // Identifier or Dot
-      AfterCloseBrace, // Identifier or Dot
-      AfterField,      // Equals
-      AfterEquals,     // OpenBrace or Number
-      AfterValue,      // CloseBrace or Dot
-      Error,
-    };
-  };
-
-  auto PrintParserState = [](EParserState::Enum parserState) {
-    ::OutputDebugStringW(L"Parser state: ");
-    switch (parserState)
-    {
-    case EParserState::ExpectType:
-      ::OutputDebugStringW(L"ExpectType\n");
-      break;
-    case EParserState::AfterDot:
-      ::OutputDebugStringW(L"AfterDot\n");
-      break;
-    case EParserState::AfterType:
-      ::OutputDebugStringW(L"AfterType\n");
-      break;
-    case EParserState::AfterOpenBrace:
-      ::OutputDebugStringW(L"AfterOpenBrace\n");
-      break;
-    case EParserState::AfterCloseBrace:
-      ::OutputDebugStringW(L"AfterCloseBrace\n");
-      break;
-    case EParserState::AfterField:
-      ::OutputDebugStringW(L"AfterField\n");
-      break;
-    case EParserState::AfterEquals:
-      ::OutputDebugStringW(L"AfterEquals\n");
-      break;
-    case EParserState::AfterValue:
-      ::OutputDebugStringW(L"AfterValue\n");
-      break;
-    case EParserState::Error:
-      ::OutputDebugStringW(L"Error\n");
-      break;
-    default:
-      break;
-    }
-  };
-
-  struct Token
-  {
-    ETokenType::Enum tokenType;
-    StringView sv;
-  };
-
-  wchar_t* pLexemeStart     = reinterpret_cast<wchar_t*>(allocation.pAddress);
-  wchar_t* pLexemeEnd       = reinterpret_cast<wchar_t*>(allocation.pAddress);
-  const wchar_t* pEndOfFile = pLexemeStart + (allocation.numBytes / sizeof(wchar_t));
-
-  struct ECharacterClass
-  {
-    enum Enum
-    {
-      Unknown,
-      Dot,
-      Alpha,
-      Digit,
-      Equals,
-      OpenBrace,
-      CloseBrace,
-    };
-  };
-
-  auto ClassifyCharacter = [&](wchar_t c) {
-    if (c == 0x2E)
-    {
-      return ECharacterClass::Dot;
-    }
-    else if (c < 0x30)
-    {
-      return ECharacterClass::Unknown;
-    }
-    else if (c < 0x3A)
-    {
-      return ECharacterClass::Digit;
-    }
-    else if (c == 0x3D)
-    {
-      return ECharacterClass::Equals;
-    }
-    else if (c < 0x41)
-    {
-      return ECharacterClass::Unknown;
-    }
-    else if (c < 0x5B)
-    {
-      return ECharacterClass::Alpha;
-    }
-    else if (c < 0x61)
-    {
-      return ECharacterClass::Unknown;
-    }
-    else if (c < 0x7B)
-    {
-      return ECharacterClass::Alpha;
-    }
-    else if (c == 0x7B)
-    {
-      return ECharacterClass::OpenBrace;
-    }
-    else if (c == 0x7D)
-    {
-      return ECharacterClass::CloseBrace;
-    }
-
-    return ECharacterClass::Unknown;
-  };
-
-  auto GetNextToken = [&](Token* pToken) {
-    ELexerState::Enum lexerState = ELexerState::AcceptAny;
-    while (lexerState != ELexerState::Done)
-    {
-      if (pLexemeEnd >= pEndOfFile)
-      {
-        ::OutputDebugStringW(L"== End of file ==\n");
-        return false;
-      }
-
-      ECharacterClass::Enum cc = ClassifyCharacter(*pLexemeEnd);
-      pLexemeEnd++;
-      switch (lexerState)
-      {
-      case ELexerState::AcceptAny:
-        switch (cc)
-        {
-        case ECharacterClass::Dot:
-          pToken->tokenType = ETokenType::Dot;
-          lexerState = ELexerState::Done;
-          break;
-        case ECharacterClass::Alpha:
-          lexerState = ELexerState::AfterAlpha;
-          break;
-        case ECharacterClass::Digit:
-          lexerState = ELexerState::AfterDigit;
-          break;
-        case ECharacterClass::Equals:
-          pToken->tokenType = ETokenType::Equals;
-          lexerState        = ELexerState::Done;
-          break;
-        case ECharacterClass::OpenBrace:
-          pToken->tokenType = ETokenType::OpenBrace;
-          lexerState        = ELexerState::Done;
-          break;
-        case ECharacterClass::CloseBrace:
-          pToken->tokenType = ETokenType::CloseBrace;
-          lexerState        = ELexerState::Done;
-          break;
-        default:
-          // Skip first characters until they are known
-          pLexemeStart++;
-          break;
-        }
-        break;
-      case ELexerState::AfterAlpha:
-        if (cc != ECharacterClass::Alpha)
-        {
-          pToken->tokenType = ETokenType::Identifier;
-          lexerState        = ELexerState::Done;
-        }
-        break;
-      case ELexerState::AfterDigit:
-        if (cc != ECharacterClass::Digit)
-        {
-          pToken->tokenType = ETokenType::Number;
-          lexerState        = ELexerState::Done;
-        }
-        break;
-      default:
-        break;
-      }
-    }
-
-    pToken->sv.Init(pLexemeStart, pLexemeEnd - pLexemeStart);
-    pLexemeStart = pLexemeEnd;
-
-    return true;
-  };
+  lexerContext.pLexemeStart = reinterpret_cast<wchar_t*>(allocation.pAddress);
+  lexerContext.pLexemeEnd   = lexerContext.pLexemeStart;
+  lexerContext.pEndOfFile   = lexerContext.pLexemeStart + (allocation.numBytes / sizeof(wchar_t));
 
   EParserState::Enum parserState = EParserState::ExpectType;
   if (allocation.Ok())
@@ -281,7 +294,7 @@ void mj::LoadWindowLayout()
     {
       // Start parsing
       MJ_UNINITIALIZED Token token;
-      while (GetNextToken(&token))
+      while (::GetNextToken(&lexerContext, &token))
       {
         PrintParserState(parserState);
         PrintTokenType(token.tokenType);
@@ -394,7 +407,7 @@ void mj::LoadWindowLayout()
           break;
         }
 
-        PrintParserState(parserState);
+        ::PrintParserState(parserState);
         ::OutputDebugStringW(L"\n");
 
         if (parserState == EParserState::Error)
