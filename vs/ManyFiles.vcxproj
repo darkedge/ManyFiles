@@ -130,6 +130,7 @@
     <ClInclude Include="..\src\TabLayout.h" />
     <ClInclude Include="..\src\Threadpool.h" />
     <ClInclude Include="..\src\VerticalLayout.h" />
+    <ClInclude Include="..\src\WindowLayout.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +170,7 @@
     <ClCompile Include="..\src\TabLayout.cpp" />
     <ClCompile Include="..\src\Threadpool.cpp" />
     <ClCompile Include="..\src\VerticalLayout.cpp" />
+    <ClCompile Include="..\src\WindowLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\3rdparty\Everything\Everything64.dll">

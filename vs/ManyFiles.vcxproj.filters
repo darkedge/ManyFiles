@@ -24,6 +24,7 @@
     <ClCompile Include="..\src\ResourcesWin32.cpp" />
     <ClCompile Include="..\src\TabControl.cpp" />
     <ClCompile Include="..\src\TabLayout.cpp" />
+    <ClCompile Include="..\src\WindowLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ManyFiles.manifest" />
@@ -59,6 +60,7 @@
     <ClInclude Include="..\src\ResourcesWin32.h" />
     <ClInclude Include="..\src\TabControl.h" />
     <ClInclude Include="..\src\TabLayout.h" />
+    <ClInclude Include="..\src\WindowLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

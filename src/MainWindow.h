@@ -27,9 +27,6 @@ namespace mj
     void OnPaint();
     void Destroy();
 
-    void LoadLayoutFromFile();
-    void SaveLayoutToFile();
-
   public:
     void Run();
     void OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice, ID2D1RenderTarget* pRenderTarget);
