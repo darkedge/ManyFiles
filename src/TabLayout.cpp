@@ -84,7 +84,7 @@ bool mj::TabLayout::OnLeftButtonUp(int16_t x, int16_t y)
 void mj::TabLayout::SaveToStringInternal(StringBuilder sb, uint16_t offset)
 {
   uint16_t indent = 4;
-  sb.Indent(offset).Append(L"controls = {\n");
+  sb.Indent(offset).Append(L".controls = {\n");
 
   for (size_t i = 0; i < this->controls.Size(); i += 2)
   {
