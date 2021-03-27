@@ -114,6 +114,9 @@ struct Token
 {
   ETokenType::Enum tokenType;
   mj::StringView sv;
+  union {
+    uint32_t number;
+  };
 };
 
 struct ECharacterClass
@@ -232,6 +235,7 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
     case ELexerState::AfterAlpha:
       if (cc != ECharacterClass::Alpha)
       {
+        pContext->pLexemeEnd--;
         pToken->tokenType = ETokenType::Identifier;
         lexerState        = ELexerState::Done;
       }
@@ -239,6 +243,7 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
     case ELexerState::AfterDigit:
       if (cc != ECharacterClass::Digit)
       {
+        pContext->pLexemeEnd--;
         pToken->tokenType = ETokenType::Number;
         lexerState        = ELexerState::Done;
       }
@@ -249,6 +254,17 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
   }
 
   pToken->sv.Init(pContext->pLexemeStart, pContext->pLexemeEnd - pContext->pLexemeStart);
+
+  switch (pToken->tokenType)
+  {
+  case ETokenType::Number:
+    // This should always succeed
+    static_cast<void>(pToken->sv.ParseNumber(&pToken->number));
+    break;
+  default:
+    break;
+  }
+
   pContext->pLexemeStart = pContext->pLexemeEnd;
 
   return true;

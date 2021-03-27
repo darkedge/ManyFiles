@@ -42,6 +42,30 @@ bool mj::StringView::IsEmpty()
   return this->len == 0;
 }
 
+bool mj::StringView::ParseNumber(uint32_t* pNumber)
+{
+  const wchar_t* pC = this->ptr;
+  *pNumber          = 0;
+  for (size_t i = 0; i < this->len; i++)
+  {
+    *pNumber *= 10;
+    if (*pC >= 0x30)
+    {
+      wchar_t digit = *pC - 0x30;
+      if (digit < 10)
+      {
+        *pNumber += digit;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    pC++;
+  }
+  return false;
+}
+
 ptrdiff_t mj::StringView::FindLastOf(const wchar_t* pString)
 {
   ptrdiff_t index = -1;

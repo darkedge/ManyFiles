@@ -643,6 +643,7 @@ void mj::MainWindow::Run()
   svc::Init(pAllocator);
 
   LoadWindowLayout();
+  //MJ_DEFER(SaveWindowLayout(this->pRootControl));
 
   MJ_UNINITIALIZED ATOM cls;
   WNDCLASSEXW wc   = {};
@@ -690,6 +691,4 @@ void mj::MainWindow::Run()
       mj::ThreadpoolTaskEnd(reinterpret_cast<mj::Task*>(msg.wParam));
     }
   }
-
-  SaveWindowLayout(this->pRootControl);
 }

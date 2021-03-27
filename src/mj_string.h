@@ -14,6 +14,7 @@ namespace mj
     void Init(const wchar_t* pString);
     bool Equals(const wchar_t* pString);
     bool IsEmpty();
+    bool ParseNumber(uint32_t* pNumber);
     ptrdiff_t FindLastOf(const wchar_t* pString);
   };
 
