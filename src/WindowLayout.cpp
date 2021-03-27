@@ -3,6 +3,11 @@
 #include "ErrorExit.h"
 #include "ServiceLocator.h"
 
+#include "DirectoryNavigationPanel.h"
+#include "HorizontalLayout.h"
+#include "VerticalLayout.h"
+#include "TabLayout.h"
+
 static constexpr const wchar_t* s_WindowLayoutFilename = L"window_layout.txt";
 
 struct ETokenType
@@ -13,7 +18,8 @@ struct ETokenType
     Dot,
     OpenBrace,
     CloseBrace,
-    Equals,
+    OpenBracket,
+    CloseBracket,
     Number
   };
 };
@@ -46,8 +52,11 @@ static void PrintTokenType(ETokenType::Enum parserState)
   case ETokenType::CloseBrace:
     ::OutputDebugStringW(L"CloseBrace\n");
     break;
-  case ETokenType::Equals:
-    ::OutputDebugStringW(L"Equals\n");
+  case ETokenType::OpenBracket:
+    ::OutputDebugStringW(L"OpenBracket\n");
+    break;
+  case ETokenType::CloseBracket:
+    ::OutputDebugStringW(L"CloseBracket\n");
     break;
   case ETokenType::Number:
     ::OutputDebugStringW(L"Number\n");
@@ -61,15 +70,27 @@ struct EParserState
 {
   enum Enum
   {
-    ExpectType,      // Identifier
-    AfterDot,        // Identifier
-    AfterType,       // OpenBrace
-    AfterOpenBrace,  // Identifier or Dot
-    AfterCloseBrace, // Identifier or Dot
-    AfterField,      // Equals
-    AfterEquals,     // OpenBrace or Number
-    AfterValue,      // CloseBrace or Dot
+    ExpectType,        // Identifier
+    AfterDot,          // Identifier
+    AfterType,         // OpenBrace
+    AfterOpenBrace,    // Dot
+    AfterCloseBrace,   // Identifier or CloseBracket
+    AfterOpenBracket,  // Identifier
+    AfterCloseBracket, // CloseBrace or Dot
+    AfterField,        // Number or OpenBracket
+    AfterValue,        // CloseBrace or Dot
     Error,
+  };
+};
+
+struct EControlType
+{
+  enum Enum
+  {
+    DirectoryNavigationPanel,
+    HorizontalLayout,
+    VerticalLayout,
+    TabLayout,
   };
 };
 
@@ -93,11 +114,14 @@ static void PrintParserState(EParserState::Enum parserState)
   case EParserState::AfterCloseBrace:
     ::OutputDebugStringW(L"AfterCloseBrace\n");
     break;
+  case EParserState::AfterOpenBracket:
+    ::OutputDebugStringW(L"AfterOpenBracket\n");
+    break;
+  case EParserState::AfterCloseBracket:
+    ::OutputDebugStringW(L"AfterCloseBracket\n");
+    break;
   case EParserState::AfterField:
     ::OutputDebugStringW(L"AfterField\n");
-    break;
-  case EParserState::AfterEquals:
-    ::OutputDebugStringW(L"AfterEquals\n");
     break;
   case EParserState::AfterValue:
     ::OutputDebugStringW(L"AfterValue\n");
@@ -123,37 +147,24 @@ struct ECharacterClass
 {
   enum Enum
   {
-    Unknown,
-    Dot,
     Alpha,
     Digit,
-    Equals,
-    OpenBrace,
-    CloseBrace,
   };
 };
 
-static ECharacterClass::Enum ClassifyCharacter(wchar_t c)
+static wchar_t ClassifyCharacter(wchar_t c)
 {
-  if (c == 0x2E)
+  if (c < 0x30)
   {
-    return ECharacterClass::Dot;
-  }
-  else if (c < 0x30)
-  {
-    return ECharacterClass::Unknown;
+    return c;
   }
   else if (c < 0x3A)
   {
     return ECharacterClass::Digit;
   }
-  else if (c == 0x3D)
-  {
-    return ECharacterClass::Equals;
-  }
   else if (c < 0x41)
   {
-    return ECharacterClass::Unknown;
+    return c;
   }
   else if (c < 0x5B)
   {
@@ -161,22 +172,14 @@ static ECharacterClass::Enum ClassifyCharacter(wchar_t c)
   }
   else if (c < 0x61)
   {
-    return ECharacterClass::Unknown;
+    return c;
   }
   else if (c < 0x7B)
   {
     return ECharacterClass::Alpha;
   }
-  else if (c == 0x7B)
-  {
-    return ECharacterClass::OpenBrace;
-  }
-  else if (c == 0x7D)
-  {
-    return ECharacterClass::CloseBrace;
-  }
 
-  return ECharacterClass::Unknown;
+  return c;
 };
 
 struct LexerContext
@@ -197,33 +200,37 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
       return false;
     }
 
-    ECharacterClass::Enum cc = ClassifyCharacter(*pContext->pLexemeEnd);
+    wchar_t cc = ClassifyCharacter(*pContext->pLexemeEnd);
     pContext->pLexemeEnd++;
     switch (lexerState)
     {
     case ELexerState::AcceptAny:
       switch (cc)
       {
-      case ECharacterClass::Dot:
-        pToken->tokenType = ETokenType::Dot;
-        lexerState        = ELexerState::Done;
-        break;
       case ECharacterClass::Alpha:
         lexerState = ELexerState::AfterAlpha;
         break;
       case ECharacterClass::Digit:
         lexerState = ELexerState::AfterDigit;
         break;
-      case ECharacterClass::Equals:
-        pToken->tokenType = ETokenType::Equals;
+      case L'.':
+        pToken->tokenType = ETokenType::Dot;
         lexerState        = ELexerState::Done;
         break;
-      case ECharacterClass::OpenBrace:
+      case L'{':
         pToken->tokenType = ETokenType::OpenBrace;
         lexerState        = ELexerState::Done;
         break;
-      case ECharacterClass::CloseBrace:
+      case L'}':
         pToken->tokenType = ETokenType::CloseBrace;
+        lexerState        = ELexerState::Done;
+        break;
+      case L'[':
+        pToken->tokenType = ETokenType::OpenBracket;
+        lexerState        = ELexerState::Done;
+        break;
+      case L']':
+        pToken->tokenType = ETokenType::CloseBracket;
         lexerState        = ELexerState::Done;
         break;
       default:
@@ -270,7 +277,7 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
   return true;
 };
 
-void mj::LoadWindowLayout()
+void mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
 {
   // Read file into memory
   MJ_UNINITIALIZED HANDLE file;
@@ -282,8 +289,6 @@ void mj::LoadWindowLayout()
   MJ_UNINITIALIZED DWORD fileSize;
   MJ_ERR_IF(fileSize = ::GetFileSize(file, nullptr), INVALID_FILE_SIZE);
 
-  mj::AllocatorBase* pAllocator = svc::GeneralPurposeAllocator();
-  MJ_EXIT_NULL(pAllocator);
   mj::Allocation allocation = pAllocator->Allocation(fileSize);
   MJ_DEFER(pAllocator->Free(allocation.pAddress));
 
@@ -322,6 +327,30 @@ void mj::LoadWindowLayout()
           if (token.tokenType == ETokenType::Identifier)
           {
             parserState = EParserState::AfterType;
+
+#if 0
+            // TODO: We should generate this bit
+            if (token.sv.Equals(L"DirectoryNavigationPanel"))
+            {
+              pAllocator->New<DirectoryNavigationPanel>();
+            }
+            else if (token.sv.Equals(L"HorizontalLayout"))
+            {
+              pAllocator->New<HorizontalLayout>();
+            }
+            else if (token.sv.Equals(L"VerticalLayout"))
+            {
+              pAllocator->New<VerticalLayout>();
+            }
+            else if (token.sv.Equals(L"TabLayout"))
+            {
+              pAllocator->New<TabLayout>();
+            }
+            else
+            {
+              // Error
+            }
+#endif
           }
           else
           {
@@ -341,6 +370,7 @@ void mj::LoadWindowLayout()
         case EParserState::AfterType:
           if (token.tokenType == ETokenType::OpenBrace)
           {
+            // Begin type description
             parserState = EParserState::AfterOpenBrace;
           }
           else
@@ -349,11 +379,7 @@ void mj::LoadWindowLayout()
           }
           break;
         case EParserState::AfterOpenBrace:
-          if (token.tokenType == ETokenType::Identifier)
-          {
-            parserState = EParserState::AfterType;
-          }
-          else if (token.tokenType == ETokenType::Dot)
+          if (token.tokenType == ETokenType::Dot)
           {
             parserState = EParserState::AfterDot;
           }
@@ -367,13 +393,34 @@ void mj::LoadWindowLayout()
           {
             parserState = EParserState::AfterType;
           }
-          else if (token.tokenType == ETokenType::Dot)
+          else if (token.tokenType == ETokenType::CloseBracket)
           {
-            parserState = EParserState::AfterField;
+            // Close collection
+            parserState = EParserState::AfterCloseBracket;
           }
-          else if (token.tokenType == ETokenType::CloseBrace)
+          else
+          {
+            parserState = EParserState::Error;
+          }
+          break;
+        case EParserState::AfterOpenBracket:
+          if (token.tokenType == ETokenType::Identifier)
+          {
+            parserState = EParserState::AfterType;
+          }
+          else
+          {
+            parserState = EParserState::Error;
+          }
+          break;
+        case EParserState::AfterCloseBracket:
+          if (token.tokenType == ETokenType::CloseBrace)
           {
             parserState = EParserState::AfterCloseBrace;
+          }
+          else if (token.tokenType == ETokenType::Dot)
+          {
+            parserState = EParserState::AfterDot;
           }
           else
           {
@@ -381,23 +428,13 @@ void mj::LoadWindowLayout()
           }
           break;
         case EParserState::AfterField:
-          if (token.tokenType == ETokenType::Equals)
-          {
-            parserState = EParserState::AfterEquals;
-          }
-          else
-          {
-            parserState = EParserState::Error;
-          }
-          break;
-        case EParserState::AfterEquals:
-          if (token.tokenType == ETokenType::OpenBrace)
-          {
-            parserState = EParserState::AfterOpenBrace;
-          }
-          else if (token.tokenType == ETokenType::Number)
+          if (token.tokenType == ETokenType::Number)
           {
             parserState = EParserState::AfterValue;
+          }
+          else if (token.tokenType == ETokenType::OpenBracket)
+          {
+            parserState = EParserState::AfterOpenBracket;
           }
           else
           {
@@ -407,6 +444,7 @@ void mj::LoadWindowLayout()
         case EParserState::AfterValue:
           if (token.tokenType == ETokenType::CloseBrace)
           {
+            // Close collection
             parserState = EParserState::AfterCloseBrace;
           }
           else if (token.tokenType == ETokenType::Dot)

@@ -642,7 +642,7 @@ void mj::MainWindow::Run()
   res::d2d1::Init(pAllocator);
   svc::Init(pAllocator);
 
-  LoadWindowLayout();
+  LoadWindowLayout(svc::GeneralPurposeAllocator());
   //MJ_DEFER(SaveWindowLayout(this->pRootControl));
 
   MJ_UNINITIALIZED ATOM cls;

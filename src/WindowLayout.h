@@ -1,8 +1,10 @@
 #pragma once
 
-namespace mj {
+namespace mj
+{
+  class AllocatorBase;
   class Control;
 
-  void LoadWindowLayout();
+  void LoadWindowLayout(mj::AllocatorBase* pAllocator);
   void SaveWindowLayout(mj::Control* pRootControl);
-}
+} // namespace mj
