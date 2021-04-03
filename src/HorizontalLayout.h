@@ -10,7 +10,7 @@ namespace mj
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
     virtual const wchar_t* GetType() override
     {
-      return WSTR(HorizontalLayout);
+      return MJ_NAMEOF(HorizontalLayout);
     }
     virtual void OnSize() override;
 
@@ -37,7 +37,7 @@ namespace mj
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
     virtual const wchar_t* GetType() override
     {
-      return WSTR(HorizontalResizeControl);
+      return MJ_NAMEOF(HorizontalResizeControl);
     }
     [[nodiscard]] virtual bool OnLeftButtonDown(int16_t x, int16_t y) override;
 

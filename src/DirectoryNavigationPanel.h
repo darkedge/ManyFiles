@@ -131,7 +131,7 @@ namespace mj
     virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
     virtual const wchar_t* GetType() override
     {
-      return WSTR(DirectoryNavigationPanel);
+      return MJ_NAMEOF(DirectoryNavigationPanel);
     }
     virtual void Destroy() override;
 
