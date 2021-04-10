@@ -41,25 +41,25 @@ static void PrintTokenType(ETokenType::Enum parserState)
   switch (parserState)
   {
   case ETokenType::Identifier:
-    ::OutputDebugStringW(L"Identifier\n");
+    ::OutputDebugStringW(L"Identifier\r\n");
     break;
   case ETokenType::Dot:
-    ::OutputDebugStringW(L"Dot\n");
+    ::OutputDebugStringW(L"Dot\r\n");
     break;
   case ETokenType::OpenBrace:
-    ::OutputDebugStringW(L"OpenBrace\n");
+    ::OutputDebugStringW(L"OpenBrace\r\n");
     break;
   case ETokenType::CloseBrace:
-    ::OutputDebugStringW(L"CloseBrace\n");
+    ::OutputDebugStringW(L"CloseBrace\r\n");
     break;
   case ETokenType::OpenBracket:
-    ::OutputDebugStringW(L"OpenBracket\n");
+    ::OutputDebugStringW(L"OpenBracket\r\n");
     break;
   case ETokenType::CloseBracket:
-    ::OutputDebugStringW(L"CloseBracket\n");
+    ::OutputDebugStringW(L"CloseBracket\r\n");
     break;
   case ETokenType::Number:
-    ::OutputDebugStringW(L"Number\n");
+    ::OutputDebugStringW(L"Number\r\n");
     break;
   default:
     break;
@@ -100,34 +100,34 @@ static void PrintParserState(EParserState::Enum parserState)
   switch (parserState)
   {
   case EParserState::ExpectType:
-    ::OutputDebugStringW(L"ExpectType\n");
+    ::OutputDebugStringW(L"ExpectType\r\n");
     break;
   case EParserState::AfterDot:
-    ::OutputDebugStringW(L"AfterDot\n");
+    ::OutputDebugStringW(L"AfterDot\r\n");
     break;
   case EParserState::AfterType:
-    ::OutputDebugStringW(L"AfterType\n");
+    ::OutputDebugStringW(L"AfterType\r\n");
     break;
   case EParserState::AfterOpenBrace:
-    ::OutputDebugStringW(L"AfterOpenBrace\n");
+    ::OutputDebugStringW(L"AfterOpenBrace\r\n");
     break;
   case EParserState::AfterCloseBrace:
-    ::OutputDebugStringW(L"AfterCloseBrace\n");
+    ::OutputDebugStringW(L"AfterCloseBrace\r\n");
     break;
   case EParserState::AfterOpenBracket:
-    ::OutputDebugStringW(L"AfterOpenBracket\n");
+    ::OutputDebugStringW(L"AfterOpenBracket\r\n");
     break;
   case EParserState::AfterCloseBracket:
-    ::OutputDebugStringW(L"AfterCloseBracket\n");
+    ::OutputDebugStringW(L"AfterCloseBracket\r\n");
     break;
   case EParserState::AfterField:
-    ::OutputDebugStringW(L"AfterField\n");
+    ::OutputDebugStringW(L"AfterField\r\n");
     break;
   case EParserState::AfterValue:
-    ::OutputDebugStringW(L"AfterValue\n");
+    ::OutputDebugStringW(L"AfterValue\r\n");
     break;
   case EParserState::Error:
-    ::OutputDebugStringW(L"Error\n");
+    ::OutputDebugStringW(L"Error\r\n");
     break;
   default:
     break;
@@ -196,7 +196,7 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
   {
     if (pContext->pLexemeEnd >= pContext->pEndOfFile)
     {
-      ::OutputDebugStringW(L"== End of file ==\n");
+      ::OutputDebugStringW(L"== End of file ==\r\n");
       return false;
     }
 
@@ -459,7 +459,7 @@ void mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
         }
 
         ::PrintParserState(parserState);
-        ::OutputDebugStringW(L"\n");
+        ::OutputDebugStringW(L"\r\n");
 
         if (parserState == EParserState::Error)
         {
@@ -468,7 +468,7 @@ void mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
       }
     }
 
-    sb.Append(L"\n");
+    sb.Append(L"\r\n");
     ::OutputDebugStringW(sb.ToStringClosed().ptr);
   }
 }

@@ -108,28 +108,28 @@ namespace mj
       uint16_t indent = 4;
       sb.Indent(offset)
           .Append(this->GetType())
-          .Append(L" {\n")
+          .Append(L" {\r\n")
           .Indent(offset + indent)
           .Append(L".xParent = ")
           .Append(xParent)
-          .Append(L"\n")
+          .Append(L"\r\n")
           .Indent(offset + indent)
           .Append(L".yParent = ")
           .Append(yParent)
-          .Append(L"\n")
+          .Append(L"\r\n")
           .Indent(offset + indent)
           .Append(L".width = ")
           .Append(width)
-          .Append(L"\n")
+          .Append(L"\r\n")
           .Indent(offset + indent)
           .Append(L".height = ")
           .Append(height)
-          .Append(L"\n");
+          .Append(L"\r\n");
 
       // Containers must list children
       this->SaveToStringInternal(sb, offset + indent);
 
-      sb.Indent(offset).Append(L"}\n");
+      sb.Indent(offset).Append(L"}\r\n");
     }
 
     void OnPaint(ID2D1RenderTarget* pRenderTarget);
