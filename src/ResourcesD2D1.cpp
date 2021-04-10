@@ -1,7 +1,7 @@
 #include "ResourcesD2D1.h"
 #include "../tracy/Tracy.hpp"
 #include "ErrorExit.h"
-#include "../vs/resource.h"
+#include "../vs/ManyFiles/resource.h"
 #include "Threadpool.h"
 #include "ServiceLocator.h"
 #include "stb_image.h"

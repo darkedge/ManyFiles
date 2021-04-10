@@ -1,0 +1,4 @@
+#include "resource.h"
+
+IDB_FOLDER PNG "res\\FolderClosed_16x.png"
+IDB_DOCUMENT PNG "res\\Document_noHalo_16x.png"

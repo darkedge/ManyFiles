@@ -8,7 +8,7 @@
 #include <shellapi.h>
 #include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
-#include "../vs/resource.h"
+#include "../vs/ManyFiles/resource.h"
 #define STRICT_TYPED_ITEMIDS
 #include <Shlobj.h>
 
