@@ -154,27 +154,27 @@ struct ECharacterClass
 
 static wchar_t ClassifyCharacter(wchar_t c)
 {
-  if (c < 0x30)
+  if (c < L'0')
   {
     return c;
   }
-  else if (c < 0x3A)
+  else if (c < L':')
   {
     return ECharacterClass::Digit;
   }
-  else if (c < 0x41)
+  else if (c < L'A')
   {
     return c;
   }
-  else if (c < 0x5B)
+  else if (c < L'[')
   {
     return ECharacterClass::Alpha;
   }
-  else if (c < 0x61)
+  else if (c < L'a')
   {
     return c;
   }
-  else if (c < 0x7B)
+  else if (c < L'{')
   {
     return ECharacterClass::Alpha;
   }
@@ -330,25 +330,22 @@ void mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
 
 #if 0
             // TODO: We should generate this bit
+            Control* pControl = nullptr;
             if (token.sv.Equals(L"DirectoryNavigationPanel"))
             {
-              pAllocator->New<DirectoryNavigationPanel>();
+              auto* pControl = pAllocator->New<DirectoryNavigationPanel>();
             }
             else if (token.sv.Equals(L"HorizontalLayout"))
             {
-              pAllocator->New<HorizontalLayout>();
+              auto* pControl = pAllocator->New<HorizontalLayout>();
             }
             else if (token.sv.Equals(L"VerticalLayout"))
             {
-              pAllocator->New<VerticalLayout>();
+              auto* pControl = pAllocator->New<VerticalLayout>();
             }
-            else if (token.sv.Equals(L"TabLayout"))
+            if (pControl)
             {
-              pAllocator->New<TabLayout>();
-            }
-            else
-            {
-              // Error
+              pControl->Init()
             }
 #endif
           }
