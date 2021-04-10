@@ -7,25 +7,34 @@ static constexpr const wchar_t* serializationCpp = L"..\\..\\src\\Serialization.
 
 static void CreateSerializationSourceCode()
 {
+  mj::ArrayList<wchar_t> al;
+  mj::AllocatorBase* pAlloc = svc::GeneralPurposeAllocator();
+  al.Init(pAlloc);
+  MJ_DEFER(al.Destroy());
+
+  mj::StringBuilder sb;
+  sb.SetArrayList(&al);
+
+  // Content
+  sb.Append(L"// Hello World!");
+
+  mj::StringView sv = sb.ToStringOpen();
+  MJ_UNINITIALIZED DWORD bytesWritten;
+
+  // Convert to ANSI
+  MJ_UNINITIALIZED int numBytes;
+  MJ_ERR_ZERO(numBytes = ::WideCharToMultiByte(CP_ACP, 0, sv.ptr, sv.len, nullptr, 0, nullptr, nullptr));
+  LPSTR ptr = static_cast<LPSTR>(pAlloc->Allocate(numBytes));
+  MJ_DEFER(pAlloc->Free(ptr));
+  static_cast<void>(::WideCharToMultiByte(CP_ACP, 0, sv.ptr, sv.len, ptr, numBytes, nullptr, nullptr));
+
+  // Write file contents
   MJ_UNINITIALIZED HANDLE file;
   MJ_ERR_IF(
       file = ::CreateFileW(serializationCpp, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr),
       INVALID_HANDLE_VALUE);
   MJ_DEFER(MJ_ERR_ZERO(::CloseHandle(file)));
-
-  mj::ArrayList<wchar_t> al;
-  al.Init(svc::GeneralPurposeAllocator());
-  MJ_DEFER(al.Destroy());
-  mj::StringBuilder sb;
-  sb.SetArrayList(&al);
-
-  sb.Append(L"0");
-
-  mj::StringView sv = sb.ToStringOpen();
-  MJ_UNINITIALIZED DWORD bytesWritten;
-
-  // Write file contents
-  MJ_ERR_ZERO(::WriteFile(file, sv.ptr, sv.len * sizeof(wchar_t), &bytesWritten, nullptr));
+  MJ_ERR_ZERO(::WriteFile(file, ptr, numBytes, &bytesWritten, nullptr));
 }
 
 /// <summary>

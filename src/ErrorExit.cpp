@@ -57,7 +57,14 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
                         .Append(msgString)                //
                         .ToStringClosed();
 
-      ::OutputDebugStringW(string.ptr);
+      if (::IsDebuggerPresent())
+      {
+        ::OutputDebugStringW(string.ptr);
+      }
+      else
+      {
+        MessageBoxW(nullptr, string.ptr, L"Error", MB_ICONERROR);
+      }
     }
 
     static_cast<void>(::LocalFree(lpMsgBuf));
@@ -104,6 +111,13 @@ void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& 
                       .Append(expression)               //
                       .ToStringClosed();
 
-    ::OutputDebugStringW(string.ptr);
+    if (::IsDebuggerPresent())
+    {
+      ::OutputDebugStringW(string.ptr);
+    }
+    else
+    {
+      MessageBoxW(nullptr, string.ptr, L"Error", MB_ICONERROR);
+    }
   }
 }
