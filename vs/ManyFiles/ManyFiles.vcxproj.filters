@@ -1,66 +1,68 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\3rdparty\tracy\TracyClient.cpp" />
-    <ClCompile Include="..\src\EntryPoint.cpp" />
-    <ClCompile Include="..\src\ErrorExit.cpp" />
-    <ClCompile Include="..\src\MainWindow.cpp" />
-    <ClCompile Include="..\src\mj_common.cpp" />
-    <ClCompile Include="..\src\mj_math.cpp" />
-    <ClCompile Include="..\src\ncrt_math_float.cpp" />
-    <ClCompile Include="..\src\ncrt_memory.cpp" />
-    <ClCompile Include="..\src\ServiceLocator.cpp" />
-    <ClCompile Include="..\src\Threadpool.cpp" />
-    <ClCompile Include="..\src\DirectoryNavigationPanel.cpp" />
-    <ClCompile Include="..\src\mj_string.cpp" />
-    <ClCompile Include="..\src\mj_allocator.cpp" />
-    <ClCompile Include="..\src\mj_stb_image.cpp" />
-    <ClCompile Include="..\src\Control.cpp" />
-    <ClCompile Include="..\src\HorizontalLayout.cpp" />
-    <ClCompile Include="..\src\ResourcesD2D1.cpp" />
-    <ClCompile Include="..\src\VerticalLayout.cpp" />
-    <ClCompile Include="..\src\LinearLayout.cpp" />
-    <ClCompile Include="..\src\mj_random.cpp" />
-    <ClCompile Include="..\src\ResourcesWin32.cpp" />
-    <ClCompile Include="..\src\TabControl.cpp" />
-    <ClCompile Include="..\src\TabLayout.cpp" />
-    <ClCompile Include="..\src\WindowLayout.cpp" />
+    <ClCompile Include="..\..\3rdparty\tracy\TracyClient.cpp" />
+    <ClCompile Include="..\..\src\DirectoryNavigationPanel.cpp" />
+    <ClCompile Include="..\..\src\EntryPoint.cpp" />
+    <ClCompile Include="..\..\src\ErrorExit.cpp" />
+    <ClCompile Include="..\..\src\Control.cpp" />
+    <ClCompile Include="..\..\src\HorizontalLayout.cpp" />
+    <ClCompile Include="..\..\src\LinearLayout.cpp" />
+    <ClCompile Include="..\..\src\MainWindow.cpp" />
+    <ClCompile Include="..\..\src\mj_allocator.cpp" />
+    <ClCompile Include="..\..\src\mj_common.cpp" />
+    <ClCompile Include="..\..\src\mj_math.cpp" />
+    <ClCompile Include="..\..\src\mj_random.cpp" />
+    <ClCompile Include="..\..\src\mj_stb_image.cpp" />
+    <ClCompile Include="..\..\src\ncrt_math_float.cpp" />
+    <ClCompile Include="..\..\src\ncrt_memory.cpp" />
+    <ClCompile Include="..\..\src\ResourcesD2D1.cpp" />
+    <ClCompile Include="..\..\src\ResourcesWin32.cpp" />
+    <ClCompile Include="..\..\src\ServiceLocator.cpp" />
+    <ClCompile Include="..\..\src\mj_string.cpp" />
+    <ClCompile Include="..\..\src\TabControl.cpp" />
+    <ClCompile Include="..\..\src\TabLayout.cpp" />
+    <ClCompile Include="..\..\src\Threadpool.cpp" />
+    <ClCompile Include="..\..\src\VerticalLayout.cpp" />
+    <ClCompile Include="..\..\src\WindowLayout.cpp" />
+    <ClCompile Include="..\..\src\Serialization.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ManyFiles.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ManyFiles.ruleset" />
-    <None Include="..\3rdparty\Everything\Everything64.dll" />
+    <None Include="..\..\3rdparty\Everything\Everything64.dll" />
+    <None Include="..\ManyFiles.ruleset" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\ErrorExit.h" />
-    <ClInclude Include="..\src\MainWindow.h" />
-    <ClInclude Include="..\src\mj_allocator.h" />
-    <ClInclude Include="..\src\mj_common.h" />
-    <ClInclude Include="..\src\mj_hashtable.h" />
-    <ClInclude Include="..\src\mj_math.h" />
-    <ClInclude Include="..\src\mj_win32.h" />
-    <ClInclude Include="..\src\ncrt_memory.h" />
-    <ClInclude Include="..\src\ServiceLocator.h" />
-    <ClInclude Include="..\src\ServiceProvider.h" />
-    <ClInclude Include="..\src\sse_mathfun.h" />
-    <ClInclude Include="..\src\Threadpool.h" />
-    <ClInclude Include="..\src\DirectoryNavigationPanel.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="..\src\stb_image.h" />
-    <ClInclude Include="..\src\mj_string.h" />
-    <ClInclude Include="..\src\mj_macro.h" />
-    <ClInclude Include="..\src\Control.h" />
-    <ClInclude Include="..\src\HorizontalLayout.h" />
-    <ClInclude Include="..\src\ResourcesD2D1.h" />
-    <ClInclude Include="..\src\VerticalLayout.h" />
-    <ClInclude Include="..\src\LinearLayout.h" />
-    <ClInclude Include="..\src\mj_random.h" />
-    <ClInclude Include="..\src\ResourcesWin32.h" />
-    <ClInclude Include="..\src\TabControl.h" />
-    <ClInclude Include="..\src\TabLayout.h" />
-    <ClInclude Include="..\src\WindowLayout.h" />
+    <ClInclude Include="..\..\src\DirectoryNavigationPanel.h" />
+    <ClInclude Include="..\..\src\ErrorExit.h" />
+    <ClInclude Include="..\..\src\Control.h" />
+    <ClInclude Include="..\..\src\HorizontalLayout.h" />
+    <ClInclude Include="..\..\src\LinearLayout.h" />
+    <ClInclude Include="..\..\src\MainWindow.h" />
+    <ClInclude Include="..\..\src\mj_allocator.h" />
+    <ClInclude Include="..\..\src\mj_common.h" />
+    <ClInclude Include="..\..\src\mj_hashtable.h" />
+    <ClInclude Include="..\..\src\mj_macro.h" />
+    <ClInclude Include="..\..\src\mj_math.h" />
+    <ClInclude Include="..\..\src\mj_random.h" />
+    <ClInclude Include="..\..\src\mj_win32.h" />
+    <ClInclude Include="..\..\src\ncrt_memory.h" />
+    <ClInclude Include="..\..\src\ResourcesD2D1.h" />
+    <ClInclude Include="..\..\src\ResourcesWin32.h" />
+    <ClInclude Include="..\..\src\ServiceLocator.h" />
+    <ClInclude Include="..\..\src\ServiceProvider.h" />
+    <ClInclude Include="..\..\src\sse_mathfun.h" />
+    <ClInclude Include="..\..\src\stb_image.h" />
+    <ClInclude Include="..\..\src\mj_string.h" />
+    <ClInclude Include="..\..\src\TabControl.h" />
+    <ClInclude Include="..\..\src\TabLayout.h" />
+    <ClInclude Include="..\..\src\Threadpool.h" />
+    <ClInclude Include="..\..\src\VerticalLayout.h" />
+    <ClInclude Include="..\..\src\WindowLayout.h" />
+    <ClInclude Include="..\..\src\Serialization.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

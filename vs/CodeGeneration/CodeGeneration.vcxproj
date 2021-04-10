@@ -12,6 +12,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\CodeGeneration.cpp" />
+    <ClCompile Include="..\..\src\ErrorExit.cpp" />
+    <ClCompile Include="..\..\src\mj_allocator.cpp" />
+    <ClCompile Include="..\..\src\mj_string.cpp" />
+    <ClCompile Include="..\..\src\ncrt_math_float.cpp" />
+    <ClCompile Include="..\..\src\ncrt_memory.cpp" />
+    <ClCompile Include="..\..\src\ServiceLocator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\ErrorExit.h" />
+    <ClInclude Include="..\..\src\mj_allocator.h" />
+    <ClInclude Include="..\..\src\mj_string.h" />
+    <ClInclude Include="..\..\src\ncrt_memory.h" />
+    <ClInclude Include="..\..\src\ServiceLocator.h" />
+    <ClInclude Include="..\..\src\ServiceProvider.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
