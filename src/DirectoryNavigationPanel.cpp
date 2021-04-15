@@ -452,6 +452,10 @@ void mj::DirectoryNavigationPanel::Destroy()
 mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RECT* pRect)
 {
   auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
+
+  // Skip current folder line
+  point.y += this->entryHeight;
+
   for (auto i = 0; i < this->entries.Size(); i++)
   {
     auto& entry = this->entries[i];
