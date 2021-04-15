@@ -565,10 +565,12 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_LBUTTONDBLCLK:
   {
-    POINTS ptClient = MAKEPOINTS(lParam);
-    if (pMainWindow->pRootControl)
+    POINTS ptClient   = MAKEPOINTS(lParam);
+    Control* pControl = pMainWindow->pRootControl;
+    if (pControl)
     {
-      pMainWindow->pRootControl->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
+      static_cast<void>(pControl->TranslateClientPoint(&ptClient.x, &ptClient.y));
+      pControl->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
     }
     return 0;
   }
@@ -576,9 +578,11 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   {
     POINTS ptScreen = MAKEPOINTS(lParam);
     POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
-    if (pMainWindow->pRootControl)
+    Control* pControl = pMainWindow->pRootControl;
+    if (pControl)
     {
-      pMainWindow->pRootControl->OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
+      static_cast<void>(pControl->TranslateClientPoint(&ptClient.x, &ptClient.y));
+      pControl->OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
     }
     return 0;
   }
