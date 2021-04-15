@@ -37,7 +37,6 @@ struct CreateIWICImagingFactoryContext : public mj::Task
 
     {
       ZoneScopedN("CoCreateInstance");
-      // TODO: Can cause exception c0000374?
       MJ_ERR_HRESULT(::CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
                                         (IID_PPV_ARGS(&this->pWicFactory))));
     }
@@ -147,7 +146,6 @@ struct CreateDWriteFactoryTask : public mj::Task
 void mj::MainWindow::OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice,
                                                ID2D1RenderTarget* pRenderTarget)
 {
-
   this->dcompDevice = dcompDevice;
   svc::ProvideD2D1RenderTarget(pRenderTarget);
   res::d2d1::Load(pRenderTarget);
@@ -284,6 +282,7 @@ void mj::MainWindow::Destroy()
       }
     }
   }
+#endif
 
   if (this->pRootControl)
   {
@@ -293,7 +292,6 @@ void mj::MainWindow::Destroy()
     svc::GeneralPurposeAllocator()->Free(this->pRootControl);
     this->pRootControl = nullptr;
   }
-#endif
 
   res::d2d1::Destroy();
 
@@ -609,9 +607,8 @@ void mj::MainWindow::Run()
 
   mj::HeapAllocator generalPurposeAllocator;
   generalPurposeAllocator.Init();
-  MJ_UNINITIALIZED mj::AllocatorBase* pAllocator;
-  pAllocator = &generalPurposeAllocator;
-  svc::ProvideGeneralPurposeAllocator(pAllocator);
+  svc::ProvideGeneralPurposeAllocator(&generalPurposeAllocator);
+  mj::AllocatorBase* pAllocator = svc::GeneralPurposeAllocator();
 
   // Initialize thread pool
   mj::ThreadpoolInit(::GetCurrentThreadId(), WM_MJTASKFINISH);
@@ -642,9 +639,11 @@ void mj::MainWindow::Run()
   res::d2d1::Init(pAllocator);
   svc::Init(pAllocator);
 
-  if (!LoadWindowLayout(svc::GeneralPurposeAllocator()))
+  if (!LoadWindowLayout(pAllocator))
   {
     // TODO: Create default window layout
+    this->pRootControl = pAllocator->New<DirectoryNavigationPanel>();
+    this->pRootControl->Init(pAllocator);
   }
   // MJ_DEFER(SaveWindowLayout(this->pRootControl));
 
