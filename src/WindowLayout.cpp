@@ -277,13 +277,15 @@ static bool GetNextToken(LexerContext* pContext, Token* pToken)
   return true;
 };
 
-void mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
+bool mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
 {
   // Read file into memory
   MJ_UNINITIALIZED HANDLE file;
-  MJ_ERR_IF(file = ::CreateFileW(s_WindowLayoutFilename, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
-                                 nullptr),
-            INVALID_HANDLE_VALUE);
+  file = ::CreateFileW(s_WindowLayoutFilename, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    return false;
+  }
   MJ_DEFER(MJ_ERR_ZERO(::CloseHandle(file)));
 
   MJ_UNINITIALIZED DWORD fileSize;

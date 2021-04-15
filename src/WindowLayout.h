@@ -5,6 +5,6 @@ namespace mj
   class AllocatorBase;
   class Control;
 
-  void LoadWindowLayout(mj::AllocatorBase* pAllocator);
+  bool LoadWindowLayout(mj::AllocatorBase* pAllocator);
   void SaveWindowLayout(mj::Control* pRootControl);
 } // namespace mj
