@@ -463,13 +463,13 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     {
       NCCALCSIZE_PARAMS* pParams = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
 
-      // Note: rgrc is an array of three RECTs, but we only need the first one.
+      // Note: rgrc is a RECT[3], but we only need the first element.
       RECT* pRect = pParams->rgrc;
-      int frameX  = ::GetSystemMetrics(SM_CXFRAME);
+      int frameX  = ::GetSystemMetrics(SM_CXSIZEFRAME);
       int border  = ::GetSystemMetrics(SM_CXPADDEDBORDER);
       pRect->right -= frameX + border;
       pRect->left += frameX + border;
-      pRect->bottom -= ::GetSystemMetrics(SM_CYFRAME) + border;
+      pRect->bottom -= ::GetSystemMetrics(SM_CYSIZEFRAME) + border;
     }
     return 0;
   case WM_NCHITTEST:
