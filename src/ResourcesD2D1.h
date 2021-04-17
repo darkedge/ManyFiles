@@ -29,7 +29,7 @@ namespace res
     ID2D1SolidColorBrush* BlackBrush();
     ID2D1SolidColorBrush* ScrollbarForegroundBrush();
     ID2D1SolidColorBrush* ScrollbarBackgroundBrush();
-    ID2D1SolidColorBrush* EntryHighlightBrush();
+    ID2D1SolidColorBrush* EntryHoverBrush();
     ID2D1SolidColorBrush* ResizeControlBrush();
     ID2D1SolidColorBrush* ControlBackgroundBrush();
     ID2D1Bitmap* FolderIcon();

@@ -382,6 +382,11 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
   }
   point.y += this->entryHeight;
 
+  if (this->pHoveredEntry && res::d2d1::EntryHoverBrush())
+  {
+    pRenderTarget->FillRectangle(&this->highlightRect, res::d2d1::EntryHoverBrush());
+  }
+
   for (const auto& entry : this->entries)
   {
     if (entry.pTextLayout)
@@ -406,11 +411,6 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 
     // Always draw images on integer coordinates
     point.y += this->entryHeight;
-  }
-
-  if (this->pHoveredEntry && res::d2d1::EntryHighlightBrush())
-  {
-    pRenderTarget->DrawRectangle(&this->highlightRect, res::d2d1::EntryHighlightBrush());
   }
 
   // Draw scrollbar
@@ -513,7 +513,7 @@ mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RE
         return &entry;
       }
     }
-    point.y += 21;
+    point.y += this->entryHeight;
   }
 
   return nullptr;
