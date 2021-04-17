@@ -32,7 +32,7 @@ namespace mj
     struct CreateTextLayoutTask;
     struct LoadFolderIconTask;
     struct LoadFileIconTask;
-    struct EverythingQueryContext;
+    struct EverythingQueryTask;
   } // namespace detail
 
   class DirectoryNavigationPanel : public Control,                     //
@@ -68,7 +68,7 @@ namespace mj
     friend struct detail::CreateTextLayoutTask;
     friend struct detail::LoadFolderIconTask;
     friend struct detail::LoadFileIconTask;
-    friend struct detail::EverythingQueryContext;
+    friend struct detail::EverythingQueryTask;
 
     /// <summary>
     /// The format of text used for text layouts
@@ -124,6 +124,7 @@ namespace mj
     void OnEverythingQuery();
     void OnListFolderContentsDone(detail::ListFolderContentsTask* pTask);
 
+    // Measured from Windows Explorer
     static constexpr const int16_t entryHeight = 21;
 
   public:
@@ -184,7 +185,7 @@ namespace mj
       virtual void Destroy() override;
     };
 
-    struct EverythingQueryContext : public mj::Task
+    struct EverythingQueryTask : public mj::Task
     {
       mj::DirectoryNavigationPanel* pParent = nullptr;
       MJ_UNINITIALIZED mj::StringView directory;

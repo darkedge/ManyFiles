@@ -85,7 +85,7 @@ ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
   return pBitmap;
 }
 
-void mj::detail::EverythingQueryContext::Execute()
+void mj::detail::EverythingQueryTask::Execute()
 {
   ZoneScoped;
   mj::LinearAllocator alloc;
@@ -110,7 +110,7 @@ void mj::detail::EverythingQueryContext::Execute()
   }
 }
 
-void mj::detail::EverythingQueryContext::OnDone()
+void mj::detail::EverythingQueryTask::OnDone()
 {
   ZoneScoped;
   this->pParent->OnEverythingQuery();
@@ -296,11 +296,11 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 
 #if 0
   {
-    EverythingQueryContext* pTask = mj::ThreadpoolCreateTask<EverythingQueryContext>();
-    pTask->pParent                = this;
-    pTask->directory              = mj::StringView(LR"(C:\*)");
-    pTask->searchBuffer           = this->searchBuffer;
-    this->queryDone               = false;
+    EverythingQueryTask* pTask = mj::ThreadpoolCreateTask<EverythingQueryTask>();
+    pTask->pParent             = this;
+    pTask->directory           = mj::StringView(LR"(C:\*)");
+    pTask->searchBuffer        = this->searchBuffer;
+    this->queryDone            = false;
     mj::ThreadpoolSubmitTask(pTask);
   }
 #endif
