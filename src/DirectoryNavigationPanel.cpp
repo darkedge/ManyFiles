@@ -245,9 +245,9 @@ void mj::DirectoryNavigationPanel::OpenSubFolder(const wchar_t* pFolder)
     this->sbOpenFolder.Append(*pLast);
     this->sbOpenFolder.Append(L"\\");
     this->sbOpenFolder.Append(pFolder);
-  }
 
-  this->OpenFolder();
+    this->OpenFolder();
+  }
 }
 
 void mj::DirectoryNavigationPanel::OpenFolder()
@@ -257,12 +257,31 @@ void mj::DirectoryNavigationPanel::OpenFolder()
     this->pListFolderContentsTask->cancelled = true;
   }
 
+  currentFolderText.Init(this->sbOpenFolder.ToStringOpen(), this->pAllocator);
+  this->TrySetCurrentFolderText();
+
   // Note: The StringBuilder should already contain the folder here.
   this->sbOpenFolder.Append(L"\\*");
   this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
   this->pListFolderContentsTask->pParent   = this;
   this->pListFolderContentsTask->directory = sbOpenFolder.ToStringClosed();
   mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
+}
+
+void mj::DirectoryNavigationPanel::TrySetCurrentFolderText()
+{
+  // Set the current folder string at the top of the control
+  auto* pFactory = svc::DWriteFactory();
+  if (pFactory && !currentFolderText.IsEmpty())
+  {
+    if (pCurrentFolderTextLayout)
+    {
+      pCurrentFolderTextLayout->Release();
+      pCurrentFolderTextLayout = nullptr;
+    }
+    MJ_ERR_HRESULT(pFactory->CreateTextLayout(this->currentFolderText.Get(), this->currentFolderText.Length(),
+                                              this->pTextFormat, 1024.0f, 1024.0f, &this->pCurrentFolderTextLayout));
+  }
 }
 
 void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
@@ -444,6 +463,14 @@ void mj::DirectoryNavigationPanel::Destroy()
     this->pListFolderContentsTask->cancelled = true;
     this->pListFolderContentsTask            = nullptr;
   }
+
+  if (this->pCurrentFolderTextLayout)
+  {
+    this->pCurrentFolderTextLayout->Release();
+    this->pCurrentFolderTextLayout = nullptr;
+  }
+
+  this->currentFolderText.Destroy(this->pAllocator);
 
   svc::RemoveIDWriteFactoryObserver(this);
   res::d2d1::RemoveBitmapObserver(this);
@@ -814,4 +841,6 @@ void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFa
                                             L"",                           // Locale name
                                             &this->pTextFormat));
   // this->CheckEverythingQueryPrerequisites();
+
+  this->TrySetCurrentFolderText();
 }

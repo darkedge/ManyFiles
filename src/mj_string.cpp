@@ -30,19 +30,19 @@ void mj::StringView::Init(const wchar_t* pString)
   }
 }
 
-bool mj::StringView::Equals(const wchar_t* pString)
+bool mj::StringView::Equals(const wchar_t* pString) const
 {
   MJ_UNINITIALIZED mj::StringView other;
   other.Init(pString);
   return this->len == other.len && memcmp(this->ptr, other.ptr, this->len * sizeof(wchar_t)) == 0;
 }
 
-bool mj::StringView::IsEmpty()
+bool mj::StringView::IsEmpty() const
 {
   return this->len == 0;
 }
 
-bool mj::StringView::ParseNumber(uint32_t* pNumber)
+bool mj::StringView::ParseNumber(uint32_t* pNumber) const
 {
   const wchar_t* pC = this->ptr;
   *pNumber          = 0;
@@ -66,7 +66,7 @@ bool mj::StringView::ParseNumber(uint32_t* pNumber)
   return false;
 }
 
-ptrdiff_t mj::StringView::FindLastOf(const wchar_t* pString)
+ptrdiff_t mj::StringView::FindLastOf(const wchar_t* pString) const
 {
   ptrdiff_t index = -1;
   MJ_UNINITIALIZED StringView subString;
@@ -108,6 +108,55 @@ ptrdiff_t mj::StringView::FindLastOf(const wchar_t* pString)
   }
 
   return index;
+}
+
+void mj::StringAlloc::Init(const StringView& stringView, AllocatorBase* pAllocator, bool addNullTerminator)
+{
+  MJ_EXIT_NULL(pAllocator);
+
+  this->Destroy(pAllocator);
+  if (stringView.IsEmpty())
+  {
+    return;
+  }
+
+  size_t len = stringView.len;
+  if (addNullTerminator)
+  {
+    len++;
+  }
+
+  this->ptr = static_cast<wchar_t*>(pAllocator->Allocate(len * sizeof(*stringView.ptr)));
+  if (ptr)
+  {
+    ::CopyMemory(this->ptr, stringView.ptr, stringView.len * sizeof(*stringView.ptr));
+    this->len = len;
+    if (addNullTerminator)
+    {
+      this->ptr[len - 1] = L'\0';
+    }
+  }
+  else
+  {
+    this->len = 0;
+  }
+}
+
+void mj::StringAlloc::Destroy(AllocatorBase* pAllocator)
+{
+  if (this->ptr)
+  {
+    MJ_EXIT_NULL(pAllocator);
+    pAllocator->Free(this->ptr);
+  }
+
+  this->ptr = nullptr;
+  this->len = 0;
+}
+
+bool mj::StringAlloc::IsEmpty() const
+{
+  return this->len == 0;
 }
 
 void mj::StringBuilder::SetArrayList(ArrayList<wchar_t>* pArrayList)

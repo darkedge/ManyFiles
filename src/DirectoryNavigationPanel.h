@@ -78,6 +78,7 @@ namespace mj
     /// Points to the last entry in the breadcrumb
     /// </summary>
     IDWriteTextLayout* pCurrentFolderTextLayout = nullptr;
+    mj::StringAlloc currentFolderText            = {};
     const Entry* pHoveredEntry                  = nullptr;
     Breadcrumb breadcrumb;
 
@@ -119,6 +120,7 @@ namespace mj
     mj::Entry* TestMouseEntry(int16_t x, int16_t y, RECT* pRect);
     void OpenSubFolder(const wchar_t* pFolder);
     void OpenFolder();
+    void TrySetCurrentFolderText();
 
     // Event callbacks
     void OnEverythingQuery();

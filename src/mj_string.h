@@ -12,10 +12,36 @@ namespace mj
     MJ_UNINITIALIZED size_t len; // Number of characters, compatible with DirectWrite "string length"
     void Init(const wchar_t* pString, size_t numChars);
     void Init(const wchar_t* pString);
-    bool Equals(const wchar_t* pString);
-    bool IsEmpty();
-    bool ParseNumber(uint32_t* pNumber);
-    ptrdiff_t FindLastOf(const wchar_t* pString);
+    bool Equals(const wchar_t* pString) const;
+    bool IsEmpty() const;
+    bool ParseNumber(uint32_t* pNumber) const;
+    ptrdiff_t FindLastOf(const wchar_t* pString) const;
+  };
+
+  /// <summary>
+  /// String with allocated storage.
+  /// </summary>
+  class StringAlloc
+  {
+  private:
+    // We zero-initialize this, because we want Init to be safe.
+    // Init will call Destroy beforehand just to be sure, which means that
+    // Destroy will have to work with valid data.
+    wchar_t* ptr = nullptr;
+    size_t len   = 0; // Number of characters, compatible with DirectWrite "string length"
+
+  public:
+    void Init(const StringView& stringView, AllocatorBase* pAllocator, bool addNullTerminator = false);
+    void Destroy(AllocatorBase* pAllocator);
+    bool IsEmpty() const;
+    wchar_t* Get() const
+    {
+      return this->ptr;
+    }
+    size_t Length() const
+    {
+      return this->len;
+    }
   };
 
   class StringBuilder
