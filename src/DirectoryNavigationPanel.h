@@ -78,7 +78,7 @@ namespace mj
     /// Points to the last entry in the breadcrumb
     /// </summary>
     IDWriteTextLayout* pCurrentFolderTextLayout = nullptr;
-    mj::StringAlloc currentFolderText            = {};
+    mj::StringAlloc currentFolderText           = {};
     const Entry* pHoveredEntry                  = nullptr;
     Breadcrumb breadcrumb;
 

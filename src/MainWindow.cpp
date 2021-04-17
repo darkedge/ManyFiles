@@ -563,6 +563,18 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     MJ_ERR_ZERO(::ReleaseCapture());
     return 0;
   }
+  case WM_XBUTTONUP:
+  {
+    if (HIWORD(wParam) == XBUTTON1) // Mouse4 - Back
+    {
+      Control* pControl = pMainWindow->pRootControl;
+      if (pControl)
+      {
+        // TODO: Back button implementation
+      }
+    }
+    return 0;
+  }
   case WM_LBUTTONDBLCLK:
   {
     POINTS ptClient   = MAKEPOINTS(lParam);
@@ -576,8 +588,8 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_CONTEXTMENU:
   {
-    POINTS ptScreen = MAKEPOINTS(lParam);
-    POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
+    POINTS ptScreen   = MAKEPOINTS(lParam);
+    POINTS ptClient   = mj::ScreenPointToClient(hWnd, ptScreen);
     Control* pControl = pMainWindow->pRootControl;
     if (pControl)
     {
