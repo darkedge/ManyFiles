@@ -35,8 +35,7 @@ namespace mj
     struct EverythingQueryTask;
   } // namespace detail
 
-  class DirectoryNavigationPanel : public Control,                     //
-                                   public svc::IDWriteFactoryObserver, //
+  class DirectoryNavigationPanel : public svc::IDWriteFactoryObserver, //
                                    public res::d2d1::BitmapObserver
   {
   private:
@@ -130,19 +129,24 @@ namespace mj
     static constexpr const int16_t entryHeight = 21;
 
   public:
-    virtual void Init(AllocatorBase* pAllocator) override;
-    virtual void Paint(ID2D1RenderTarget* pRenderTarget) override;
-    virtual const wchar_t* GetType() override
+    int16_t x;
+    int16_t y;
+    int16_t width;
+    int16_t height;
+
+    void Init(AllocatorBase* pAllocator);
+    void Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect);
+    const wchar_t* GetType()
     {
       return MJ_NAMEOF(DirectoryNavigationPanel);
     }
-    virtual void Destroy() override;
+    void Destroy();
 
-    virtual void OnMouseMove(MouseMoveEvent* pMouseMoveEvent) override;
-    virtual void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask) override;
-    virtual void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta) override;
-    virtual void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY) override;
-    virtual void OnSize() override;
+    void OnMouseMove(MouseMoveEvent* pMouseMoveEvent);
+    void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask);
+    void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta);
+    void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY);
+    void Resize(int16_t x, int16_t y, int16_t width, int16_t height);
 
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
     virtual void OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, WORD resource) override;

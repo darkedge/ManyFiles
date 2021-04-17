@@ -1,5 +1,6 @@
 #pragma once
 #include "ResourcesWin32.h"
+#include "DirectoryNavigationPanel.h"
 
 struct IDCompositionDesktopDevice;
 struct IDCompositionVirtualSurface;
@@ -8,14 +9,12 @@ struct ID2D1RenderTarget;
 
 namespace mj
 {
-  class Control;
-
   class MainWindow
   {
   private:
-    static constexpr const size_t WIDTH     = 3;
-    static constexpr const size_t HEIGHT    = 2;
-    Control* pRootControl                   = nullptr;
+    static constexpr const size_t WIDTH  = 3;
+    static constexpr const size_t HEIGHT = 2;
+    DirectoryNavigationPanel panel;
     IDCompositionDesktopDevice* dcompDevice = nullptr;
     IDCompositionVirtualSurface* pSurface   = nullptr;
     IDCompositionTarget* pTarget            = nullptr;

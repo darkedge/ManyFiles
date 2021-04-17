@@ -372,8 +372,10 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
   mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
-void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
+void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect)
 {
+  pRenderTarget->FillRectangle(rect, res::d2d1::ControlBackgroundBrush());
+
   auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
   if (this->pCurrentFolderTextLayout)
@@ -690,8 +692,13 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t client
   }
 }
 
-void mj::DirectoryNavigationPanel::OnSize()
+void mj::DirectoryNavigationPanel::Resize(int16_t x, int16_t y, int16_t width, int16_t height)
 {
+  this->x      = x;
+  this->y      = y;
+  this->width  = width;
+  this->height = height;
+
   this->mouseWheelAccumulator = 0;
   this->scrollOffset          = 0;
 }

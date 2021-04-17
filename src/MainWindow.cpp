@@ -21,6 +21,13 @@
 
 #define WM_MJTASKFINISH (WM_USER + 1)
 
+static bool TranslateClientPoint(const mj::DirectoryNavigationPanel& panel, int16_t* pX, int16_t* pY)
+{
+  int16_t x = *pX;
+  int16_t y = *pY;
+  return x >= panel.x && x <= panel.x + panel.width && y >= panel.y && y <= panel.y + panel.height;
+}
+
 struct CreateIWICImagingFactoryContext : public mj::Task
 {
   MJ_UNINITIALIZED mj::MainWindow* pMainWindow;
@@ -211,14 +218,7 @@ void mj::MainWindow::Resize()
       MJ_ERR_HRESULT(this->pSurface->Resize(width, height));
     }
 
-    if (this->pRootControl)
-    {
-      this->pRootControl->xParent = 0;
-      this->pRootControl->yParent = this->captionHeight;
-      this->pRootControl->width   = static_cast<int16_t>(width);
-      this->pRootControl->height  = static_cast<int16_t>(height);
-      this->pRootControl->OnSize();
-    }
+    this->panel.Resize(0, this->captionHeight, static_cast<int16_t>(width), static_cast<int16_t>(height));
   }
   MJ_ERR_ZERO(::InvalidateRect(hWnd, nullptr, FALSE));
 }
@@ -236,10 +236,17 @@ void mj::MainWindow::OnPaint()
 
     pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)));
     pContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    pContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
 
-    if (this->pRootControl)
+    // Something to do for every control
     {
-      this->pRootControl->OnPaint(pContext);
+      pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->panel.x, this->panel.y)));
+
+      D2D1_RECT_F rect = D2D1::RectF(this->panel.x, this->panel.y, this->panel.width, this->panel.height);
+      pContext->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
+      MJ_DEFER(pContext->PopAxisAlignedClip());
+
+      this->panel.Paint(pContext, rect);
     }
 
     {
@@ -284,13 +291,9 @@ void mj::MainWindow::Destroy()
   }
 #endif
 
-  if (this->pRootControl)
   {
     ZoneScopedN("pRootControl->Destroy()");
-    this->pRootControl->Destroy();
-    // TODO: We should store the allocator used for this allocation, somewhere.
-    svc::GeneralPurposeAllocator()->Free(this->pRootControl);
-    this->pRootControl = nullptr;
+    this->panel.Destroy();
   }
 
   res::d2d1::Destroy();
@@ -507,30 +510,26 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     break;
   case WM_MOUSEMOVE:
   {
-    POINTS ptClient   = MAKEPOINTS(lParam);
-    Control* pControl = pMainWindow->pRootControl;
+    POINTS ptClient = MAKEPOINTS(lParam);
 
     MouseMoveEvent mouseMoveEvent; // Initialized
     mouseMoveEvent.x = ptClient.x;
     mouseMoveEvent.y = ptClient.y;
 
-    if (pControl)
-    {
-      bool inside       = pControl->TranslateClientPoint(&mouseMoveEvent.x, &mouseMoveEvent.y);
-      bool updateCursor = true;
+    bool inside       = TranslateClientPoint(pMainWindow->panel, &mouseMoveEvent.x, &mouseMoveEvent.y);
+    bool updateCursor = true;
 
-      if (::GetCapture() == hWnd)
+    if (::GetCapture() == hWnd)
+    {
+      // pMainWindow->panel.MoveResizeControl(mouseMoveEvent.x, mouseMoveEvent.y);
+      updateCursor = false;
+    }
+    else if (inside)
+    {
+      pMainWindow->panel.OnMouseMove(&mouseMoveEvent);
+      if (updateCursor)
       {
-        pControl->MoveResizeControl(mouseMoveEvent.x, mouseMoveEvent.y);
-        updateCursor = false;
-      }
-      else if (inside)
-      {
-        pControl->OnMouseMove(&mouseMoveEvent);
-        if (updateCursor)
-        {
-          res::win32::SetCursor(mouseMoveEvent.cursor);
-        }
+        res::win32::SetCursor(mouseMoveEvent.cursor);
       }
     }
     return 0;
@@ -540,11 +539,10 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   // will fire WM_LBUTTONDOWN, and vice versa.
   case WM_LBUTTONDOWN:
   {
-    POINTS ptClient   = MAKEPOINTS(lParam);
-    Control* pControl = pMainWindow->pRootControl;
-    if (pControl && pControl->TranslateClientPoint(&ptClient.x, &ptClient.y))
+    POINTS ptClient = MAKEPOINTS(lParam);
+    if (TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y))
     {
-      static_cast<void>(pControl->OnLeftButtonDown(ptClient.x, ptClient.y));
+      //static_cast<void>(pMainWindow->panel.OnLeftButtonDown(ptClient.x, ptClient.y));
     }
     // Continue receiving WM_MOUSEMOVE messages while the mouse is outside the window.
     // The return value is a handle to the window that had previously captured the mouse.
@@ -554,11 +552,10 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   }
   case WM_LBUTTONUP:
   {
-    POINTS ptClient   = MAKEPOINTS(lParam);
-    Control* pControl = pMainWindow->pRootControl;
-    if (pControl && pControl->TranslateClientPoint(&ptClient.x, &ptClient.y))
+    POINTS ptClient = MAKEPOINTS(lParam);
+    if (TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y))
     {
-      static_cast<void>(pControl->OnLeftButtonUp(ptClient.x, ptClient.y));
+      //static_cast<void>(pMainWindow->panel.OnLeftButtonUp(ptClient.x, ptClient.y));
     }
     MJ_ERR_ZERO(::ReleaseCapture());
     return 0;
@@ -567,35 +564,23 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   {
     if (HIWORD(wParam) == XBUTTON1) // Mouse4 - Back
     {
-      Control* pControl = pMainWindow->pRootControl;
-      if (pControl)
-      {
-        // TODO: Back button implementation
-      }
+      // TODO: Back button implementation
     }
     return 0;
   }
   case WM_LBUTTONDBLCLK:
   {
-    POINTS ptClient   = MAKEPOINTS(lParam);
-    Control* pControl = pMainWindow->pRootControl;
-    if (pControl)
-    {
-      static_cast<void>(pControl->TranslateClientPoint(&ptClient.x, &ptClient.y));
-      pControl->OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
-    }
+    POINTS ptClient = MAKEPOINTS(lParam);
+    static_cast<void>(TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y));
+    pMainWindow->panel.OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
     return 0;
   }
   case WM_CONTEXTMENU:
   {
-    POINTS ptScreen   = MAKEPOINTS(lParam);
-    POINTS ptClient   = mj::ScreenPointToClient(hWnd, ptScreen);
-    Control* pControl = pMainWindow->pRootControl;
-    if (pControl)
-    {
-      static_cast<void>(pControl->TranslateClientPoint(&ptClient.x, &ptClient.y));
-      pControl->OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
-    }
+    POINTS ptScreen = MAKEPOINTS(lParam);
+    POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
+    static_cast<void>(TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y));
+    pMainWindow->panel.OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
     return 0;
   }
   case WM_MOUSEWHEEL:
@@ -604,10 +589,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     auto zDelta     = GET_WHEEL_DELTA_WPARAM(wParam);
     POINTS ptScreen = MAKEPOINTS(lParam);
     POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
-    if (pMainWindow->pRootControl)
-    {
-      pMainWindow->pRootControl->OnMouseWheel(ptClient.x, ptClient.y, fwKeys, zDelta);
-    }
+    pMainWindow->panel.OnMouseWheel(ptClient.x, ptClient.y, fwKeys, zDelta);
     return 0;
   }
   default:
@@ -655,12 +637,8 @@ void mj::MainWindow::Run()
   res::d2d1::Init(pAllocator);
   svc::Init(pAllocator);
 
-  if (!LoadWindowLayout(pAllocator))
-  {
-    // TODO: Create default window layout
-    this->pRootControl = pAllocator->New<DirectoryNavigationPanel>();
-    this->pRootControl->Init(pAllocator);
-  }
+  // LoadWindowLayout(pAllocator)
+  this->panel.Init(pAllocator);
   // MJ_DEFER(SaveWindowLayout(this->pRootControl));
 
   MJ_UNINITIALIZED ATOM cls;
