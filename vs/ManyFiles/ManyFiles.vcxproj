@@ -186,7 +186,7 @@
     <Image Include="res\FolderClosed_16x.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="CodeGeneration.vcxproj">
+    <ProjectReference Include="..\CodeGeneration\CodeGeneration.vcxproj">
       <Project>{23f7bc60-552c-4307-9073-c679045ff9f3}</Project>
     </ProjectReference>
   </ItemGroup>
