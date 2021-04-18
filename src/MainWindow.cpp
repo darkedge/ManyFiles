@@ -218,7 +218,7 @@ void mj::MainWindow::Resize()
       MJ_ERR_HRESULT(this->pSurface->Resize(width, height));
     }
 
-    this->panel.Resize(0, this->captionHeight, static_cast<int16_t>(width), static_cast<int16_t>(height));
+    this->panel.Resize(0, 0, static_cast<int16_t>(width), static_cast<int16_t>(height));
   }
   MJ_ERR_ZERO(::InvalidateRect(hWnd, nullptr, FALSE));
 }
@@ -234,17 +234,19 @@ void mj::MainWindow::OnPaint()
     MJ_ERR_HRESULT(this->pSurface->BeginDraw(nullptr, IID_PPV_ARGS(&pContext), &offset));
     MJ_DEFER(pContext->Release());
 
-    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)));
     pContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     pContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+    // This line needs to be kept, otherwise painting will jump after receiving certain mouse move events.
+    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)));
 
     // Something to do for every control
     {
-      pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->panel.x, this->panel.y)));
+      // pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->panel.x, -this->captionHeight +
+      // this->panel.y)));
 
       D2D1_RECT_F rect = D2D1::RectF(this->panel.x, this->panel.y, this->panel.width, this->panel.height);
-      pContext->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
-      MJ_DEFER(pContext->PopAxisAlignedClip());
+      // pContext->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
+      // MJ_DEFER(pContext->PopAxisAlignedClip());
 
       this->panel.Paint(pContext, rect);
     }
@@ -337,25 +339,24 @@ namespace mj
   }
 } // namespace mj
 
-static int compute_standard_caption_height_for_window(HWND window_handle)
+void mj::MainWindow::ComputeCaptionHeight(HWND hWnd)
 {
   ZoneScoped;
-  SIZE caption_size{};
-  int accounting_for_borders = 2;
-  HTHEME theme               = ::OpenThemeData(window_handle, L"WINDOW");
-  UINT dpi                   = ::GetDpiForWindow(window_handle);
-  ::GetThemePartSize(theme, nullptr, WP_CAPTION, CS_ACTIVE, nullptr, TS_TRUE, &caption_size);
-  ::CloseThemeData(theme);
 
-  auto height = static_cast<float>(caption_size.cy * dpi) / 96.0f;
-  return static_cast<int>(height) + accounting_for_borders;
+  HTHEME theme = ::OpenThemeData(hWnd, L"WINDOW");
+  MJ_DEFER(MJ_ERR_HRESULT(::CloseThemeData(theme)));
+
+  SIZE size = {};
+  MJ_ERR_HRESULT(::GetThemePartSize(theme, nullptr, WP_CAPTION, CS_ACTIVE, nullptr, TS_TRUE, &size));
+
+  this->captionHeight = size.cy * ::GetDpiForWindow(hWnd) / 96 + 2; // 1 pixel border on top and bottom
 }
 
-static LRESULT compute_sector_of_window(HWND window_handle, WPARAM, LPARAM lParam, LONG caption_height)
+static LRESULT DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM lParam, LONG captionHeight)
 {
   // Acquire the window rect
   MJ_UNINITIALIZED RECT rect;
-  MJ_ERR_ZERO(::GetWindowRect(window_handle, &rect));
+  MJ_ERR_ZERO(::GetWindowRect(hWnd, &rect));
 
   LONG offset = 10;
   POINTS p    = MAKEPOINTS(lParam);
@@ -402,7 +403,7 @@ static LRESULT compute_sector_of_window(HWND window_handle, WPARAM, LPARAM lPara
 
   if (p.x > rect.left && p.x < rect.right)
   {
-    if (p.y < rect.top + caption_height)
+    if (p.y < rect.top + captionHeight)
     {
       return HTCAPTION;
     }
@@ -444,9 +445,10 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // BOOL ani = TRUE;
     // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
-    int offset_for_tabs = 10; // Arbitrary
-    int caption_height  = compute_standard_caption_height_for_window(hWnd);
-    pMainWindow->SetCaptionHeight(caption_height + offset_for_tabs);
+    DWMNCRENDERINGPOLICY ncrp = DWMNCRP_DISABLED;
+    MJ_ERR_HRESULT(::DwmSetWindowAttribute(hWnd, DWMWA_NCRENDERING_POLICY, &ncrp, sizeof(ncrp)));
+
+    pMainWindow->ComputeCaptionHeight(hWnd);
 
     MARGINS _margins = { 0, 0, pMainWindow->GetCaptionHeight(), 0 };
     MJ_ERR_HRESULT(::DwmExtendFrameIntoClientArea(hWnd, &_margins));
@@ -470,17 +472,18 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
       pRect->right -= frameX + border;
       pRect->left += frameX + border;
       pRect->bottom -= ::GetSystemMetrics(SM_CYSIZEFRAME) + border;
+      return 0;
     }
-    return 0;
+    break;
   case WM_NCHITTEST:
   {
-    LRESULT result = compute_sector_of_window(hWnd, wParam, lParam, pMainWindow->GetCaptionHeight());
+    LRESULT result = DetermineNonClientWindowArea(hWnd, wParam, lParam, pMainWindow->GetCaptionHeight());
     if (result != HTNOWHERE)
     {
       return result;
     }
+    break; // Else, let DefWindowProcW handle WM_NCHITTEST
   }
-  break; // Let DefWindowProcW handle WM_NCHITTEST
   case WM_SIZE:
     pMainWindow->Resize();
     return 0;
@@ -542,7 +545,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     POINTS ptClient = MAKEPOINTS(lParam);
     if (TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y))
     {
-      //static_cast<void>(pMainWindow->panel.OnLeftButtonDown(ptClient.x, ptClient.y));
+      // static_cast<void>(pMainWindow->panel.OnLeftButtonDown(ptClient.x, ptClient.y));
     }
     // Continue receiving WM_MOUSEMOVE messages while the mouse is outside the window.
     // The return value is a handle to the window that had previously captured the mouse.
@@ -555,7 +558,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     POINTS ptClient = MAKEPOINTS(lParam);
     if (TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y))
     {
-      //static_cast<void>(pMainWindow->panel.OnLeftButtonUp(ptClient.x, ptClient.y));
+      // static_cast<void>(pMainWindow->panel.OnLeftButtonUp(ptClient.x, ptClient.y));
     }
     MJ_ERR_ZERO(::ReleaseCapture());
     return 0;

@@ -130,7 +130,7 @@ void res::d2d1::Load(ID2D1RenderTarget* pRenderTarget)
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE8E8EC), &pScrollbarBackgroundBrush));
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE5F3FF), &pEntryHoverBrush));
   MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xD4D4D4), &pResizeControlBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xFFFFFF), &pControlBackgroundBrush));
+  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xF0F0F0), &pControlBackgroundBrush));
 }
 
 void res::d2d1::Destroy()

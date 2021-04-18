@@ -33,10 +33,7 @@ namespace mj
     {
       return this->captionHeight;
     }
-    void SetCaptionHeight(LONG captionHeight)
-    {
-      this->captionHeight = captionHeight;
-    }
+    void ComputeCaptionHeight(HWND hwnd);
   };
 
 } // namespace mj
