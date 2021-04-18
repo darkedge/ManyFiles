@@ -2,6 +2,8 @@
 #include "ResourcesWin32.h"
 #include "DirectoryNavigationPanel.h"
 
+#include <Uxtheme.h>
+
 struct IDCompositionDesktopDevice;
 struct IDCompositionVirtualSurface;
 struct IDCompositionTarget;
@@ -18,7 +20,7 @@ namespace mj
     IDCompositionDesktopDevice* dcompDevice = nullptr;
     IDCompositionVirtualSurface* pSurface   = nullptr;
     IDCompositionTarget* pTarget            = nullptr;
-    LONG captionHeight                      = 0;
+    MARGINS margins                         = {};
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -29,11 +31,8 @@ namespace mj
   public:
     void Run();
     void OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice, ID2D1RenderTarget* pRenderTarget);
-    LONG GetCaptionHeight()
-    {
-      return this->captionHeight;
-    }
-    void ComputeCaptionHeight(HWND hwnd);
+    void ExtendFrame(HWND hwnd);
+    LRESULT DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM lParam, LONG captionHeight);
   };
 
 } // namespace mj

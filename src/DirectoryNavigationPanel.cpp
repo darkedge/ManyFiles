@@ -281,6 +281,12 @@ void mj::DirectoryNavigationPanel::TrySetCurrentFolderText()
     }
     MJ_ERR_HRESULT(pFactory->CreateTextLayout(this->currentFolderText.Get(), this->currentFolderText.Length(),
                                               this->pTextFormat, 1024.0f, 1024.0f, &this->pCurrentFolderTextLayout));
+
+    // Test caption button glyphs
+    // Note: Hard-coding "Segoe MDL2 Assets" is probably OK. Haven't found a good way to get it programmatically.
+    // const wchar_t bla[] = L"\xE949, \xE739, \xE923, \xE106";
+    // MJ_ERR_HRESULT(pFactory->CreateTextLayout(bla, 12, this->pTextFormat, 1024.0f, 1024.0f,
+    // &this->pCurrentFolderTextLayout));
   }
 }
 
@@ -375,6 +381,11 @@ void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect)
 {
   pRenderTarget->FillRectangle(rect, res::d2d1::ControlBackgroundBrush());
+
+  // Temporary: Show where the caption bar should be
+  D2D1_RECT_F caption = rect;
+  caption.bottom      = 31;
+  pRenderTarget->FillRectangle(caption, res::d2d1::ScrollbarBackgroundBrush());
 
   auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 

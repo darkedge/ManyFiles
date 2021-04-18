@@ -249,6 +249,21 @@ void mj::MainWindow::OnPaint()
       // MJ_DEFER(pContext->PopAxisAlignedClip());
 
       this->panel.Paint(pContext, rect);
+
+#if 0 // Getting the theme font for captions (instead of hard-coding "Segoe UI")
+      HTHEME hTheme = ::OpenThemeData(nullptr, L"WINDOW");
+      if (hTheme)
+      {
+        // Select a font.
+        LOGFONT lgFont;
+        HFONT hFontOld = nullptr;
+        if (SUCCEEDED(::GetThemeSysFont(hTheme, TMT_CAPTIONFONT, &lgFont)))
+        {
+          HFONT hFont = ::CreateFontIndirect(&lgFont);
+        }
+        ::CloseThemeData(hTheme);
+      }
+#endif
     }
 
     {
@@ -262,36 +277,6 @@ void mj::MainWindow::OnPaint()
 void mj::MainWindow::Destroy()
 {
   ZoneScoped;
-
-#if 0 // TODO: Ownership and destruction
-  {
-    ZoneScopedN("Controls");
-    for (int32_t i = 0; i < MJ_COUNTOF(this->controls); i++)
-    {
-      Control* pControl = this->controls[i];
-      if (pControl)
-      {
-        pControl->Destroy();
-        svc::GeneralPurposeAllocator()->Free(pControl);
-        this->controls[i] = nullptr;
-      }
-    }
-  }
-
-  {
-    ZoneScopedN("HorizontalLayouts");
-    for (int32_t i = 0; i < MJ_COUNTOF(this->pHorizontalLayouts); i++)
-    {
-      HorizontalLayout* pLayout = this->pHorizontalLayouts[i];
-      if (pLayout)
-      {
-        pLayout->Destroy();
-        svc::GeneralPurposeAllocator()->Free(pLayout);
-        this->pHorizontalLayouts[i] = nullptr;
-      }
-    }
-  }
-#endif
 
   {
     ZoneScopedN("pRootControl->Destroy()");
@@ -339,7 +324,7 @@ namespace mj
   }
 } // namespace mj
 
-void mj::MainWindow::ComputeCaptionHeight(HWND hWnd)
+void mj::MainWindow::ExtendFrame(HWND hWnd)
 {
   ZoneScoped;
 
@@ -349,67 +334,61 @@ void mj::MainWindow::ComputeCaptionHeight(HWND hWnd)
   SIZE size = {};
   MJ_ERR_HRESULT(::GetThemePartSize(theme, nullptr, WP_CAPTION, CS_ACTIVE, nullptr, TS_TRUE, &size));
 
-  this->captionHeight = size.cy * ::GetDpiForWindow(hWnd) / 96 + 2; // 1 pixel border on top and bottom
+  this->margins.cyTopHeight = size.cy * ::GetDpiForWindow(hWnd) / 96 + 2; // 1 pixel border on top and bottom
+  MJ_ERR_HRESULT(::DwmExtendFrameIntoClientArea(hWnd, &this->margins));
 }
 
-static LRESULT DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM lParam, LONG captionHeight)
+/// <summary>
+/// https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
+/// </summary>
+LRESULT mj::MainWindow::DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM lParam, LONG captionHeight)
 {
-  // Acquire the window rect
-  MJ_UNINITIALIZED RECT rect;
-  MJ_ERR_ZERO(::GetWindowRect(hWnd, &rect));
+  POINTS mouse = MAKEPOINTS(lParam);
 
-  LONG offset = 10;
-  POINTS p    = MAKEPOINTS(lParam);
+  // Get the point coordinates for the hit test.
 
-  if (p.y < rect.top + offset && p.x < rect.left + offset)
-  {
-    return HTTOPLEFT;
-  }
-  if (p.y < rect.top + offset && p.x > rect.right - offset)
-  {
-    return HTTOPRIGHT;
-  }
-  if (p.y > rect.bottom - offset && p.x > rect.right - offset)
-  {
-    return HTBOTTOMRIGHT;
-  }
-  if (p.y > rect.bottom - offset && p.x < rect.left + offset)
-  {
-    return HTBOTTOMLEFT;
-  }
+  // Get the window rectangle.
+  MJ_UNINITIALIZED RECT window;
+  MJ_ERR_ZERO(::GetWindowRect(hWnd, &window));
 
-  if (p.x > rect.left && p.x < rect.right)
+  // Get the frame rectangle, adjusted for the style without a caption.
+  RECT rcFrame = { 0 };
+  MJ_ERR_ZERO(::AdjustWindowRectEx(&rcFrame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL));
+
+  // Determine if the hit test is for resizing. Default middle (1,1).
+  USHORT uRow          = 1;
+  USHORT uCol          = 1;
+  bool fOnResizeBorder = false;
+
+  // Determine if the point is at the top or bottom of the window.
+  if (mouse.y >= window.top && mouse.y < window.top + this->margins.cyTopHeight)
   {
-    if (p.y < rect.top + offset)
-    {
-      return HTTOP;
-    }
-    else if (p.y > rect.bottom - offset)
-    {
-      return HTBOTTOM;
-    }
+    fOnResizeBorder = (mouse.y < (window.top - rcFrame.top));
+    uRow            = 0;
   }
-  if (p.y > rect.top && p.y < rect.bottom)
+  else if (mouse.y < window.bottom && mouse.y >= window.bottom - this->margins.cyBottomHeight)
   {
-    if (p.x < rect.left + offset)
-    {
-      return HTLEFT;
-    }
-    else if (p.x > rect.right - offset)
-    {
-      return HTRIGHT;
-    }
+    uRow = 2;
   }
 
-  if (p.x > rect.left && p.x < rect.right)
+  // Determine if the point is at the left or right of the window.
+  if (mouse.x >= window.left && mouse.x < window.left + this->margins.cxLeftWidth)
   {
-    if (p.y < rect.top + captionHeight)
-    {
-      return HTCAPTION;
-    }
+    uCol = 0; // left side
+  }
+  else if (mouse.x < window.right && mouse.x >= window.right - this->margins.cxRightWidth)
+  {
+    uCol = 2; // right side
   }
 
-  return HTNOWHERE;
+  // Hit test (HTTOPLEFT, ... HTBOTTOMRIGHT)
+  LRESULT hitTests[3][3] = {
+    { HTTOPLEFT, fOnResizeBorder ? HTTOP : HTCAPTION, HTTOPRIGHT },
+    { HTLEFT, HTNOWHERE, HTRIGHT },
+    { HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT },
+  };
+
+  return hitTests[uRow][uCol];
 }
 
 /// <summary>
@@ -448,10 +427,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     DWMNCRENDERINGPOLICY ncrp = DWMNCRP_DISABLED;
     MJ_ERR_HRESULT(::DwmSetWindowAttribute(hWnd, DWMWA_NCRENDERING_POLICY, &ncrp, sizeof(ncrp)));
 
-    pMainWindow->ComputeCaptionHeight(hWnd);
-
-    MARGINS _margins = { 0, 0, pMainWindow->GetCaptionHeight(), 0 };
-    MJ_ERR_HRESULT(::DwmExtendFrameIntoClientArea(hWnd, &_margins));
+    pMainWindow->ExtendFrame(hWnd);
 
     // Make sure a WM_NCCALCSIZE message is fired that resizes the frame (wParam = true).
     // This cannot be done inside WM_NCCREATE (probably makes sense)
@@ -477,7 +453,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     break;
   case WM_NCHITTEST:
   {
-    LRESULT result = DetermineNonClientWindowArea(hWnd, wParam, lParam, pMainWindow->GetCaptionHeight());
+    LRESULT result = pMainWindow->DetermineNonClientWindowArea(hWnd, wParam, lParam, pMainWindow->margins.cyTopHeight);
     if (result != HTNOWHERE)
     {
       return result;
