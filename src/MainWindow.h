@@ -20,7 +20,6 @@ namespace mj
     IDCompositionDesktopDevice* dcompDevice = nullptr;
     IDCompositionVirtualSurface* pSurface   = nullptr;
     IDCompositionTarget* pTarget            = nullptr;
-    MARGINS margins                         = {};
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -31,8 +30,6 @@ namespace mj
   public:
     void Run();
     void OnCreateID2D1RenderTarget(IDCompositionDesktopDevice* dcompDevice, ID2D1RenderTarget* pRenderTarget);
-    void ExtendFrame(HWND hwnd);
-    LRESULT DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM lParam, LONG captionHeight);
   };
 
 } // namespace mj
