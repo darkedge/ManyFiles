@@ -35,10 +35,10 @@ namespace mj
     struct EverythingQueryTask;
   } // namespace detail
 
-  class DirectoryNavigationPanel : public svc::IDWriteFactoryObserver, //
+  struct DirectoryNavigationPanel : public svc::IDWriteFactoryObserver, //
                                    public res::d2d1::BitmapObserver
   {
-  private:
+  //private:
     class Breadcrumb
     {
     private:
@@ -62,12 +62,6 @@ namespace mj
 
       StringView* Last();
     };
-
-    friend struct detail::ListFolderContentsTask;
-    friend struct detail::CreateTextLayoutTask;
-    friend struct detail::LoadFolderIconTask;
-    friend struct detail::LoadFileIconTask;
-    friend struct detail::EverythingQueryTask;
 
     /// <summary>
     /// The format of text used for text layouts
@@ -111,20 +105,6 @@ namespace mj
     /// </summary>
     bool queryDone;
 
-    ID2D1Bitmap* ConvertIcon(HICON hIcon);
-    void CheckEverythingQueryPrerequisites();
-    void TryCreateFolderContentTextLayouts();
-    void SetTextLayout(Entry* pEntry, IDWriteTextLayout* pTextLayout);
-    void ClearEntries();
-    mj::Entry* TestMouseEntry(int16_t x, int16_t y, RECT* pRect);
-    void OpenSubFolder(const wchar_t* pFolder);
-    void OpenFolder();
-    void TrySetCurrentFolderText();
-
-    // Event callbacks
-    void OnEverythingQuery();
-    void OnListFolderContentsDone(detail::ListFolderContentsTask* pTask);
-
     // Measured from Windows Explorer
     static constexpr const int16_t entryHeight = 21;
 
@@ -151,55 +131,4 @@ namespace mj
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
     virtual void OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, WORD resource) override;
   };
-
-  namespace detail
-  {
-    struct ListFolderContentsTask : public mj::Task
-    {
-      // In
-      MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
-      MJ_UNINITIALIZED mj::StringView directory;
-
-      // Out
-      MJ_UNINITIALIZED HRESULT status;
-      mj::ArrayList<size_t> folders;
-      mj::ArrayList<size_t> files;
-      mj::StringCache stringCache;
-
-      // Private
-      MJ_UNINITIALIZED mj::HeapAllocator allocator;
-
-      virtual void Execute() override;
-      virtual void OnDone() override;
-      virtual void Destroy() override;
-
-    private:
-      bool Add(mj::ArrayList<size_t>& list, size_t index);
-    };
-
-    struct CreateTextLayoutTask : public mj::Task
-    {
-      // In
-      MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
-      MJ_UNINITIALIZED mj::Entry* pEntry;
-
-      // Out
-      MJ_UNINITIALIZED IDWriteTextLayout* pTextLayout;
-
-      virtual void Execute() override;
-      virtual void OnDone() override;
-      virtual void Destroy() override;
-    };
-
-    struct EverythingQueryTask : public mj::Task
-    {
-      mj::DirectoryNavigationPanel* pParent = nullptr;
-      MJ_UNINITIALIZED mj::StringView directory;
-      MJ_UNINITIALIZED mj::Allocation searchBuffer;
-
-      virtual void Execute() override;
-
-      virtual void OnDone() override;
-    };
-  } // namespace detail
 } // namespace mj

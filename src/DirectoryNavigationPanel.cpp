@@ -56,34 +56,339 @@ mj::StringView* mj::DirectoryNavigationPanel::Breadcrumb::Last()
 
   return nullptr;
 }
-
-ID2D1Bitmap* mj::DirectoryNavigationPanel::ConvertIcon(HICON hIcon)
+namespace mj
 {
-  ZoneScoped;
-  auto* pFactory = svc::WicFactory();
+  namespace detail
+  {
+    struct ListFolderContentsTask : public mj::Task
+    {
+      // In
+      MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
+      MJ_UNINITIALIZED mj::StringView directory;
 
-  MJ_UNINITIALIZED IWICBitmap* pWicBitmap;
-  MJ_ERR_HRESULT(pFactory->CreateBitmapFromHICON(hIcon, &pWicBitmap));
-  MJ_DEFER(pWicBitmap->Release());
+      // Out
+      MJ_UNINITIALIZED HRESULT status;
+      mj::ArrayList<size_t> folders;
+      mj::ArrayList<size_t> files;
+      mj::StringCache stringCache;
 
-  // Convert format to 32bppPBGRA - which D2D expects.
-  MJ_UNINITIALIZED IWICFormatConverter* pConverter;
-  MJ_ERR_HRESULT(pFactory->CreateFormatConverter(&pConverter));
-  MJ_DEFER(pConverter->Release());
+      // Private
+      MJ_UNINITIALIZED mj::HeapAllocator allocator;
 
-  MJ_ERR_HRESULT(pConverter->Initialize(pWicBitmap,                    //
-                                        GUID_WICPixelFormat32bppPBGRA, //
-                                        WICBitmapDitherTypeNone,       //
-                                        nullptr,                       //
-                                        0.0f,                          //
-                                        WICBitmapPaletteTypeCustom));
+      virtual void Execute() override;
+      virtual void OnDone() override;
+      virtual void Destroy() override;
 
-  auto* pRenderTarget = svc::D2D1RenderTarget();
-  MJ_UNINITIALIZED ID2D1Bitmap* pBitmap;
-  MJ_ERR_HRESULT(pRenderTarget->CreateBitmapFromWicBitmap(pConverter, nullptr, &pBitmap));
+    private:
+      bool Add(mj::ArrayList<size_t>& list, size_t index);
+    };
 
-  return pBitmap;
-}
+    struct CreateTextLayoutTask : public mj::Task
+    {
+      // In
+      MJ_UNINITIALIZED mj::DirectoryNavigationPanel* pParent;
+      MJ_UNINITIALIZED mj::Entry* pEntry;
+
+      // Out
+      MJ_UNINITIALIZED IDWriteTextLayout* pTextLayout;
+
+      virtual void Execute() override;
+      virtual void OnDone() override;
+      virtual void Destroy() override;
+    };
+
+    struct EverythingQueryTask : public mj::Task
+    {
+      mj::DirectoryNavigationPanel* pParent = nullptr;
+      MJ_UNINITIALIZED mj::StringView directory;
+      MJ_UNINITIALIZED mj::Allocation searchBuffer;
+
+      virtual void Execute() override;
+
+      virtual void OnDone() override;
+    };
+
+    ID2D1Bitmap* ConvertIcon(mj::DirectoryNavigationPanel* pThis, HICON hIcon)
+    {
+      ZoneScoped;
+      auto* pFactory = svc::WicFactory();
+
+      MJ_UNINITIALIZED IWICBitmap* pWicBitmap;
+      MJ_ERR_HRESULT(pFactory->CreateBitmapFromHICON(hIcon, &pWicBitmap));
+      MJ_DEFER(pWicBitmap->Release());
+
+      // Convert format to 32bppPBGRA - which D2D expects.
+      MJ_UNINITIALIZED IWICFormatConverter* pConverter;
+      MJ_ERR_HRESULT(pFactory->CreateFormatConverter(&pConverter));
+      MJ_DEFER(pConverter->Release());
+
+      MJ_ERR_HRESULT(pConverter->Initialize(pWicBitmap,                    //
+                                            GUID_WICPixelFormat32bppPBGRA, //
+                                            WICBitmapDitherTypeNone,       //
+                                            nullptr,                       //
+                                            0.0f,                          //
+                                            WICBitmapPaletteTypeCustom));
+
+      auto* pRenderTarget = svc::D2D1RenderTarget();
+      MJ_UNINITIALIZED ID2D1Bitmap* pBitmap;
+      MJ_ERR_HRESULT(pRenderTarget->CreateBitmapFromWicBitmap(pConverter, nullptr, &pBitmap));
+
+      return pBitmap;
+    }
+
+    void TrySetCurrentFolderText(mj::DirectoryNavigationPanel* pThis)
+    {
+      // Set the current folder string at the top of the control
+      auto* pFactory = svc::DWriteFactory();
+      if (pFactory && !pThis->currentFolderText.IsEmpty())
+      {
+        if (pThis->pCurrentFolderTextLayout)
+        {
+          pThis->pCurrentFolderTextLayout->Release();
+          pThis->pCurrentFolderTextLayout = nullptr;
+        }
+        MJ_ERR_HRESULT(pFactory->CreateTextLayout(pThis->currentFolderText.Get(), pThis->currentFolderText.Length(),
+                                                  pThis->pTextFormat, 1024.0f, 1024.0f,
+                                                  &pThis->pCurrentFolderTextLayout));
+
+        // Test caption button glyphs
+        // Note: Hard-coding "Segoe MDL2 Assets" is probably OK. Haven't found a good way to get it programmatically.
+        // const wchar_t bla[] = L"\xE949, \xE739, \xE923, \xE106";
+        // MJ_ERR_HRESULT(pFactory->CreateTextLayout(bla, 12, pThis->pTextFormat, 1024.0f, 1024.0f,
+        // &pThis->pCurrentFolderTextLayout));
+      }
+    }
+
+    void OpenFolder(mj::DirectoryNavigationPanel* pThis)
+    {
+      if (pThis->pListFolderContentsTask)
+      {
+        pThis->pListFolderContentsTask->cancelled = true;
+      }
+
+      pThis->currentFolderText.Init(pThis->sbOpenFolder.ToStringOpen(), pThis->pAllocator);
+      TrySetCurrentFolderText(pThis);
+
+      // Note: The StringBuilder should already contain the folder here.
+      pThis->sbOpenFolder.Append(L"\\*");
+      pThis->pListFolderContentsTask            = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
+      pThis->pListFolderContentsTask->pParent   = pThis;
+      pThis->pListFolderContentsTask->directory = pThis->sbOpenFolder.ToStringClosed();
+      mj::ThreadpoolSubmitTask(pThis->pListFolderContentsTask);
+    }
+
+    void OpenSubFolder(mj::DirectoryNavigationPanel* pThis, const wchar_t* pFolder)
+    {
+      mj::StringView* pLast = pThis->breadcrumb.Last();
+      if (pLast)
+      {
+        pThis->sbOpenFolder.Clear();
+        pThis->sbOpenFolder.Append(*pLast);
+        pThis->sbOpenFolder.Append(L"\\");
+        pThis->sbOpenFolder.Append(pFolder);
+
+        OpenFolder(pThis);
+      }
+    }
+
+    mj::Entry* TestMouseEntry(mj::DirectoryNavigationPanel* pThis, int16_t x, int16_t y, RECT* pRect)
+    {
+      auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(pThis->scrollOffset));
+
+      // Skip current folder line
+      point.y += pThis->entryHeight;
+
+      for (auto i = 0; i < pThis->entries.Size(); i++)
+      {
+        auto& entry = pThis->entries[i];
+        if (entry.pTextLayout)
+        {
+          MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
+          // This call costs nothing, looks like it's just a copy
+          // Optimization note: we could extract this information on creation
+          // and put the rect in a separate list for faster iteration.
+          MJ_ERR_HRESULT(entry.pTextLayout->GetMetrics(&metrics));
+
+          MJ_UNINITIALIZED RECT rect;
+          rect.left   = static_cast<LONG>(point.x + metrics.left);
+          rect.right  = static_cast<LONG>(point.x + metrics.left + metrics.width);
+          rect.top    = static_cast<LONG>(point.y + metrics.top);
+          rect.bottom = static_cast<LONG>(point.y + metrics.top + metrics.height);
+
+          MJ_UNINITIALIZED POINT p;
+          p.x = x;
+          p.y = y;
+
+          if (::PtInRect(&rect, p))
+          {
+            if (pRect)
+            {
+              *pRect = rect;
+            }
+            return &entry;
+          }
+        }
+        point.y += pThis->entryHeight;
+      }
+
+      return nullptr;
+    }
+
+    void SetTextLayout(mj::DirectoryNavigationPanel* pThis, mj::Entry* pEntry, IDWriteTextLayout* pTextLayout)
+    {
+      pEntry->pTextLayout = pTextLayout;
+
+      if (++pThis->numEntriesDoneLoading == pThis->entries.Size())
+      {
+        pThis->scrollOffset = 0;
+        mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+      }
+    }
+
+    void ClearEntries(mj::DirectoryNavigationPanel* pThis)
+    {
+      for (auto& element : pThis->entries)
+      {
+        // Only release if icon exists and is not a shared icon
+        if (element.pIcon && element.pIcon != res::d2d1::FolderIcon() && element.pIcon != res::d2d1::FileIcon())
+        {
+          element.pIcon->Release();
+        }
+        if (element.pTextLayout)
+        {
+          element.pTextLayout->Release();
+        }
+      }
+      pThis->entries.Clear();
+    }
+
+    void CheckEverythingQueryPrerequisites(mj::DirectoryNavigationPanel* pThis)
+    {
+      ZoneScoped;
+      auto* pFactory = svc::DWriteFactory();
+      if (pFactory && pThis->queryDone && res::d2d1::FolderIcon() && svc::D2D1RenderTarget())
+      {
+        // Display results.
+        DWORD numResults = Everything_GetNumResults();
+
+        ClearEntries(pThis);
+        mj::Entry* pEntries = pThis->entries.Emplace(numResults);
+
+        wchar_t fullPathName[MAX_PATH];
+        for (DWORD i = 0; i < numResults; i++)
+        {
+          auto& entry = pEntries[i];
+
+          MJ_UNINITIALIZED mj::StringView string;
+          string.Init(Everything_GetResultFileNameW(i));
+          MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
+                                                    static_cast<UINT32>(string.len), //
+                                                    pThis->pTextFormat,              //
+                                                    1024.0f,                         //
+                                                    1024.0f,                         //
+                                                    &entry.pTextLayout));
+
+          // Get associated file icon
+          if (Everything_IsFileResult(i))
+          {
+            MJ_UNINITIALIZED SHFILEINFO fileInfo;
+            Everything_GetResultFullPathNameW(i, fullPathName, MJ_COUNTOF(fullPathName));
+            {
+              ZoneScopedN("SHGetFileInfoW");
+              MJ_ERR_ZERO(
+                  ::SHGetFileInfoW(fullPathName, 0, &fileInfo, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON));
+            }
+            MJ_DEFER(::DestroyIcon(fileInfo.hIcon));
+            entry.pIcon = ConvertIcon(pThis, fileInfo.hIcon);
+          }
+          else if (Everything_IsFolderResult(i))
+          {
+            entry.pIcon = res::d2d1::FolderIcon();
+          }
+        }
+      }
+      mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+    }
+
+    void OnEverythingQuery(mj::DirectoryNavigationPanel* pThis)
+    {
+      pThis->queryDone = true;
+      CheckEverythingQueryPrerequisites(pThis);
+    }
+
+    void TryCreateFolderContentTextLayouts(mj::DirectoryNavigationPanel* pThis)
+    {
+      ZoneScoped;
+
+      // Note: If the folder is empty, we do nothing.
+      // This is okay if we don't want to render anything, but this could change.
+      auto numItems = pThis->listFolderContentsTaskResult.stringCache.Size();
+
+      // Skipping the check for DWrite because our TextFormat already depends on it.
+      if (numItems > 0 && pThis->pTextFormat)
+      {
+        ClearEntries(pThis);
+        pThis->pHoveredEntry = nullptr;
+        if (pThis->entries.Emplace(numItems))
+        {
+          // Variable number of tasks with the same cancellation token
+          pThis->numEntriesDoneLoading = 0;
+
+          // Folders
+          for (auto i = 0; i < pThis->listFolderContentsTaskResult.folders.Size(); i++)
+          {
+            auto& entry = pThis->entries[i];
+            entry       = {};
+            entry.type  = mj::EEntryType::Directory;
+            entry.pName =
+                pThis->listFolderContentsTaskResult.stringCache[pThis->listFolderContentsTaskResult.folders[i]];
+            entry.pIcon = res::d2d1::FolderIcon();
+
+            auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
+            pTask->pParent = pThis;
+            pTask->pEntry  = &entry;
+            mj::ThreadpoolSubmitTask(pTask);
+          }
+
+          // Files
+          for (auto i = 0; i < pThis->listFolderContentsTaskResult.files.Size(); i++)
+          {
+            auto& entry = pThis->entries[i + pThis->listFolderContentsTaskResult.folders.Size()];
+            entry       = {};
+            entry.type  = mj::EEntryType::File;
+            entry.pName = pThis->listFolderContentsTaskResult.stringCache[pThis->listFolderContentsTaskResult.files[i]];
+            entry.pIcon = res::d2d1::FileIcon();
+
+            auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
+            pTask->pParent = pThis;
+            pTask->pEntry  = &entry;
+            mj::ThreadpoolSubmitTask(pTask);
+          }
+        }
+      }
+    }
+
+    void OnListFolderContentsDone(mj::DirectoryNavigationPanel* pThis, detail::ListFolderContentsTask* pTask)
+    {
+      if (pTask->status == 0 &&                                               //
+          pThis->listFolderContentsTaskResult.files.Copy(pTask->files) &&     //
+          pThis->listFolderContentsTaskResult.folders.Copy(pTask->folders) && //
+          pThis->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
+      {
+        // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
+        mj::StringView str = pThis->sbOpenFolder.ToStringOpen();
+        str.Init(str.ptr, str.FindLastOf(L"\\*"));
+
+        pThis->breadcrumb.Add(str);
+
+        // TODO: Start icon, TextFormat tasks if preconditions are met
+        // pThis->TryLoadFolderContentIcons();
+        TryCreateFolderContentTextLayouts(pThis);
+      }
+      pThis->pListFolderContentsTask = nullptr;
+    }
+  } // namespace detail
+} // namespace mj
 
 void mj::detail::EverythingQueryTask::Execute()
 {
@@ -113,7 +418,7 @@ void mj::detail::EverythingQueryTask::Execute()
 void mj::detail::EverythingQueryTask::OnDone()
 {
   ZoneScoped;
-  this->pParent->OnEverythingQuery();
+  OnEverythingQuery(pParent);
 }
 
 void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, uint16_t resource)
@@ -225,7 +530,7 @@ void mj::detail::ListFolderContentsTask::Execute()
 void mj::detail::ListFolderContentsTask::OnDone()
 {
   ZoneScoped;
-  pParent->OnListFolderContentsDone(this);
+  OnListFolderContentsDone(pParent, this);
 }
 
 void mj::detail::ListFolderContentsTask::Destroy()
@@ -234,60 +539,6 @@ void mj::detail::ListFolderContentsTask::Destroy()
   this->files.Destroy();
   this->folders.Destroy();
   this->stringCache.Destroy();
-}
-
-void mj::DirectoryNavigationPanel::OpenSubFolder(const wchar_t* pFolder)
-{
-  StringView* pLast = this->breadcrumb.Last();
-  if (pLast)
-  {
-    this->sbOpenFolder.Clear();
-    this->sbOpenFolder.Append(*pLast);
-    this->sbOpenFolder.Append(L"\\");
-    this->sbOpenFolder.Append(pFolder);
-
-    this->OpenFolder();
-  }
-}
-
-void mj::DirectoryNavigationPanel::OpenFolder()
-{
-  if (this->pListFolderContentsTask)
-  {
-    this->pListFolderContentsTask->cancelled = true;
-  }
-
-  currentFolderText.Init(this->sbOpenFolder.ToStringOpen(), this->pAllocator);
-  this->TrySetCurrentFolderText();
-
-  // Note: The StringBuilder should already contain the folder here.
-  this->sbOpenFolder.Append(L"\\*");
-  this->pListFolderContentsTask            = mj::ThreadpoolCreateTask<mj::detail::ListFolderContentsTask>();
-  this->pListFolderContentsTask->pParent   = this;
-  this->pListFolderContentsTask->directory = sbOpenFolder.ToStringClosed();
-  mj::ThreadpoolSubmitTask(this->pListFolderContentsTask);
-}
-
-void mj::DirectoryNavigationPanel::TrySetCurrentFolderText()
-{
-  // Set the current folder string at the top of the control
-  auto* pFactory = svc::DWriteFactory();
-  if (pFactory && !currentFolderText.IsEmpty())
-  {
-    if (pCurrentFolderTextLayout)
-    {
-      pCurrentFolderTextLayout->Release();
-      pCurrentFolderTextLayout = nullptr;
-    }
-    MJ_ERR_HRESULT(pFactory->CreateTextLayout(this->currentFolderText.Get(), this->currentFolderText.Length(),
-                                              this->pTextFormat, 1024.0f, 1024.0f, &this->pCurrentFolderTextLayout));
-
-    // Test caption button glyphs
-    // Note: Hard-coding "Segoe MDL2 Assets" is probably OK. Haven't found a good way to get it programmatically.
-    // const wchar_t bla[] = L"\xE949, \xE739, \xE923, \xE106";
-    // MJ_ERR_HRESULT(pFactory->CreateTextLayout(bla, 12, this->pTextFormat, 1024.0f, 1024.0f,
-    // &this->pCurrentFolderTextLayout));
-  }
 }
 
 void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
@@ -317,7 +568,7 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
   // Start tasks
   this->sbOpenFolder.Clear();
   this->sbOpenFolder.Append(*this->breadcrumb.Last());
-  this->OpenFolder();
+  detail::OpenFolder(this);
 
 #if 0
   {
@@ -329,53 +580,6 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
     mj::ThreadpoolSubmitTask(pTask);
   }
 #endif
-}
-
-void mj::DirectoryNavigationPanel::CheckEverythingQueryPrerequisites()
-{
-  ZoneScoped;
-  auto* pFactory = svc::DWriteFactory();
-  if (pFactory && queryDone && res::d2d1::FolderIcon() && svc::D2D1RenderTarget())
-  {
-    // Display results.
-    DWORD numResults = Everything_GetNumResults();
-
-    this->ClearEntries();
-    Entry* pEntries = this->entries.Emplace(numResults);
-
-    wchar_t fullPathName[MAX_PATH];
-    for (DWORD i = 0; i < numResults; i++)
-    {
-      auto& entry = pEntries[i];
-
-      MJ_UNINITIALIZED StringView string;
-      string.Init(Everything_GetResultFileNameW(i));
-      MJ_ERR_HRESULT(pFactory->CreateTextLayout(string.ptr,                      //
-                                                static_cast<UINT32>(string.len), //
-                                                this->pTextFormat,               //
-                                                1024.0f,                         //
-                                                1024.0f,                         //
-                                                &entry.pTextLayout));
-
-      // Get associated file icon
-      if (Everything_IsFileResult(i))
-      {
-        MJ_UNINITIALIZED SHFILEINFO fileInfo;
-        Everything_GetResultFullPathNameW(i, fullPathName, MJ_COUNTOF(fullPathName));
-        {
-          ZoneScopedN("SHGetFileInfoW");
-          MJ_ERR_ZERO(::SHGetFileInfoW(fullPathName, 0, &fileInfo, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON));
-        }
-        MJ_DEFER(::DestroyIcon(fileInfo.hIcon));
-        entry.pIcon = this->ConvertIcon(fileInfo.hIcon);
-      }
-      else if (Everything_IsFolderResult(i))
-      {
-        entry.pIcon = res::d2d1::FolderIcon();
-      }
-    }
-  }
-  mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
 }
 
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect)
@@ -464,7 +668,7 @@ void mj::DirectoryNavigationPanel::Destroy()
   this->pAllocator->Free(this->searchBuffer.pAddress);
   this->pAllocator->Free(this->resultsBuffer.pAddress);
 
-  this->ClearEntries();
+  detail::ClearEntries(this);
   this->entries.Destroy();
 
   this->listFolderContentsTaskResult.files.Destroy();
@@ -489,56 +693,13 @@ void mj::DirectoryNavigationPanel::Destroy()
   res::d2d1::RemoveBitmapObserver(this);
 }
 
-mj::Entry* mj::DirectoryNavigationPanel::TestMouseEntry(int16_t x, int16_t y, RECT* pRect)
-{
-  auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
-
-  // Skip current folder line
-  point.y += this->entryHeight;
-
-  for (auto i = 0; i < this->entries.Size(); i++)
-  {
-    auto& entry = this->entries[i];
-    if (entry.pTextLayout)
-    {
-      MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
-      // This call costs nothing, looks like it's just a copy
-      // Optimization note: we could extract this information on creation
-      // and put the rect in a separate list for faster iteration.
-      MJ_ERR_HRESULT(entry.pTextLayout->GetMetrics(&metrics));
-
-      MJ_UNINITIALIZED RECT rect;
-      rect.left   = static_cast<LONG>(point.x + metrics.left);
-      rect.right  = static_cast<LONG>(point.x + metrics.left + metrics.width);
-      rect.top    = static_cast<LONG>(point.y + metrics.top);
-      rect.bottom = static_cast<LONG>(point.y + metrics.top + metrics.height);
-
-      MJ_UNINITIALIZED POINT p;
-      p.x = x;
-      p.y = y;
-
-      if (::PtInRect(&rect, p))
-      {
-        if (pRect)
-        {
-          *pRect = rect;
-        }
-        return &entry;
-      }
-    }
-    point.y += this->entryHeight;
-  }
-
-  return nullptr;
-}
-
 void mj::DirectoryNavigationPanel::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 {
   auto pHoveredPrev   = this->pHoveredEntry;
   this->pHoveredEntry = nullptr;
 
   MJ_UNINITIALIZED RECT rect;
-  mj::Entry* pEntry = this->TestMouseEntry(pMouseMoveEvent->x, pMouseMoveEvent->y, &rect);
+  mj::Entry* pEntry = detail::TestMouseEntry(this, pMouseMoveEvent->x, pMouseMoveEvent->y, &rect);
   if (pEntry)
   {
     this->pHoveredEntry        = pEntry;
@@ -558,12 +719,12 @@ void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t 
 {
   static_cast<void>(mkMask);
 
-  mj::Entry* pEntry = this->TestMouseEntry(x, y, nullptr);
+  mj::Entry* pEntry = detail::TestMouseEntry(this, x, y, nullptr);
   if (pEntry)
   {
     if (pEntry->type == EEntryType::Directory)
     {
-      this->OpenSubFolder(pEntry->pName->ptr);
+      detail::OpenSubFolder(this, pEntry->pName->ptr);
     }
   }
 }
@@ -613,7 +774,7 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
 
 void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY)
 {
-  mj::Entry* pEntry = this->TestMouseEntry(clientX, clientY, nullptr);
+  mj::Entry* pEntry = detail::TestMouseEntry(this, clientX, clientY, nullptr);
   if (pEntry)
   {
     if (pEntry->type == EEntryType::Directory)
@@ -714,32 +875,6 @@ void mj::DirectoryNavigationPanel::Resize(int16_t x, int16_t y, int16_t width, i
   this->scrollOffset          = 0;
 }
 
-void mj::DirectoryNavigationPanel::OnEverythingQuery()
-{
-  queryDone = true;
-  this->CheckEverythingQueryPrerequisites();
-}
-
-void mj::DirectoryNavigationPanel::OnListFolderContentsDone(detail::ListFolderContentsTask* pTask)
-{
-  if (pTask->status == 0 &&                                              //
-      this->listFolderContentsTaskResult.files.Copy(pTask->files) &&     //
-      this->listFolderContentsTaskResult.folders.Copy(pTask->folders) && //
-      this->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
-  {
-    // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
-    StringView str = this->sbOpenFolder.ToStringOpen();
-    str.Init(str.ptr, str.FindLastOf(L"\\*"));
-
-    this->breadcrumb.Add(str);
-
-    // TODO: Start icon, TextFormat tasks if preconditions are met
-    // this->TryLoadFolderContentIcons();
-    this->TryCreateFolderContentTextLayouts();
-  }
-  this->pListFolderContentsTask = nullptr;
-}
-
 void mj::detail::CreateTextLayoutTask::Execute()
 {
   ZoneScoped;
@@ -759,91 +894,12 @@ void mj::detail::CreateTextLayoutTask::OnDone()
 {
   ZoneScoped;
   this->pTextLayout->AddRef();
-  this->pParent->SetTextLayout(this->pEntry, this->pTextLayout);
+  SetTextLayout(this->pParent, this->pEntry, this->pTextLayout);
 }
 
 void mj::detail::CreateTextLayoutTask::Destroy()
 {
   this->pTextLayout->Release();
-}
-
-void mj::DirectoryNavigationPanel::SetTextLayout(mj::Entry* pEntry, IDWriteTextLayout* pTextLayout)
-{
-  pEntry->pTextLayout = pTextLayout;
-
-  if (++this->numEntriesDoneLoading == this->entries.Size())
-  {
-    this->scrollOffset = 0;
-    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
-  }
-}
-
-void mj::DirectoryNavigationPanel::TryCreateFolderContentTextLayouts()
-{
-  ZoneScoped;
-
-  // Note: If the folder is empty, we do nothing.
-  // This is okay if we don't want to render anything, but this could change.
-  auto numItems = this->listFolderContentsTaskResult.stringCache.Size();
-
-  // Skipping the check for DWrite because our TextFormat already depends on it.
-  if (numItems > 0 && this->pTextFormat)
-  {
-    this->ClearEntries();
-    this->pHoveredEntry = nullptr;
-    if (this->entries.Emplace(numItems))
-    {
-      // Variable number of tasks with the same cancellation token
-      this->numEntriesDoneLoading = 0;
-
-      // Folders
-      for (auto i = 0; i < this->listFolderContentsTaskResult.folders.Size(); i++)
-      {
-        auto& entry = this->entries[i];
-        entry       = {};
-        entry.type  = EEntryType::Directory;
-        entry.pName = this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.folders[i]];
-        entry.pIcon = res::d2d1::FolderIcon();
-
-        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
-        pTask->pParent = this;
-        pTask->pEntry  = &entry;
-        mj::ThreadpoolSubmitTask(pTask);
-      }
-
-      // Files
-      for (auto i = 0; i < this->listFolderContentsTaskResult.files.Size(); i++)
-      {
-        auto& entry = this->entries[i + this->listFolderContentsTaskResult.folders.Size()];
-        entry       = {};
-        entry.type  = EEntryType::File;
-        entry.pName = this->listFolderContentsTaskResult.stringCache[this->listFolderContentsTaskResult.files[i]];
-        entry.pIcon = res::d2d1::FileIcon();
-
-        auto pTask     = mj::ThreadpoolCreateTask<mj::detail::CreateTextLayoutTask>();
-        pTask->pParent = this;
-        pTask->pEntry  = &entry;
-        mj::ThreadpoolSubmitTask(pTask);
-      }
-    }
-  }
-}
-
-void mj::DirectoryNavigationPanel::ClearEntries()
-{
-  for (auto& element : this->entries)
-  {
-    // Only release if icon exists and is not a shared icon
-    if (element.pIcon && element.pIcon != res::d2d1::FolderIcon() && element.pIcon != res::d2d1::FileIcon())
-    {
-      element.pIcon->Release();
-    }
-    if (element.pTextLayout)
-    {
-      element.pTextLayout->Release();
-    }
-  }
-  this->entries.Clear();
 }
 
 void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFactory)
@@ -860,5 +916,5 @@ void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFa
                                             &this->pTextFormat));
   // this->CheckEverythingQueryPrerequisites();
 
-  this->TrySetCurrentFolderText();
+  detail::TrySetCurrentFolderText(this);
 }
