@@ -584,31 +584,31 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect)
 {
-  pRenderTarget->FillRectangle(rect, res::d2d1::ControlBackgroundBrush());
-
-  // Temporary: Show where the caption bar should be
-  D2D1_RECT_F caption = rect;
-  caption.bottom      = 31;
-  pRenderTarget->FillRectangle(caption, res::d2d1::ScrollbarBackgroundBrush());
+  auto pBrush = res::d2d1::Brush();
+  pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
+  pRenderTarget->FillRectangle(rect, pBrush);
 
   auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
 
   if (this->pCurrentFolderTextLayout)
   {
-    pRenderTarget->DrawTextLayout(point, this->pCurrentFolderTextLayout, res::d2d1::BlackBrush());
+    pBrush->SetColor(D2D1::ColorF(0x000000));
+    pRenderTarget->DrawTextLayout(point, this->pCurrentFolderTextLayout, pBrush);
   }
   point.y += this->entryHeight;
 
-  if (this->pHoveredEntry && res::d2d1::EntryHoverBrush())
+  if (this->pHoveredEntry)
   {
-    pRenderTarget->FillRectangle(&this->highlightRect, res::d2d1::EntryHoverBrush());
+    pBrush->SetColor(D2D1::ColorF(0xE5F3FF));
+    pRenderTarget->FillRectangle(&this->highlightRect, pBrush);
   }
 
   for (const auto& entry : this->entries)
   {
     if (entry.pTextLayout)
     {
-      pRenderTarget->DrawTextLayout(point, entry.pTextLayout, res::d2d1::BlackBrush());
+      pBrush->SetColor(D2D1::ColorF(0x000000));
+      pRenderTarget->DrawTextLayout(point, entry.pTextLayout, pBrush);
     }
 
     if (entry.type == EEntryType::Directory && res::d2d1::FolderIcon())
@@ -644,7 +644,8 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const
             0,                          //
             this->width,                //
             viewHeight);
-        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarBackgroundBrush());
+        pBrush->SetColor(D2D1::ColorF(0xF0F0F0));
+        pRenderTarget->FillRectangle(rect, pBrush);
       }
       {
         D2D1_RECT_F rect = D2D1::RectF( //
@@ -652,7 +653,8 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const
             top,                        //
             this->width,                //
             top + viewHeight * viewHeight / pixelHeight);
-        pRenderTarget->FillRectangle(rect, res::d2d1::ScrollbarForegroundBrush());
+        pBrush->SetColor(D2D1::ColorF(0xC2C3C9));
+        pRenderTarget->FillRectangle(rect, pBrush);
       }
     }
   }

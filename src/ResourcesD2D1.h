@@ -26,12 +26,7 @@ namespace res
     void Load(ID2D1RenderTarget* pRenderTarget);
     void Destroy();
 
-    ID2D1SolidColorBrush* BlackBrush();
-    ID2D1SolidColorBrush* ScrollbarForegroundBrush();
-    ID2D1SolidColorBrush* ScrollbarBackgroundBrush();
-    ID2D1SolidColorBrush* EntryHoverBrush();
-    ID2D1SolidColorBrush* ResizeControlBrush();
-    ID2D1SolidColorBrush* ControlBackgroundBrush();
+    ID2D1SolidColorBrush* Brush();
     ID2D1Bitmap* FolderIcon();
     ID2D1Bitmap* FileIcon();
   } // namespace d2d1

@@ -80,9 +80,10 @@ void mj::VerticalResizeControl::Init(AllocatorBase* pAllocator)
 
 void mj::VerticalResizeControl::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  auto pBrush = res::d2d1::ResizeControlBrush();
+  auto pBrush = res::d2d1::Brush();
   if (pBrush)
   {
+    pBrush->SetColor(D2D1::ColorF(0xD4D4D4));
     int16_t offset = this->height / 2;
     pRenderTarget->FillRectangle(D2D1::RectF(0.0f, offset - 1, this->width, offset + 1), pBrush);
   }

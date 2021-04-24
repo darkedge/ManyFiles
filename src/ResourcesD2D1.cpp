@@ -7,12 +7,7 @@
 #include "stb_image.h"
 #include <d2d1.h>
 
-static ID2D1SolidColorBrush* pBlackBrush;
-static ID2D1SolidColorBrush* pScrollbarForegroundBrush;
-static ID2D1SolidColorBrush* pScrollbarBackgroundBrush;
-static ID2D1SolidColorBrush* pEntryHoverBrush;
-static ID2D1SolidColorBrush* pResizeControlBrush;
-static ID2D1SolidColorBrush* pControlBackgroundBrush;
+static ID2D1SolidColorBrush* pBrush;
 static ID2D1Bitmap* pFolderIcon;
 static ID2D1Bitmap* pFileIcon;
 
@@ -125,60 +120,21 @@ void res::d2d1::Load(ID2D1RenderTarget* pRenderTarget)
   LoadIconBitmap(IDB_FOLDER);
   LoadIconBitmap(IDB_DOCUMENT);
 
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &pBlackBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xC2C3C9), &pScrollbarForegroundBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE8E8EC), &pScrollbarBackgroundBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xE5F3FF), &pEntryHoverBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xD4D4D4), &pResizeControlBrush));
-  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xF0F0F0), &pControlBackgroundBrush));
+  MJ_ERR_HRESULT(pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(0xF0F0F0), &pBrush));
 }
 
 void res::d2d1::Destroy()
 {
-  MJ_SAFE_RELEASE(pBlackBrush);
-  MJ_SAFE_RELEASE(pScrollbarForegroundBrush);
-  MJ_SAFE_RELEASE(pScrollbarBackgroundBrush);
-  MJ_SAFE_RELEASE(pEntryHoverBrush);
-  MJ_SAFE_RELEASE(pResizeControlBrush);
-  MJ_SAFE_RELEASE(pControlBackgroundBrush);
+  MJ_SAFE_RELEASE(pBrush);
+
   MJ_SAFE_RELEASE(pFolderIcon);
   MJ_SAFE_RELEASE(pFileIcon);
 }
 
-ID2D1SolidColorBrush* res::d2d1::BlackBrush()
+ID2D1SolidColorBrush* res::d2d1::Brush()
 {
-  MJ_EXIT_NULL(pBlackBrush);
-  return pBlackBrush;
-}
-
-ID2D1SolidColorBrush* res::d2d1::ScrollbarForegroundBrush()
-{
-  MJ_EXIT_NULL(pScrollbarForegroundBrush);
-  return pScrollbarForegroundBrush;
-}
-
-ID2D1SolidColorBrush* res::d2d1::ScrollbarBackgroundBrush()
-{
-  MJ_EXIT_NULL(pScrollbarBackgroundBrush);
-  return pScrollbarBackgroundBrush;
-}
-
-ID2D1SolidColorBrush* res::d2d1::EntryHoverBrush()
-{
-  MJ_EXIT_NULL(pEntryHoverBrush);
-  return pEntryHoverBrush;
-}
-
-ID2D1SolidColorBrush* res::d2d1::ResizeControlBrush()
-{
-  MJ_EXIT_NULL(pResizeControlBrush);
-  return pResizeControlBrush;
-}
-
-ID2D1SolidColorBrush* res::d2d1::ControlBackgroundBrush()
-{
-  MJ_EXIT_NULL(pControlBackgroundBrush);
-  return pControlBackgroundBrush;
+  MJ_EXIT_NULL(pBrush);
+  return pBrush;
 }
 
 ID2D1Bitmap* res::d2d1::FolderIcon()

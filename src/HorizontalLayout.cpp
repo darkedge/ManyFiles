@@ -80,9 +80,10 @@ void mj::HorizontalResizeControl::Init(AllocatorBase* pAllocator)
 
 void mj::HorizontalResizeControl::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  auto pBrush = res::d2d1::ResizeControlBrush();
+  auto pBrush = res::d2d1::Brush();
   if (pBrush)
   {
+    pBrush->SetColor(D2D1::ColorF(0xD4D4D4));
     int16_t offset = this->width / 2;
     pRenderTarget->FillRectangle(D2D1::RectF(offset - 1, 0.0f, offset + 1, this->height), pBrush);
   }

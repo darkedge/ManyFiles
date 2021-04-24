@@ -40,7 +40,7 @@ void mj::Control::OnPaint(ID2D1RenderTarget* pRenderTarget)
   pRenderTarget->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
   MJ_DEFER(pRenderTarget->PopAxisAlignedClip());
 
-  pRenderTarget->FillRectangle(rect, res::d2d1::ControlBackgroundBrush());
+  pRenderTarget->FillRectangle(rect, res::d2d1::Brush());
 
   D2D1_ANTIALIAS_MODE antialiasMode = pRenderTarget->GetAntialiasMode();
   pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
