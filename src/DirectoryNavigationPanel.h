@@ -105,9 +105,6 @@ namespace mj
     /// </summary>
     bool queryDone;
 
-    // Measured from Windows Explorer
-    static constexpr const int16_t entryHeight = 21;
-
   public:
     int16_t x;
     int16_t y;

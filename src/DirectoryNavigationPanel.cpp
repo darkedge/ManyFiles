@@ -12,6 +12,9 @@
 #define STRICT_TYPED_ITEMIDS
 #include <Shlobj.h>
 
+// Measured from Windows Explorer
+static constexpr const int16_t ENTRY_HEIGHT = 21;
+
 static float ConvertPointSizeToDIP(float points)
 {
   return ((points / 72.0f) * 96.0f);
@@ -196,7 +199,7 @@ namespace mj
       auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(pThis->scrollOffset));
 
       // Skip current folder line
-      point.y += pThis->entryHeight;
+      point.y += ENTRY_HEIGHT;
 
       for (auto i = 0; i < pThis->entries.Size(); i++)
       {
@@ -228,7 +231,7 @@ namespace mj
             return &entry;
           }
         }
-        point.y += pThis->entryHeight;
+        point.y += ENTRY_HEIGHT;
       }
 
       return nullptr;
@@ -595,7 +598,7 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const
     pBrush->SetColor(D2D1::ColorF(0x000000));
     pRenderTarget->DrawTextLayout(point, this->pCurrentFolderTextLayout, pBrush);
   }
-  point.y += this->entryHeight;
+  point.y += ENTRY_HEIGHT;
 
   if (this->pHoveredEntry)
   {
@@ -627,13 +630,13 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const
     }
 
     // Always draw images on integer coordinates
-    point.y += this->entryHeight;
+    point.y += ENTRY_HEIGHT;
   }
 
   // Draw scrollbar
   if (this->height > 0 && this->entries.Size() > 0)
   {
-    FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * this->entryHeight;
+    FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * ENTRY_HEIGHT;
     FLOAT viewHeight  = this->height;
     if (pixelHeight > viewHeight)
     {
@@ -756,11 +759,11 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
   // 7-15 microseconds
   MJ_ERR_IF(::SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &pvParam, 0), 0);
 
-  int16_t diff = numScrolls * static_cast<int16_t>(pvParam) * this->entryHeight;
+  int16_t diff = numScrolls * static_cast<int16_t>(pvParam) * ENTRY_HEIGHT;
   if (diff != 0)
   {
     this->scrollOffset += diff;
-    int32_t pixelHeight = static_cast<int32_t>(this->entries.Size()) * this->entryHeight;
+    int32_t pixelHeight = static_cast<int32_t>(this->entries.Size()) * ENTRY_HEIGHT;
     if (this->scrollOffset > 0 || pixelHeight < this->height)
     {
       this->scrollOffset = 0;
