@@ -7,13 +7,11 @@ static constexpr const wchar_t* serializationCpp = L"..\\..\\src\\Serialization.
 
 static void CreateSerializationSourceCode()
 {
-  mj::ArrayList<wchar_t> al;
   mj::AllocatorBase* pAlloc = svc::GeneralPurposeAllocator();
-  al.Init(pAlloc);
-  MJ_DEFER(al.Destroy());
 
   mj::StringBuilder sb;
-  sb.SetArrayList(&al);
+  sb.Init(pAlloc);
+  MJ_DEFER(sb.Destroy());
 
   // Content
   sb.Append(L"// Hello World!");
@@ -48,7 +46,6 @@ void CALLBACK WinMainCRTStartup()
   static_cast<void>(::WriteFile(hStdout, lpszPrompt1, lstrlenA(lpszPrompt1), &cWritten, nullptr));
 
   mj::HeapAllocator generalPurposeAllocator;
-  generalPurposeAllocator.Init();
   MJ_UNINITIALIZED mj::AllocatorBase* pAllocator;
   pAllocator = &generalPurposeAllocator;
   svc::ProvideGeneralPurposeAllocator(pAllocator);

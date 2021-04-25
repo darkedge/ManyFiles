@@ -64,24 +64,15 @@ namespace mj
   /// </summary>
   class HeapAllocator : public AllocatorBase
   {
-  private:
-    HANDLE pHeap;
-
-  public:
-    void Init()
-    {
-      pHeap = ::GetProcessHeap();
-    }
-
   protected:
     [[nodiscard]] virtual void* AllocateInternal(size_t size) override
     {
-      return ::HeapAlloc(pHeap, 0, size);
+      return ::HeapAlloc(::GetProcessHeap(), 0, size);
     }
 
     virtual void FreeInternal(void* ptr) override
     {
-      ::HeapFree(pHeap, 0, ptr);
+      ::HeapFree(::GetProcessHeap(), 0, ptr);
     }
 
     virtual const char* GetName() override

@@ -44,13 +44,17 @@ namespace mj
     }
   };
 
+  class StaticStringBuilder;
+
   class StringBuilder
   {
   private:
-    ArrayList<wchar_t>* pArrayList;
+    friend class StaticStringBuilder;
+    ArrayList<wchar_t> arrayList;
 
   public:
-    void SetArrayList(ArrayList<wchar_t>* pArrayList);
+    void Init(AllocatorBase* pAllocator);
+    void Destroy();
     void Clear();
 
     // TODO: We have no way to report failure!
@@ -71,6 +75,35 @@ namespace mj
     /// Note: Clear this StringBuilder before appending again!
     /// </summary>
     StringView ToStringClosed();
+  };
+
+  class StaticStringBuilder
+  {
+  private:
+    StringBuilder sb;
+    mj::LinearAllocator sbAlloc;
+
+  public:
+    void Init(const Allocation& allocation)
+    {
+      sbAlloc.Init(allocation);
+      sb.arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
+    }
+
+    // Note: No Destroy() function as we rely on the allocation being freed afterwards.
+
+    // clang-format off
+    decltype(auto) Clear() { return sb.Clear(); }
+
+    decltype(auto) Append(const StringView& string) { return sb.Append(string); }
+    decltype(auto) Append(const wchar_t* pStringLiteral) { return sb.Append(pStringLiteral); }
+    decltype(auto) Append(int32_t integer) { return sb.Append(integer); }
+    decltype(auto) AppendHex32(uint32_t dw) { return sb.AppendHex32(dw); }
+    decltype(auto) Indent(uint32_t numSpaces) { return sb.Indent(numSpaces); }
+
+    decltype(auto) ToStringOpen() { return sb.ToStringOpen(); }
+    decltype(auto) ToStringClosed()  { return sb.ToStringClosed(); }
+    // clang-format on
   };
 
   class StringCache

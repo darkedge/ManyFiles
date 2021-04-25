@@ -486,7 +486,6 @@ void mj::MainWindow::Run()
   MJ_DEFER(this->Destroy());
 
   mj::HeapAllocator generalPurposeAllocator;
-  generalPurposeAllocator.Init();
   svc::ProvideGeneralPurposeAllocator(&generalPurposeAllocator);
   mj::AllocatorBase* pAllocator = svc::GeneralPurposeAllocator();
 

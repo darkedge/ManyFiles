@@ -159,14 +159,19 @@ bool mj::StringAlloc::IsEmpty() const
   return this->len == 0;
 }
 
-void mj::StringBuilder::SetArrayList(ArrayList<wchar_t>* pArrayList)
+void mj::StringBuilder::Init(AllocatorBase* pAllocator)
 {
-  this->pArrayList = pArrayList;
+  this->arrayList.Init(pAllocator);
+}
+
+void mj::StringBuilder::Destroy()
+{
+  this->arrayList.Destroy();
 }
 
 void mj::StringBuilder::Clear()
 {
-  this->pArrayList->Clear();
+  this->arrayList.Clear();
 }
 
 mj::StringBuilder& mj::StringBuilder::Append(int32_t integer)
@@ -224,7 +229,7 @@ mj::StringBuilder& mj::StringBuilder::AppendHex32(uint32_t dw)
 
 mj::StringBuilder& mj::StringBuilder::Append(const StringView& string)
 {
-  wchar_t* pDest = this->pArrayList->Emplace(string.len);
+  wchar_t* pDest = this->arrayList.Emplace(string.len);
 
   if (pDest)
   {
@@ -262,16 +267,16 @@ mj::StringBuilder& mj::StringBuilder::Indent(uint32_t numSpaces)
 
 mj::StringView mj::StringBuilder::ToStringOpen()
 {
-  auto length = this->pArrayList->Size();
+  auto length = this->arrayList.Size();
   MJ_UNINITIALIZED mj::StringView string;
-  string.Init(this->pArrayList->begin(), length);
+  string.Init(this->arrayList.begin(), length);
   return string;
 }
 
 mj::StringView mj::StringBuilder::ToStringClosed()
 {
   // Make sure the string is null-terminated
-  wchar_t* pLast = this->pArrayList->Emplace(1);
+  wchar_t* pLast = this->arrayList.Emplace(1);
   if (pLast)
   {
     // Truncate
@@ -279,18 +284,18 @@ mj::StringView mj::StringBuilder::ToStringClosed()
   }
   else
   {
-    auto size = this->pArrayList->Size();
+    auto size = this->arrayList.Size();
     if (size > 0)
     {
-      (*this->pArrayList)[size - 1] = L'\0';
+      this->arrayList[size - 1] = L'\0';
     }
   }
 
   MJ_UNINITIALIZED size_t length;
-  MJ_ERR_HRESULT(::StringCchLengthW(this->pArrayList->Get(), STRSAFE_MAX_CCH, &length));
+  MJ_ERR_HRESULT(::StringCchLengthW(this->arrayList.Get(), STRSAFE_MAX_CCH, &length));
 
   MJ_UNINITIALIZED mj::StringView string;
-  string.Init(this->pArrayList->begin(), length);
+  string.Init(this->arrayList.begin(), length);
   return string;
 }
 

@@ -100,6 +100,7 @@ namespace mj
       virtual void Destroy() override;
     };
 
+#if 0
     struct EverythingQueryTask : public mj::Task
     {
       mj::DirectoryNavigationPanel* pParent = nullptr;
@@ -110,6 +111,7 @@ namespace mj
 
       virtual void OnDone() override;
     };
+#endif
 
     ID2D1Bitmap* ConvertIcon(mj::DirectoryNavigationPanel* pThis, HICON hIcon)
     {
@@ -393,6 +395,7 @@ namespace mj
   } // namespace detail
 } // namespace mj
 
+#if 0
 void mj::detail::EverythingQueryTask::Execute()
 {
   ZoneScoped;
@@ -423,6 +426,7 @@ void mj::detail::EverythingQueryTask::OnDone()
   ZoneScoped;
   OnEverythingQuery(pParent);
 }
+#endif
 
 void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, uint16_t resource)
 {
@@ -473,7 +477,6 @@ void mj::detail::ListFolderContentsTask::Execute()
 {
   ZoneScoped;
 
-  this->allocator.Init();
   this->files.Init(&this->allocator);
   this->folders.Init(&this->allocator);
   this->stringCache.Init(&this->allocator);
@@ -565,8 +568,7 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
   // FIXME: When opening a folder, add all parent folders to the breadcrumb
   this->breadcrumb.Init(pAllocator);
   this->breadcrumb.Add(L"C:");
-  this->alOpenFolder.Init(pAllocator);
-  this->sbOpenFolder.SetArrayList(&this->alOpenFolder);
+  this->sbOpenFolder.Init(pAllocator);
 
   // Start tasks
   this->sbOpenFolder.Clear();
@@ -668,7 +670,7 @@ void mj::DirectoryNavigationPanel::Destroy()
   ZoneScoped;
 
   this->breadcrumb.Destroy();
-  this->alOpenFolder.Destroy();
+  this->sbOpenFolder.Destroy();
 
   this->pAllocator->Free(this->searchBuffer.pAddress);
   this->pAllocator->Free(this->resultsBuffer.pAddress);

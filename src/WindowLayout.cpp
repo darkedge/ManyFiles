@@ -307,11 +307,9 @@ bool mj::LoadWindowLayout(mj::AllocatorBase* pAllocator)
     MJ_ERR_ZERO(::ReadFile(file, allocation.pAddress, fileSize, &numRead, nullptr));
 
     // Debug
-    StringBuilder sb;
-    ArrayList<wchar_t> sbal;
-    sbal.Init(svc::GeneralPurposeAllocator());
-    sb.SetArrayList(&sbal);
-    MJ_DEFER(sbal.Destroy());
+  mj::StringBuilder sb;
+  sb.Init(svc::GeneralPurposeAllocator());
+  MJ_DEFER(sb.Destroy());
 
     if (fileSize == numRead)
     {
@@ -485,11 +483,9 @@ void mj::SaveWindowLayout(mj::Control* pRootControl)
             INVALID_HANDLE_VALUE);
   MJ_DEFER(MJ_ERR_ZERO(::CloseHandle(file)));
 
-  ArrayList<wchar_t> al;
-  al.Init(svc::GeneralPurposeAllocator());
-  MJ_DEFER(al.Destroy());
-  StringBuilder sb;
-  sb.SetArrayList(&al);
+  mj::StringBuilder sb;
+  sb.Init(svc::GeneralPurposeAllocator());
+  MJ_DEFER(sb.Destroy());
 
   pRootControl->SaveToString(sb, 0);
 

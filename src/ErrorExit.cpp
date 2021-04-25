@@ -28,21 +28,13 @@ void mj::ErrorExit(DWORD dw, const StringView& fileName, int lineNumber, const S
                                  + msgString.len  //
                                  + 50;            // Format string length and decimals
 
-    mj::VirtualAllocator alloc;
-    alloc.Init(0);
+    mj::HeapAllocator alloc;
     Allocation allocation = alloc.Allocation(displayStringLength * sizeof(wchar_t));
-
     if (allocation.Ok())
     {
       MJ_DEFER(alloc.Free(allocation.pAddress));
-      mj::LinearAllocator sbAlloc;
-      sbAlloc.Init(allocation);
-
-      mj::ArrayList<wchar_t> arrayList;
-      arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
-
-      mj::StringBuilder sb;
-      sb.SetArrayList(&arrayList);
+      mj::StaticStringBuilder sb;
+      sb.Init(allocation);
 
       // The string is formatted such that you can double-click the output from
       // OutputDebugString in Visual Studio's Output window to go to the error source
@@ -87,20 +79,13 @@ void mj::NullExit(const StringView& fileName, int lineNumber, const StringView& 
                                + 50;            // Format string length and decimals
 
   // LPTSTR lpDisplayBuf = static_cast<LPTSTR>(::LocalAlloc(LMEM_ZEROINIT, displayStringLength * sizeof(wchar_t)));
-  mj::VirtualAllocator alloc;
-  alloc.Init(0);
+  mj::HeapAllocator alloc;
   mj::Allocation allocation = alloc.Allocation(displayStringLength * sizeof(wchar_t));
   if (allocation.Ok())
   {
     MJ_DEFER(alloc.Free(allocation.pAddress));
-    mj::LinearAllocator sbAlloc;
-    sbAlloc.Init(allocation);
-
-    mj::ArrayList<wchar_t> arrayList;
-    arrayList.Init(&sbAlloc, allocation.numBytes / sizeof(wchar_t));
-
-    mj::StringBuilder sb;
-    sb.SetArrayList(&arrayList);
+    mj::StaticStringBuilder sb;
+    sb.Init(allocation);
 
     // The string is formatted such that you can double-click the output from
     // OutputDebugString in Visual Studio's Output window to go to the error source
