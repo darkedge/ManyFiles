@@ -21,7 +21,7 @@
 
 #define WM_MJTASKFINISH (WM_USER + 1)
 
-static bool TranslateClientPoint(const mj::DirectoryNavigationPanel& panel, int16_t* pX, int16_t* pY)
+static bool TranslateClientPoint(const mj::Rect& panel, int16_t* pX, int16_t* pY)
 {
   int16_t x = *pX;
   int16_t y = *pY;
@@ -244,11 +244,10 @@ void mj::MainWindow::OnPaint()
       // pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(this->panel.x, -this->captionHeight +
       // this->panel.y)));
 
-      D2D1_RECT_F rect = D2D1::RectF(this->panel.x, this->panel.y, this->panel.width, this->panel.height);
+      // D2D1_RECT_F rect = D2D1::RectF(this->panel.x, this->panel.y, this->panel.width, this->panel.height);
       // pContext->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
       // MJ_DEFER(pContext->PopAxisAlignedClip());
-
-      this->panel.Paint(pContext, rect);
+      this->panel.Paint(pContext);
 
 #if 0 // Getting the theme font for captions (instead of hard-coding "Segoe UI")
       HTHEME hTheme = ::OpenThemeData(nullptr, L"WINDOW");
@@ -398,7 +397,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     mouseMoveEvent.x = ptClient.x;
     mouseMoveEvent.y = ptClient.y;
 
-    bool inside       = TranslateClientPoint(pMainWindow->panel, &mouseMoveEvent.x, &mouseMoveEvent.y);
+    bool inside       = TranslateClientPoint(pMainWindow->panel.rect, &mouseMoveEvent.x, &mouseMoveEvent.y);
     bool updateCursor = true;
 
     if (::GetCapture() == hWnd)
@@ -422,7 +421,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case WM_LBUTTONDOWN:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
-    if (TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y))
+    if (TranslateClientPoint(pMainWindow->panel.rect, &ptClient.x, &ptClient.y))
     {
       // static_cast<void>(pMainWindow->panel.OnLeftButtonDown(ptClient.x, ptClient.y));
     }
@@ -435,7 +434,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case WM_LBUTTONUP:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
-    if (TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y))
+    if (TranslateClientPoint(pMainWindow->panel.rect, &ptClient.x, &ptClient.y))
     {
       // static_cast<void>(pMainWindow->panel.OnLeftButtonUp(ptClient.x, ptClient.y));
     }
@@ -453,7 +452,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   case WM_LBUTTONDBLCLK:
   {
     POINTS ptClient = MAKEPOINTS(lParam);
-    static_cast<void>(TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y));
+    static_cast<void>(TranslateClientPoint(pMainWindow->panel.rect, &ptClient.x, &ptClient.y));
     pMainWindow->panel.OnDoubleClick(ptClient.x, ptClient.y, static_cast<uint16_t>(wParam));
     return 0;
   }
@@ -461,7 +460,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   {
     POINTS ptScreen = MAKEPOINTS(lParam);
     POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
-    static_cast<void>(TranslateClientPoint(pMainWindow->panel, &ptClient.x, &ptClient.y));
+    static_cast<void>(TranslateClientPoint(pMainWindow->panel.rect, &ptClient.x, &ptClient.y));
     pMainWindow->panel.OnContextMenu(ptClient.x, ptClient.y, ptScreen.x, ptScreen.y);
     return 0;
   }

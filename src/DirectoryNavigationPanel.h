@@ -9,6 +9,26 @@
 
 namespace mj
 {
+  struct Rect
+  {
+    MJ_UNINITIALIZED int16_t x;
+    MJ_UNINITIALIZED int16_t y;
+    MJ_UNINITIALIZED int16_t width;
+    MJ_UNINITIALIZED int16_t height;
+  };
+
+  struct PopRect
+  {
+    MJ_UNINITIALIZED D2D1_MATRIX_3X2_F transform;
+    void Pop(ID2D1RenderTarget* pRenderTarget);
+  };
+
+  PopRect PushRect(ID2D1RenderTarget* pRenderTarget, const Rect& rect);
+  PopRect PushRect(ID2D1RenderTarget* pRenderTarget, int16_t x, int16_t y, int16_t width, int16_t height);
+} // namespace mj
+
+namespace mj
+{
   struct EEntryType
   {
     enum Enum
@@ -36,7 +56,7 @@ namespace mj
   } // namespace detail
 
   struct DirectoryNavigationPanel : public svc::IDWriteFactoryObserver, //
-                                   public res::d2d1::BitmapObserver
+                                    public res::d2d1::BitmapObserver
   {
     class Breadcrumb
     {
@@ -98,13 +118,10 @@ namespace mj
     } listFolderContentsTaskResult;
     detail::ListFolderContentsTask* pListFolderContentsTask = nullptr;
 
-    int16_t x;
-    int16_t y;
-    int16_t width;
-    int16_t height;
+    MJ_UNINITIALIZED Rect rect;
 
     void Init(AllocatorBase* pAllocator);
-    void Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect);
+    void Paint(ID2D1RenderTarget* pRenderTarget);
     const wchar_t* GetType()
     {
       return MJ_NAMEOF(DirectoryNavigationPanel);

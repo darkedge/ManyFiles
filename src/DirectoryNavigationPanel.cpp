@@ -59,10 +59,35 @@ mj::StringView* mj::DirectoryNavigationPanel::Breadcrumb::Last()
 
   return nullptr;
 }
+
+mj::PopRect mj::PushRect(ID2D1RenderTarget* pRenderTarget, const Rect& rect)
+{
+  MJ_UNINITIALIZED mj::PopRect popRect;
+  pRenderTarget->GetTransform(&popRect.transform);
+  pRenderTarget->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(rect.x, rect.y)) * popRect.transform);
+  pRenderTarget->PushAxisAlignedClip(D2D1::RectF(0, 0, rect.width, rect.height), D2D1_ANTIALIAS_MODE_ALIASED);
+  return popRect;
+}
+
+mj::PopRect mj::PushRect(ID2D1RenderTarget* pRenderTarget, int16_t x, int16_t y, int16_t width, int16_t height)
+{
+  return PushRect(pRenderTarget, Rect{ x, y, width, height });
+}
+
+void mj::PopRect::Pop(ID2D1RenderTarget* pRenderTarget)
+{
+  pRenderTarget->SetTransform(&this->transform);
+  pRenderTarget->PopAxisAlignedClip();
+}
+
 namespace mj
 {
   namespace detail
   {
+    struct ListFolderContentsTask;
+    void OnListFolderContentsDone(mj::DirectoryNavigationPanel* pThis, detail::ListFolderContentsTask* pTask);
+    void SetTextLayout(mj::DirectoryNavigationPanel* pThis, mj::Entry* pEntry, IDWriteTextLayout* pTextLayout);
+
     struct ListFolderContentsTask : public mj::Task
     {
       // In
@@ -78,12 +103,96 @@ namespace mj
       // Private
       MJ_UNINITIALIZED mj::HeapAllocator allocator;
 
-      virtual void Execute() override;
-      virtual void OnDone() override;
-      virtual void Destroy() override;
+      virtual void Execute() override
+      {
+        ZoneScoped;
+
+        this->files.Init(&this->allocator);
+        this->folders.Init(&this->allocator);
+        this->stringCache.Init(&this->allocator);
+        this->status = 0;
+
+        MJ_UNINITIALIZED WIN32_FIND_DATA findData;
+        HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
+        if (hFind == INVALID_HANDLE_VALUE)
+        {
+          // TODO: Handle ::GetLastError().
+          // Example: 0x00000005 --> Access is denied.
+          this->status = ::GetLastError();
+          return;
+        }
+
+        do
+        {
+          if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM))
+          {
+            MJ_UNINITIALIZED StringView string;
+            string.Init(findData.cFileName);
+
+            // Ignore "." and ".."
+            if (string.Equals(L".") || string.Equals(L".."))
+            {
+              continue;
+            }
+
+            if (!this->stringCache.Add(string))
+            {
+              this->files.Destroy();
+              this->folders.Destroy();
+              this->stringCache.Destroy();
+              break;
+            }
+
+            if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            {
+              if (!this->Add(this->folders, this->stringCache.Size() - 1))
+              {
+                break;
+              }
+            }
+            else
+            {
+              if (!this->Add(this->files, this->stringCache.Size() - 1))
+              {
+                break;
+              }
+            }
+          }
+        } while (::FindNextFileW(hFind, &findData) != 0);
+
+        ::FindClose(hFind);
+      }
+
+      virtual void OnDone() override
+      {
+        ZoneScoped;
+        OnListFolderContentsDone(pParent, this);
+      }
+      virtual void Destroy() override
+      {
+        ZoneScoped;
+        this->files.Destroy();
+        this->folders.Destroy();
+        this->stringCache.Destroy();
+      }
 
     private:
-      bool Add(mj::ArrayList<size_t>& list, size_t index);
+      bool Add(mj::ArrayList<size_t>& list, size_t index)
+      {
+        size_t* pItem = list.Emplace(1);
+
+        if (!pItem)
+        {
+          this->files.Destroy();
+          this->folders.Destroy();
+          this->stringCache.Destroy();
+          return false;
+        }
+
+        *pItem = index;
+
+        return true;
+      }
     };
 
     struct CreateTextLayoutTask : public mj::Task
@@ -95,9 +204,30 @@ namespace mj
       // Out
       MJ_UNINITIALIZED IDWriteTextLayout* pTextLayout;
 
-      virtual void Execute() override;
-      virtual void OnDone() override;
-      virtual void Destroy() override;
+      virtual void Execute() override
+      {
+        ZoneScoped;
+
+        MJ_ERR_HRESULT(svc::DWriteFactory()->CreateTextLayout(this->pEntry->pName->ptr,                      //
+                                                              static_cast<UINT32>(this->pEntry->pName->len), //
+                                                              pParent->pTextFormat,                          //
+                                                              1024.0f,                                       //
+                                                              1024.0f,                                       //
+                                                              &this->pTextLayout));
+
+        // FIXME: If this task is slow, InvalidateRect does not show everything...
+        // ::Sleep(1000);
+      }
+      virtual void OnDone() override
+      {
+        ZoneScoped;
+        this->pTextLayout->AddRef();
+        SetTextLayout(this->pParent, this->pEntry, this->pTextLayout);
+      }
+      virtual void Destroy() override
+      {
+        this->pTextLayout->Release();
+      }
     };
 
 #if 0
@@ -107,9 +237,36 @@ namespace mj
       MJ_UNINITIALIZED mj::StringView directory;
       MJ_UNINITIALIZED mj::Allocation searchBuffer;
 
-      virtual void Execute() override;
+      virtual void Execute() override
+      {
+        ZoneScoped;
+        mj::LinearAllocator alloc;
+        alloc.Init(this->searchBuffer);
 
-      virtual void OnDone() override;
+        mj::ArrayList<wchar_t> arrayList;
+        arrayList.Init(&alloc, this->searchBuffer.numBytes / sizeof(wchar_t));
+
+        mj::StringBuilder sb;
+        sb.SetArrayList(&arrayList);
+
+        mj::StringView search = sb.Append(L"\"")             //
+                                    .Append(this->directory) //
+                                    .Append(L"\" !\"")       //
+                                    .Append(this->directory) //
+                                    .Append(L"*\\*\"")       //
+                                    .ToStringClosed();
+
+        Everything_SetSearchW(search.ptr);
+        {
+          static_cast<void>(Everything_QueryW(TRUE));
+        }
+      }
+
+      virtual void OnDone() override
+      {
+        ZoneScoped;
+        OnEverythingQuery(pParent);
+      }
     };
 #endif
 
@@ -397,39 +554,6 @@ namespace mj
   } // namespace detail
 } // namespace mj
 
-#if 0
-void mj::detail::EverythingQueryTask::Execute()
-{
-  ZoneScoped;
-  mj::LinearAllocator alloc;
-  alloc.Init(this->searchBuffer);
-
-  mj::ArrayList<wchar_t> arrayList;
-  arrayList.Init(&alloc, this->searchBuffer.numBytes / sizeof(wchar_t));
-
-  mj::StringBuilder sb;
-  sb.SetArrayList(&arrayList);
-
-  mj::StringView search = sb.Append(L"\"")             //
-                              .Append(this->directory) //
-                              .Append(L"\" !\"")       //
-                              .Append(this->directory) //
-                              .Append(L"*\\*\"")       //
-                              .ToStringClosed();
-
-  Everything_SetSearchW(search.ptr);
-  {
-    static_cast<void>(Everything_QueryW(TRUE));
-  }
-}
-
-void mj::detail::EverythingQueryTask::OnDone()
-{
-  ZoneScoped;
-  OnEverythingQuery(pParent);
-}
-#endif
-
 void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, uint16_t resource)
 {
   if (resource == IDB_FOLDER)
@@ -456,97 +580,6 @@ void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitma
     }
     mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
   }
-}
-
-bool mj::detail::ListFolderContentsTask::Add(mj::ArrayList<size_t>& list, size_t index)
-{
-  size_t* pItem = list.Emplace(1);
-
-  if (!pItem)
-  {
-    this->files.Destroy();
-    this->folders.Destroy();
-    this->stringCache.Destroy();
-    return false;
-  }
-
-  *pItem = index;
-
-  return true;
-}
-
-void mj::detail::ListFolderContentsTask::Execute()
-{
-  ZoneScoped;
-
-  this->files.Init(&this->allocator);
-  this->folders.Init(&this->allocator);
-  this->stringCache.Init(&this->allocator);
-  this->status = 0;
-
-  MJ_UNINITIALIZED WIN32_FIND_DATA findData;
-  HANDLE hFind = ::FindFirstFileW(this->directory.ptr, &findData);
-  if (hFind == INVALID_HANDLE_VALUE)
-  {
-    // TODO: Handle ::GetLastError().
-    // Example: 0x00000005 --> Access is denied.
-    this->status = ::GetLastError();
-    return;
-  }
-
-  do
-  {
-    if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM))
-    {
-      MJ_UNINITIALIZED StringView string;
-      string.Init(findData.cFileName);
-
-      // Ignore "." and ".."
-      if (string.Equals(L".") || string.Equals(L".."))
-      {
-        continue;
-      }
-
-      if (!this->stringCache.Add(string))
-      {
-        this->files.Destroy();
-        this->folders.Destroy();
-        this->stringCache.Destroy();
-        break;
-      }
-
-      if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-      {
-        if (!this->Add(this->folders, this->stringCache.Size() - 1))
-        {
-          break;
-        }
-      }
-      else
-      {
-        if (!this->Add(this->files, this->stringCache.Size() - 1))
-        {
-          break;
-        }
-      }
-    }
-  } while (::FindNextFileW(hFind, &findData) != 0);
-
-  ::FindClose(hFind);
-}
-
-void mj::detail::ListFolderContentsTask::OnDone()
-{
-  ZoneScoped;
-  OnListFolderContentsDone(pParent, this);
-}
-
-void mj::detail::ListFolderContentsTask::Destroy()
-{
-  ZoneScoped;
-  this->files.Destroy();
-  this->folders.Destroy();
-  this->stringCache.Destroy();
 }
 
 void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
@@ -589,81 +622,108 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 #endif
 }
 
-void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget, const D2D1_RECT_F& rect)
+namespace mj
 {
+  namespace detail
+  {
+    void PaintBreadcrumb(DirectoryNavigationPanel* pThis, ID2D1RenderTarget* pRenderTarget)
+    {
+      if (pThis->pCurrentFolderTextLayout)
+      {
+        auto point  = D2D1::Point2F(16.0f, 0.0f);
+        auto pBrush = res::d2d1::Brush();
+        pBrush->SetColor(D2D1::ColorF(0x000000));
+        pRenderTarget->DrawTextLayout(point, pThis->pCurrentFolderTextLayout, pBrush);
+      }
+    }
+    void PaintEntryList(DirectoryNavigationPanel* pThis, ID2D1RenderTarget* pRenderTarget)
+    {
+      auto point  = D2D1::Point2F(16.0f, static_cast<FLOAT>(pThis->scrollOffset));
+      auto pBrush = res::d2d1::Brush();
+
+      if (pThis->pHoveredEntry)
+      {
+        pBrush->SetColor(D2D1::ColorF(0xE5F3FF));
+        pRenderTarget->FillRectangle(&pThis->highlightRect, pBrush);
+      }
+
+      for (const auto& entry : pThis->entries)
+      {
+        if (entry.pTextLayout)
+        {
+          pBrush->SetColor(D2D1::ColorF(0x000000));
+          pRenderTarget->DrawTextLayout(point, entry.pTextLayout, pBrush);
+        }
+
+        if (entry.type == EEntryType::Directory && res::d2d1::FolderIcon())
+        {
+          auto iconSize = res::d2d1::FolderIcon()->GetPixelSize();
+          float width   = static_cast<float>(iconSize.width);
+          float height  = static_cast<float>(iconSize.height);
+          pRenderTarget->DrawBitmap(res::d2d1::FolderIcon(), D2D1::RectF(0.0f, point.y, width, point.y + height));
+        }
+        else if (entry.pIcon)
+        {
+          auto iconSize = entry.pIcon->GetPixelSize();
+          float width   = static_cast<float>(iconSize.width);
+          float height  = static_cast<float>(iconSize.height);
+          pRenderTarget->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
+        }
+
+        // Always draw images on integer coordinates
+        point.y += ENTRY_HEIGHT;
+      }
+
+      // Draw scrollbar
+      if (pThis->rect.height > 0 && pThis->entries.Size() > 0)
+      {
+        FLOAT pixelHeight = static_cast<FLOAT>(pThis->entries.Size()) * ENTRY_HEIGHT;
+        FLOAT viewHeight  = pThis->rect.height;
+        if (pixelHeight > viewHeight)
+        {
+          FLOAT top = -pThis->scrollOffset * viewHeight / pixelHeight;
+          {
+            D2D1_RECT_F rect = D2D1::RectF( //
+                pThis->rect.width - 16.0f,  //
+                0,                          //
+                pThis->rect.width,          //
+                viewHeight);
+            pBrush->SetColor(D2D1::ColorF(0xF0F0F0));
+            pRenderTarget->FillRectangle(rect, pBrush);
+          }
+          {
+            D2D1_RECT_F rect = D2D1::RectF( //
+                pThis->rect.width - 16.0f,  //
+                top,                        //
+                pThis->rect.width,          //
+                top + viewHeight * viewHeight / pixelHeight);
+            pBrush->SetColor(D2D1::ColorF(0xC2C3C9));
+            pRenderTarget->FillRectangle(rect, pBrush);
+          }
+        }
+      }
+    }
+  } // namespace detail
+} // namespace mj
+
+void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
+{
+  auto rootRect = PushRect(pRenderTarget, this->rect);
+  MJ_DEFER(rootRect.Pop(pRenderTarget));
+
   auto pBrush = res::d2d1::Brush();
   pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
-  pRenderTarget->FillRectangle(rect, pBrush);
+  pRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width, this->rect.height), pBrush);
 
-  auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(this->scrollOffset));
-
-  if (this->pCurrentFolderTextLayout)
   {
-    pBrush->SetColor(D2D1::ColorF(0x000000));
-    pRenderTarget->DrawTextLayout(point, this->pCurrentFolderTextLayout, pBrush);
+    auto childRect = PushRect(pRenderTarget, 0, 0, this->rect.width, ENTRY_HEIGHT);
+    MJ_DEFER(childRect.Pop(pRenderTarget));
+    detail::PaintBreadcrumb(this, pRenderTarget);
   }
-  point.y += ENTRY_HEIGHT;
-
-  if (this->pHoveredEntry)
   {
-    pBrush->SetColor(D2D1::ColorF(0xE5F3FF));
-    pRenderTarget->FillRectangle(&this->highlightRect, pBrush);
-  }
-
-  for (const auto& entry : this->entries)
-  {
-    if (entry.pTextLayout)
-    {
-      pBrush->SetColor(D2D1::ColorF(0x000000));
-      pRenderTarget->DrawTextLayout(point, entry.pTextLayout, pBrush);
-    }
-
-    if (entry.type == EEntryType::Directory && res::d2d1::FolderIcon())
-    {
-      auto iconSize = res::d2d1::FolderIcon()->GetPixelSize();
-      float width   = static_cast<float>(iconSize.width);
-      float height  = static_cast<float>(iconSize.height);
-      pRenderTarget->DrawBitmap(res::d2d1::FolderIcon(), D2D1::RectF(0.0f, point.y, width, point.y + height));
-    }
-    else if (entry.pIcon)
-    {
-      auto iconSize = entry.pIcon->GetPixelSize();
-      float width   = static_cast<float>(iconSize.width);
-      float height  = static_cast<float>(iconSize.height);
-      pRenderTarget->DrawBitmap(entry.pIcon, D2D1::RectF(0.0f, point.y, width, point.y + height));
-    }
-
-    // Always draw images on integer coordinates
-    point.y += ENTRY_HEIGHT;
-  }
-
-  // Draw scrollbar
-  if (this->height > 0 && this->entries.Size() > 0)
-  {
-    FLOAT pixelHeight = static_cast<FLOAT>(this->entries.Size()) * ENTRY_HEIGHT;
-    FLOAT viewHeight  = this->height;
-    if (pixelHeight > viewHeight)
-    {
-      FLOAT top = -this->scrollOffset * viewHeight / pixelHeight;
-      {
-        D2D1_RECT_F rect = D2D1::RectF( //
-            this->width - 16.0f,        //
-            0,                          //
-            this->width,                //
-            viewHeight);
-        pBrush->SetColor(D2D1::ColorF(0xF0F0F0));
-        pRenderTarget->FillRectangle(rect, pBrush);
-      }
-      {
-        D2D1_RECT_F rect = D2D1::RectF( //
-            this->width - 16.0f,        //
-            top,                        //
-            this->width,                //
-            top + viewHeight * viewHeight / pixelHeight);
-        pBrush->SetColor(D2D1::ColorF(0xC2C3C9));
-        pRenderTarget->FillRectangle(rect, pBrush);
-      }
-    }
+    auto childRect = PushRect(pRenderTarget, 0, ENTRY_HEIGHT, this->rect.width, this->rect.height - ENTRY_HEIGHT);
+    MJ_DEFER(childRect.Pop(pRenderTarget));
+    detail::PaintEntryList(this, pRenderTarget);
   }
 }
 
@@ -768,13 +828,13 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
   {
     this->scrollOffset += diff;
     int32_t pixelHeight = static_cast<int32_t>(this->entries.Size()) * ENTRY_HEIGHT;
-    if (this->scrollOffset > 0 || pixelHeight < this->height)
+    if (this->scrollOffset > 0 || pixelHeight < this->rect.height)
     {
       this->scrollOffset = 0;
     }
-    else if (this->scrollOffset + pixelHeight < this->height)
+    else if (this->scrollOffset + pixelHeight < this->rect.height)
     {
-      this->scrollOffset = this->height - pixelHeight;
+      this->scrollOffset = this->rect.height - pixelHeight;
     }
 
     mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
@@ -875,40 +935,13 @@ void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t client
 
 void mj::DirectoryNavigationPanel::Resize(int16_t x, int16_t y, int16_t width, int16_t height)
 {
-  this->x      = x;
-  this->y      = y;
-  this->width  = width;
-  this->height = height;
+  this->rect.x      = x;
+  this->rect.y      = y;
+  this->rect.width  = width;
+  this->rect.height = height;
 
   this->mouseWheelAccumulator = 0;
   this->scrollOffset          = 0;
-}
-
-void mj::detail::CreateTextLayoutTask::Execute()
-{
-  ZoneScoped;
-
-  MJ_ERR_HRESULT(svc::DWriteFactory()->CreateTextLayout(this->pEntry->pName->ptr,                      //
-                                                        static_cast<UINT32>(this->pEntry->pName->len), //
-                                                        pParent->pTextFormat,                          //
-                                                        1024.0f,                                       //
-                                                        1024.0f,                                       //
-                                                        &this->pTextLayout));
-
-  // FIXME: If this task is slow, InvalidateRect does not show everything...
-  // ::Sleep(1000);
-}
-
-void mj::detail::CreateTextLayoutTask::OnDone()
-{
-  ZoneScoped;
-  this->pTextLayout->AddRef();
-  SetTextLayout(this->pParent, this->pEntry, this->pTextLayout);
-}
-
-void mj::detail::CreateTextLayoutTask::Destroy()
-{
-  this->pTextLayout->Release();
 }
 
 void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFactory)
