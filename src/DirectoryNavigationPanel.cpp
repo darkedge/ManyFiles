@@ -357,9 +357,6 @@ namespace mj
     {
       auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(pThis->scrollOffset));
 
-      // Skip current folder line
-      point.y += ENTRY_HEIGHT;
-
       for (auto i = 0; i < pThis->entries.Size(); i++)
       {
         auto& entry = pThis->entries[i];
@@ -764,11 +761,14 @@ void mj::DirectoryNavigationPanel::Destroy()
 
 void mj::DirectoryNavigationPanel::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 {
+  // Translate to entry list
+  int16_t y = pMouseMoveEvent->y - ENTRY_HEIGHT;
+
   auto pHoveredPrev   = this->pHoveredEntry;
   this->pHoveredEntry = nullptr;
 
   MJ_UNINITIALIZED RECT rect;
-  mj::Entry* pEntry = detail::TestMouseEntry(this, pMouseMoveEvent->x, pMouseMoveEvent->y, &rect);
+  mj::Entry* pEntry = detail::TestMouseEntry(this, pMouseMoveEvent->x, y, &rect);
   if (pEntry)
   {
     this->pHoveredEntry        = pEntry;
@@ -787,6 +787,9 @@ void mj::DirectoryNavigationPanel::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask)
 {
   static_cast<void>(mkMask);
+
+  // Translate to entry list
+  y -= ENTRY_HEIGHT;
 
   mj::Entry* pEntry = detail::TestMouseEntry(this, x, y, nullptr);
   if (pEntry)
@@ -843,6 +846,9 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
 
 void mj::DirectoryNavigationPanel::OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY)
 {
+  // Translate to entry list
+  clientY -= ENTRY_HEIGHT;
+
   mj::Entry* pEntry = detail::TestMouseEntry(this, clientX, clientY, nullptr);
   if (pEntry)
   {
