@@ -98,11 +98,6 @@ namespace mj
     } listFolderContentsTaskResult;
     detail::ListFolderContentsTask* pListFolderContentsTask = nullptr;
 
-    /// <summary>
-    /// Dumb flag variable to check if the Everything query is done
-    /// </summary>
-    bool queryDone;
-
     int16_t x;
     int16_t y;
     int16_t width;

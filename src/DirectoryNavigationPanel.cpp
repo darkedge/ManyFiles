@@ -267,6 +267,7 @@ namespace mj
       pThis->entries.Clear();
     }
 
+#if 0
     void CheckEverythingQueryPrerequisites(mj::DirectoryNavigationPanel* pThis)
     {
       ZoneScoped;
@@ -320,6 +321,7 @@ namespace mj
       pThis->queryDone = true;
       CheckEverythingQueryPrerequisites(pThis);
     }
+#endif
 
     void TryCreateFolderContentTextLayouts(mj::DirectoryNavigationPanel* pThis)
     {
