@@ -338,6 +338,29 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
 
   mj::MainWindow* pMainWindow = reinterpret_cast<mj::MainWindow*>(::GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 
+  auto OnMouseMove = [&](POINTS ptClient) {
+    MouseMoveEvent mouseMoveEvent; // Initialized
+    mouseMoveEvent.x = ptClient.x;
+    mouseMoveEvent.y = ptClient.y;
+
+    bool inside       = TranslateClientPoint(pMainWindow->panel.rect, &mouseMoveEvent.x, &mouseMoveEvent.y);
+    bool updateCursor = true;
+
+    if (::GetCapture() == hWnd)
+    {
+      // pMainWindow->panel.MoveResizeControl(mouseMoveEvent.x, mouseMoveEvent.y);
+      updateCursor = false;
+    }
+    else if (inside)
+    {
+      pMainWindow->panel.OnMouseMove(&mouseMoveEvent);
+      if (updateCursor)
+      {
+        res::win32::SetCursor(mouseMoveEvent.cursor);
+      }
+    }
+  };
+
   switch (message)
   {
   case WM_CREATE:
@@ -391,28 +414,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     break;
   case WM_MOUSEMOVE:
   {
-    POINTS ptClient = MAKEPOINTS(lParam);
-
-    MouseMoveEvent mouseMoveEvent; // Initialized
-    mouseMoveEvent.x = ptClient.x;
-    mouseMoveEvent.y = ptClient.y;
-
-    bool inside       = TranslateClientPoint(pMainWindow->panel.rect, &mouseMoveEvent.x, &mouseMoveEvent.y);
-    bool updateCursor = true;
-
-    if (::GetCapture() == hWnd)
-    {
-      // pMainWindow->panel.MoveResizeControl(mouseMoveEvent.x, mouseMoveEvent.y);
-      updateCursor = false;
-    }
-    else if (inside)
-    {
-      pMainWindow->panel.OnMouseMove(&mouseMoveEvent);
-      if (updateCursor)
-      {
-        res::win32::SetCursor(mouseMoveEvent.cursor);
-      }
-    }
+    OnMouseMove(MAKEPOINTS(lParam));
     return 0;
   }
   // Note: "Left" means "Primary" when dealing with mouse buttons.
@@ -471,6 +473,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     POINTS ptScreen = MAKEPOINTS(lParam);
     POINTS ptClient = mj::ScreenPointToClient(hWnd, ptScreen);
     pMainWindow->panel.OnMouseWheel(ptClient.x, ptClient.y, fwKeys, zDelta);
+    OnMouseMove(ptClient);
     return 0;
   }
   default:
