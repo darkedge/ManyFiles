@@ -246,7 +246,9 @@ void mj::MainWindow::OnPaint()
 
       // D2D1_RECT_F rect = D2D1::RectF(this->panel.x, this->panel.y, this->panel.width, this->panel.height);
       // pContext->PushAxisAlignedClip(rect, D2D1_ANTIALIAS_MODE_ALIASED);
-      // MJ_DEFER(pContext->PopAxisAlignedClip());
+      // MJ_DEFER(pContext->PopAxisAlignedClip
+      auto rootRect = PushRect(pContext, this->panel.rect);
+      MJ_DEFER(rootRect.Pop(pContext));
       this->panel.Paint(pContext);
 
 #if 0 // Getting the theme font for captions (instead of hard-coding "Segoe UI")

@@ -638,9 +638,9 @@ namespace mj
         pBrush->SetColor(D2D1::ColorF(0xE5F3FF));
 
         MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
-        highlightRect.left = 0;
-        highlightRect.right = pThis->rect.width;
-        highlightRect.top = pThis->scrollOffset + index * ENTRY_HEIGHT;
+        highlightRect.left   = 0;
+        highlightRect.right  = pThis->rect.width;
+        highlightRect.top    = pThis->scrollOffset + index * ENTRY_HEIGHT;
         highlightRect.bottom = pThis->scrollOffset + (index + 1) * ENTRY_HEIGHT;
 
         pRenderTarget->FillRectangle(&highlightRect, pBrush);
@@ -674,6 +674,7 @@ namespace mj
       }
 
       // Draw scrollbar
+      const float SCROLLBAR_WIDTH = 16.0f;
       if (pThis->rect.height > 0 && pThis->entries.Size() > 0)
       {
         FLOAT pixelHeight = static_cast<FLOAT>(pThis->entries.Size()) * ENTRY_HEIGHT;
@@ -682,19 +683,20 @@ namespace mj
         {
           FLOAT top = -pThis->scrollOffset * viewHeight / pixelHeight;
           {
-            D2D1_RECT_F rect = D2D1::RectF( //
-                pThis->rect.width - 16.0f,  //
-                0,                          //
-                pThis->rect.width,          //
+            D2D1_RECT_F rect = D2D1::RectF(          //
+                pThis->rect.width - SCROLLBAR_WIDTH, //
+                0,                                   //
+                pThis->rect.width,                   //
                 viewHeight);
             pBrush->SetColor(D2D1::ColorF(0xF0F0F0));
             pRenderTarget->FillRectangle(rect, pBrush);
           }
+          // Elevator
           {
-            D2D1_RECT_F rect = D2D1::RectF( //
-                pThis->rect.width - 16.0f,  //
-                top,                        //
-                pThis->rect.width,          //
+            D2D1_RECT_F rect = D2D1::RectF(          //
+                pThis->rect.width - SCROLLBAR_WIDTH, //
+                top,                                 //
+                pThis->rect.width,                   //
                 top + viewHeight * viewHeight / pixelHeight);
             pBrush->SetColor(D2D1::ColorF(0xC2C3C9));
             pRenderTarget->FillRectangle(rect, pBrush);
@@ -707,9 +709,6 @@ namespace mj
 
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 {
-  auto rootRect = PushRect(pRenderTarget, this->rect);
-  MJ_DEFER(rootRect.Pop(pRenderTarget));
-
   auto pBrush = res::d2d1::Brush();
   pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
   pRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width, this->rect.height), pBrush);
