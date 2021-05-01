@@ -640,8 +640,16 @@ namespace mj
 
       if (pThis->pHoveredEntry)
       {
+        ptrdiff_t index = pThis->pHoveredEntry - pThis->entries.begin();
         pBrush->SetColor(D2D1::ColorF(0xE5F3FF));
-        pRenderTarget->FillRectangle(&pThis->highlightRect, pBrush);
+
+        MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
+        highlightRect.left = 0;
+        highlightRect.right = pThis->rect.width;
+        highlightRect.top = index * ENTRY_HEIGHT;
+        highlightRect.bottom = (index + 1) * ENTRY_HEIGHT;
+
+        pRenderTarget->FillRectangle(&highlightRect, pBrush);
       }
 
       for (const auto& entry : pThis->entries)
@@ -771,11 +779,7 @@ void mj::DirectoryNavigationPanel::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
   mj::Entry* pEntry = detail::TestMouseEntry(this, pMouseMoveEvent->x, y, &rect);
   if (pEntry)
   {
-    this->pHoveredEntry        = pEntry;
-    this->highlightRect.left   = static_cast<FLOAT>(rect.left);
-    this->highlightRect.right  = static_cast<FLOAT>(rect.right);
-    this->highlightRect.top    = static_cast<FLOAT>(rect.top);
-    this->highlightRect.bottom = static_cast<FLOAT>(rect.bottom);
+    this->pHoveredEntry = pEntry;
   }
 
   if (pHoveredPrev != this->pHoveredEntry)

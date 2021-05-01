@@ -97,8 +97,6 @@ namespace mj
     // Open folder
     StringBuilder sbOpenFolder;
 
-    MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
-
     AllocatorBase* pAllocator = nullptr;
     ArrayList<Entry> entries;
     int32_t numEntriesDoneLoading = 0;
