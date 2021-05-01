@@ -355,24 +355,18 @@ namespace mj
 
     mj::Entry* TestMouseEntry(mj::DirectoryNavigationPanel* pThis, int16_t x, int16_t y, RECT* pRect)
     {
-      auto point = D2D1::Point2F(16.0f, static_cast<FLOAT>(pThis->scrollOffset));
+      LONG pointY = pThis->scrollOffset;
 
       for (auto i = 0; i < pThis->entries.Size(); i++)
       {
         auto& entry = pThis->entries[i];
         if (entry.pTextLayout)
         {
-          MJ_UNINITIALIZED DWRITE_TEXT_METRICS metrics;
-          // This call costs nothing, looks like it's just a copy
-          // Optimization note: we could extract this information on creation
-          // and put the rect in a separate list for faster iteration.
-          MJ_ERR_HRESULT(entry.pTextLayout->GetMetrics(&metrics));
-
           MJ_UNINITIALIZED RECT rect;
-          rect.left   = static_cast<LONG>(point.x + metrics.left);
-          rect.right  = static_cast<LONG>(point.x + metrics.left + metrics.width);
-          rect.top    = static_cast<LONG>(point.y + metrics.top);
-          rect.bottom = static_cast<LONG>(point.y + metrics.top + metrics.height);
+          rect.left   = 0;
+          rect.right  = pThis->rect.width;
+          rect.top    = pointY;
+          rect.bottom = pointY + ENTRY_HEIGHT;
 
           MJ_UNINITIALIZED POINT p;
           p.x = x;
@@ -387,7 +381,7 @@ namespace mj
             return &entry;
           }
         }
-        point.y += ENTRY_HEIGHT;
+        pointY += ENTRY_HEIGHT;
       }
 
       return nullptr;
@@ -646,8 +640,8 @@ namespace mj
         MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
         highlightRect.left = 0;
         highlightRect.right = pThis->rect.width;
-        highlightRect.top = index * ENTRY_HEIGHT;
-        highlightRect.bottom = (index + 1) * ENTRY_HEIGHT;
+        highlightRect.top = pThis->scrollOffset + index * ENTRY_HEIGHT;
+        highlightRect.bottom = pThis->scrollOffset + (index + 1) * ENTRY_HEIGHT;
 
         pRenderTarget->FillRectangle(&highlightRect, pBrush);
       }
