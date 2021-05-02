@@ -20,13 +20,6 @@ namespace svc
 
   // ID2D1RenderTarget
   ID2D1RenderTarget* D2D1RenderTarget();
-  class ID2D1RenderTargetObserver
-  {
-  public:
-    virtual void OnID2D1RenderTargetAvailable(ID2D1RenderTarget* pContext) = 0;
-  };
-  void AddID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver);
-  void RemoveID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver);
 
   // IWICImagingFactory
   IWICImagingFactory* WicFactory();

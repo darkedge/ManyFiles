@@ -9,6 +9,7 @@
 #include "ResourcesD2D1.h"
 #include "ResourcesWin32.h"
 #include "WindowLayout.h"
+#include "D2D1NullRenderTarget.h"
 
 #include "HorizontalLayout.h"
 #include "VerticalLayout.h"
@@ -20,6 +21,8 @@
 #include <vssym32.h>
 
 #define WM_MJTASKFINISH (WM_USER + 1)
+
+static D2D1NullRenderTarget s_D2D1NullRenderTarget;
 
 static bool TranslateClientPoint(const mj::Rect& panel, int16_t* pX, int16_t* pY)
 {
@@ -488,6 +491,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
 void mj::MainWindow::Run()
 {
   MJ_DEFER(this->Destroy());
+
+  // Set this null object because the actual object will not be available for some time
+  svc::ProvideD2D1RenderTarget(&s_D2D1NullRenderTarget);
 
   mj::HeapAllocator generalPurposeAllocator;
   svc::ProvideGeneralPurposeAllocator(&generalPurposeAllocator);

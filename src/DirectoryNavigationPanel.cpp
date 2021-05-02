@@ -20,6 +20,12 @@ static float ConvertPointSizeToDIP(float points)
   return ((points / 72.0f) * 96.0f);
 }
 
+/// <summary>
+/// We do not want to send InvalidateRect messages on the main thread as that
+/// will cause the main thread to paint immediately. This can hinder performance
+/// when multiple InvalidateRect messages arrive at the same time, causing the main thread
+/// to paint after each message, causing a delay before handling the next message.
+/// </summary>
 struct InvalidateRectTask : public mj::Task
 {
   void Execute() override

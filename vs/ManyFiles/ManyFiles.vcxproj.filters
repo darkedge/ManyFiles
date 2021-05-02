@@ -63,6 +63,7 @@
     <ClInclude Include="..\..\src\VerticalLayout.h" />
     <ClInclude Include="..\..\src\WindowLayout.h" />
     <ClInclude Include="..\..\src\Serialization.h" />
+    <ClInclude Include="..\..\src\D2D1NullRenderTarget.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

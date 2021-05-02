@@ -12,7 +12,6 @@ static mj::AllocatorBase* s_pGeneralPurposeAllocator;
 
 // TODO: These should be sets, not arrays
 static mj::ArrayList<svc::IWICFactoryObserver*> s_WicFactoryObservers;
-static mj::ArrayList<svc::ID2D1RenderTargetObserver*> s_ID2D1RenderTargetObservers;
 static mj::ArrayList<svc::IDWriteFactoryObserver*> s_IDWriteFactoryObservers;
 
 // TODO: Provide fallback if a service is null
@@ -21,7 +20,6 @@ void svc::Init(mj::AllocatorBase* pAllocator)
 {
   ZoneScoped;
   s_WicFactoryObservers.Init(pAllocator);
-  s_ID2D1RenderTargetObservers.Init(pAllocator);
   s_IDWriteFactoryObservers.Init(pAllocator);
 }
 
@@ -29,7 +27,6 @@ void svc::Destroy()
 {
   ZoneScoped;
   s_WicFactoryObservers.Destroy();
-  s_ID2D1RenderTargetObservers.Destroy();
   s_IDWriteFactoryObservers.Destroy();
 }
 
@@ -81,25 +78,6 @@ ID2D1RenderTarget* svc::D2D1RenderTarget()
 void svc::ProvideD2D1RenderTarget(ID2D1RenderTarget* pRenderTarget)
 {
   pD2D1RenderTarget = pRenderTarget;
-  for (auto pObserver : s_ID2D1RenderTargetObservers)
-  {
-    pObserver->OnID2D1RenderTargetAvailable(pD2D1RenderTarget);
-  }
-}
-
-void svc::AddID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver)
-{
-  s_ID2D1RenderTargetObservers.Add(pObserver);
-  // Immediately notify the observer if the service is provided
-  if (pD2D1RenderTarget)
-  {
-    pObserver->OnID2D1RenderTargetAvailable(pD2D1RenderTarget);
-  }
-}
-
-void svc::RemoveID2D1RenderTargetObserver(ID2D1RenderTargetObserver* pObserver)
-{
-  s_ID2D1RenderTargetObservers.RemoveAll(pObserver);
 }
 
 IWICImagingFactory* svc::WicFactory()

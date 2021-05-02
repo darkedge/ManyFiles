@@ -27,10 +27,6 @@ void res::d2d1::Init(mj::AllocatorBase* pAllocator)
 void LoadBitmapFromResource(DWORD resource, ID2D1Bitmap** ppBitmap)
 {
   auto* pRenderTarget = svc::D2D1RenderTarget();
-  // Render target should have been assigned
-  // before starting tasks that call this function
-  // Should we make this a parameter?
-  MJ_EXIT_NULL(pRenderTarget);
 
   // Resource management.
   HGLOBAL imageResDataHandle = nullptr;
