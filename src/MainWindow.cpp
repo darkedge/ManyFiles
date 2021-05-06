@@ -494,6 +494,19 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     OnMouseMove(ptClient);
     return 0;
   }
+  case WM_KEYDOWN:
+    switch (wParam)
+    {
+    case VK_UP:
+      pMainWindow->panel.MoveSelectionUp();
+      break;
+    case VK_DOWN:
+      pMainWindow->panel.MoveSelectionDown();
+      break;
+    default:
+      break;
+    }
+    break;
   default:
     break;
   }

@@ -635,6 +635,20 @@ namespace mj
         pRenderTarget->FillRectangle(&highlightRect, pBrush);
       }
 
+      MJ_UNINITIALIZED size_t index;
+      if (pThis->selectedEntry.TryGetValue(&index))
+      {
+        pBrush->SetColor(D2D1::ColorF(0xE5F3CC));
+
+        MJ_UNINITIALIZED D2D1_RECT_F highlightRect;
+        highlightRect.left   = 0;
+        highlightRect.right  = pThis->rect.width;
+        highlightRect.top    = pThis->scrollOffset + index * ENTRY_HEIGHT;
+        highlightRect.bottom = pThis->scrollOffset + (index + 1) * ENTRY_HEIGHT;
+
+        pRenderTarget->FillRectangle(&highlightRect, pBrush);
+      }
+
       for (const auto& entry : pThis->entries)
       {
         if (entry.pTextLayout)
@@ -951,4 +965,46 @@ void mj::DirectoryNavigationPanel::OnIDWriteFactoryAvailable(IDWriteFactory* pFa
   // this->CheckEverythingQueryPrerequisites();
 
   detail::TrySetCurrentFolderText(this);
+}
+
+void mj::DirectoryNavigationPanel::MoveSelectionUp()
+{
+  size_t numEntries = this->entries.Size();
+  if (numEntries > 0)
+  {
+    MJ_UNINITIALIZED size_t val;
+    if (this->selectedEntry.TryGetValue(&val))
+    {
+      if (val > 0)
+      {
+        this->selectedEntry = val - 1;
+      }
+    }
+    else
+    {
+      this->selectedEntry = numEntries - 1;
+    }
+    mj::InvalidateRect();
+  }
+}
+
+void mj::DirectoryNavigationPanel::MoveSelectionDown()
+{
+  size_t numEntries = this->entries.Size();
+  if (numEntries > 0)
+  {
+    MJ_UNINITIALIZED size_t val;
+    if (this->selectedEntry.TryGetValue(&val))
+    {
+      if (val < numEntries - 1)
+      {
+        this->selectedEntry = val + 1;
+      }
+    }
+    else
+    {
+      this->selectedEntry = 0;
+    }
+    mj::InvalidateRect();
+  }
 }

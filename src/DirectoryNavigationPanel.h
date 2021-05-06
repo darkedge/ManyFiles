@@ -6,6 +6,7 @@
 #include "Threadpool.h"
 #include <d2d1_1.h>
 #include "ResourcesD2D1.h"
+#include "mj_optional.h"
 
 namespace mj
 {
@@ -118,6 +119,8 @@ namespace mj
 
     MJ_UNINITIALIZED Rect rect;
 
+    mj::optional<size_t> selectedEntry;
+
     void Init(AllocatorBase* pAllocator);
     void Paint(ID2D1RenderTarget* pRenderTarget);
     const wchar_t* GetType()
@@ -131,6 +134,9 @@ namespace mj
     void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta);
     void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY);
     void Resize(int16_t x, int16_t y, int16_t width, int16_t height);
+
+    void MoveSelectionUp();
+    void MoveSelectionDown();
 
     virtual void OnIDWriteFactoryAvailable(IDWriteFactory* pFactory) override;
     virtual void OnIconBitmapAvailable(ID2D1Bitmap* pIconBitmap, WORD resource) override;

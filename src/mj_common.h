@@ -40,6 +40,32 @@ namespace mj
   }
 
   template <typename T>
+  inline constexpr T min(const T& a, const T& b)
+  {
+    if (a < b)
+    {
+      return a;
+    }
+    else
+    {
+      return b;
+    }
+  }
+
+  template <typename T>
+  inline constexpr T max(const T& a, const T& b)
+  {
+    if (a > b)
+    {
+      return a;
+    }
+    else
+    {
+      return b;
+    }
+  }
+
+  template <typename T>
   T clamp(const T& value, const T& minVal, const T& maxVal)
   {
     if (value < minVal)

@@ -113,6 +113,7 @@
     <ClInclude Include="..\..\src\mj_hashtable.h" />
     <ClInclude Include="..\..\src\mj_macro.h" />
     <ClInclude Include="..\..\src\mj_math.h" />
+    <ClInclude Include="..\..\src\mj_optional.h" />
     <ClInclude Include="..\..\src\mj_random.h" />
     <ClInclude Include="..\..\src\mj_win32.h" />
     <ClInclude Include="..\..\src\ncrt_memory.h" />
