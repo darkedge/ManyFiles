@@ -11,6 +11,7 @@
 #include "../vs/ManyFiles/resource.h"
 #define STRICT_TYPED_ITEMIDS
 #include <Shlobj.h>
+#include "InvalidateRect.h"
 
 // Measured from Windows Explorer
 static constexpr const int16_t ENTRY_HEIGHT = 21;
@@ -19,21 +20,6 @@ static float ConvertPointSizeToDIP(float points)
 {
   return ((points / 72.0f) * 96.0f);
 }
-
-/// <summary>
-/// We do not want to send InvalidateRect messages on the main thread as that
-/// will cause the main thread to paint immediately. This can hinder performance
-/// when multiple InvalidateRect messages arrive at the same time, causing the main thread
-/// to paint after each message, causing a delay before handling the next message.
-/// </summary>
-struct InvalidateRectTask : public mj::Task
-{
-  void Execute() override
-  {
-    ZoneScoped;
-    MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
-  }
-};
 
 void mj::DirectoryNavigationPanel::Breadcrumb::Init(AllocatorBase* pAllocator)
 {
@@ -220,9 +206,6 @@ namespace mj
                                                               1024.0f,                                       //
                                                               1024.0f,                                       //
                                                               &this->pTextLayout));
-
-        // FIXME: If this task is slow, InvalidateRect does not show everything...
-        // ::Sleep(1000);
       }
       virtual void OnDone() override
       {
@@ -400,7 +383,7 @@ namespace mj
       if (++pThis->numEntriesDoneLoading == pThis->entries.Size())
       {
         pThis->scrollOffset = 0;
-        mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+        mj::InvalidateRect();
       }
     }
 
@@ -563,7 +546,7 @@ void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitma
         pIconBitmap->AddRef();
       }
     }
-    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+    mj::InvalidateRect();
   }
   else if (resource == IDB_DOCUMENT)
   {
@@ -575,7 +558,7 @@ void mj::DirectoryNavigationPanel::OnIconBitmapAvailable(ID2D1Bitmap* pIconBitma
         pIconBitmap->AddRef();
       }
     }
-    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+    mj::InvalidateRect();
   }
 }
 
@@ -783,7 +766,7 @@ void mj::DirectoryNavigationPanel::OnMouseMove(MouseMoveEvent* pMouseMoveEvent)
 
   if (pHoveredPrev != this->pHoveredEntry)
   {
-    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+    mj::InvalidateRect();
   }
 }
 
@@ -843,7 +826,7 @@ void mj::DirectoryNavigationPanel::OnMouseWheel(int16_t x, int16_t y, uint16_t m
       this->scrollOffset = this->rect.height - pixelHeight;
     }
 
-    mj::ThreadpoolSubmitTask(mj::ThreadpoolCreateTask<InvalidateRectTask>());
+    mj::InvalidateRect();
   }
 }
 

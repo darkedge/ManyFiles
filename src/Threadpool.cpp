@@ -84,11 +84,6 @@ void mj::ThreadpoolInit(DWORD threadId, UINT userMessage)
   s_MainThreadId = threadId;
   s_Msg          = userMessage;
 
-  // Initialize message queue for this thread
-  // TODO: Check if this is necessary
-  // MJ_UNINITIALIZED MSG msg;
-  // static_cast<void>(::PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE));
-
   MJ_ERR_IF(s_Iocp = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0), nullptr);
 
   // Initialize free list

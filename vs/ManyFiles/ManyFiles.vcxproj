@@ -105,6 +105,7 @@
     <ClInclude Include="..\..\src\ErrorExit.h" />
     <ClInclude Include="..\..\src\Control.h" />
     <ClInclude Include="..\..\src\HorizontalLayout.h" />
+    <ClInclude Include="..\..\src\InvalidateRect.h" />
     <ClInclude Include="..\..\src\LinearLayout.h" />
     <ClInclude Include="..\..\src\MainWindow.h" />
     <ClInclude Include="..\..\src\mj_allocator.h" />

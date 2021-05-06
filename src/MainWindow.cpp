@@ -19,10 +19,23 @@
 #include <dcomp.h>
 
 #include <vssym32.h>
+#include "InvalidateRect.h"
 
 #define WM_MJTASKFINISH (WM_USER + 1)
 
 static D2D1NullRenderTarget s_D2D1NullRenderTarget;
+
+struct EInvalidateRectThreadEvent
+{
+  enum Enum
+  {
+    InvalidateRect,
+    Destroy,
+    COUNT
+  };
+};
+
+static HANDLE s_InvalidateRectThreadEvents[EInvalidateRectThreadEvent::COUNT];
 
 static bool TranslateClientPoint(const mj::Rect& panel, int16_t* pX, int16_t* pY)
 {
@@ -488,9 +501,49 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   return ::DefWindowProcW(hWnd, message, wParam, lParam);
 }
 
+/// <summary>
+/// Currently, we only use this thread to signal InvalidateRect.
+/// It could also be used for other purposes.
+/// </summary>
+static DWORD WINAPI InvalidateRectMain(LPVOID lpThreadParameter)
+{
+  static_cast<void>(lpThreadParameter);
+
+  while (true)
+  {
+    switch (::WaitForMultipleObjects(MJ_COUNTOF(s_InvalidateRectThreadEvents), s_InvalidateRectThreadEvents, FALSE,
+                                     INFINITE))
+    {
+    case EInvalidateRectThreadEvent::InvalidateRect:
+      MJ_ERR_ZERO(::InvalidateRect(svc::MainWindowHandle(), nullptr, FALSE));
+      break;
+    case EInvalidateRectThreadEvent::Destroy:
+      return 0;
+    default:
+      MJ_EXIT_NULL(0);
+      break;
+    }
+  }
+
+  return 0;
+}
+
+/// <summary>
+/// This function should not be called from the main thread,
+/// unless an immediate repaint is required (should not be the case most of the time).
+/// </summary>
+void mj::InvalidateRect()
+{
+  ::SetEvent(s_InvalidateRectThreadEvents[EInvalidateRectThreadEvent::InvalidateRect]);
+}
+
 void mj::MainWindow::Run()
 {
   MJ_DEFER(this->Destroy());
+
+  s_InvalidateRectThreadEvents[EInvalidateRectThreadEvent::InvalidateRect] =
+      ::CreateEventW(nullptr, FALSE, FALSE, nullptr);
+  s_InvalidateRectThreadEvents[EInvalidateRectThreadEvent::Destroy] = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
 
   // Set this null object because the actual object will not be available for some time
   svc::ProvideD2D1RenderTarget(&s_D2D1NullRenderTarget);
@@ -502,6 +555,7 @@ void mj::MainWindow::Run()
   // Initialize thread pool
   mj::ThreadpoolInit(::GetCurrentThreadId(), WM_MJTASKFINISH);
   MJ_DEFER(mj::ThreadpoolDestroy());
+  HANDLE pInvalidateRectThread = ::CreateThread(nullptr, 0, InvalidateRectMain, nullptr, 0, nullptr);
 
   // Start a bunch of tasks
   {
@@ -577,5 +631,14 @@ void mj::MainWindow::Run()
       // handled here, instead of in the WindowProc.
       mj::ThreadpoolTaskEnd(reinterpret_cast<mj::Task*>(msg.wParam));
     }
+  }
+
+  ::SetEvent(s_InvalidateRectThreadEvents[EInvalidateRectThreadEvent::Destroy]);
+  ::WaitForSingleObject(pInvalidateRectThread, INFINITE);
+  ::CloseHandle(pInvalidateRectThread);
+  for (auto& handle : s_InvalidateRectThreadEvents)
+  {
+    ::CloseHandle(handle);
+    handle = nullptr;
   }
 }
