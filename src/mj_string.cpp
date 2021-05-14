@@ -14,6 +14,10 @@ void mj::StringView::Init(const wchar_t* pString, size_t numChars)
   this->len = numChars;
 }
 
+/// <summary>
+/// TODO: Convert this to a CreateStringView function.
+/// We do not need to reuse StringView objects.
+/// </summary>
 void mj::StringView::Init(const wchar_t* pString)
 {
   if (!pString)
@@ -369,7 +373,8 @@ bool mj::StringCache::Add(const StringView& string)
 
 /// <summary>
 /// Removes the last string.
-/// We also need to erase the correct amount of characters from the character buffer.
+/// We also need to erase the correct amount of characters
+/// (including null terminator) from the character buffer.
 /// </summary>
 void mj::StringCache::Pop()
 {
@@ -378,7 +383,8 @@ void mj::StringCache::Pop()
   {
     StringView* pView = this->strings.end() - 1;
     this->strings.Erase(size - 1, 1);
-    this->buffer.Erase(this->buffer.Size() - pView->len, pView->len);
+    size_t stringLength = pView->len + 1; // Add null-terminator
+    this->buffer.Erase(this->buffer.Size() - stringLength, stringLength);
   }
 }
 

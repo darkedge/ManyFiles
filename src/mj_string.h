@@ -106,6 +106,9 @@ namespace mj
     // clang-format on
   };
 
+  /// <summary>
+  /// The buffer contains null-terminated strings.
+  /// </summary>
   class StringCache
   {
   private:
