@@ -469,6 +469,8 @@ namespace mj
     {
       ZoneScoped;
 
+      ClearEntries(pThis);
+
       // Note: If the folder is empty, we do nothing.
       // This is okay if we don't want to render anything, but this could change.
       auto numItems = pThis->listFolderContentsTaskResult.stringCache.Size();
@@ -476,7 +478,6 @@ namespace mj
       // Skipping the check for DWrite because our TextFormat already depends on it.
       if (numItems > 0 && pThis->pTextFormat)
       {
-        ClearEntries(pThis);
         pThis->pHoveredEntry = nullptr;
         if (pThis->entries.Emplace(numItems))
         {
