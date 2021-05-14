@@ -367,6 +367,21 @@ bool mj::StringCache::Add(const StringView& string)
   return false;
 }
 
+/// <summary>
+/// Removes the last string.
+/// We also need to erase the correct amount of characters from the character buffer.
+/// </summary>
+void mj::StringCache::Pop()
+{
+  auto size = this->strings.Size();
+  if (size > 0)
+  {
+    StringView* pView = this->strings.end() - 1;
+    this->strings.Erase(size - 1, 1);
+    this->buffer.Erase(this->buffer.Size() - pView->len, pView->len);
+  }
+}
+
 bool mj::StringCache::Copy(const StringCache& other)
 {
   // Check if the other array fits (allocate if necessary)

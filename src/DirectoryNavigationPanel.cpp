@@ -41,6 +41,11 @@ bool mj::DirectoryNavigationPanel::Breadcrumb::Add(const StringView& string)
   return this->breadcrumb.Add(string);
 }
 
+void mj::DirectoryNavigationPanel::Breadcrumb::GoUpByOne()
+{
+  this->breadcrumb.Pop();
+}
+
 mj::StringView* mj::DirectoryNavigationPanel::Breadcrumb::Last()
 {
   size_t size = this->breadcrumb.Size();
@@ -798,6 +803,20 @@ void mj::DirectoryNavigationPanel::OnDoubleClick(int16_t x, int16_t y, uint16_t 
     {
       detail::OpenSubFolder(this, pEntry->pName->ptr);
     }
+  }
+}
+
+void mj::DirectoryNavigationPanel::OnBackButton()
+{
+  this->breadcrumb.GoUpByOne();
+
+  mj::StringView* pLast = this->breadcrumb.Last();
+  if (pLast)
+  {
+    this->sbOpenFolder.Clear();
+    this->sbOpenFolder.Append(*pLast);
+
+    detail::OpenFolder(this);
   }
 }
 

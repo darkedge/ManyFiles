@@ -147,6 +147,8 @@ namespace mj
     /// </returns>
     bool Add(const StringView& string);
 
+    void Pop();
+
     bool Copy(const StringCache& other);
 
     void Clear();

@@ -465,7 +465,7 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
   {
     if (HIWORD(wParam) == XBUTTON1) // Mouse4 - Back
     {
-      // TODO: Back button implementation
+      pMainWindow->panel.OnBackButton();
     }
     return 0;
   }

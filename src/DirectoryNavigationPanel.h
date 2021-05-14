@@ -80,6 +80,8 @@ namespace mj
 
       bool Add(const StringView& string);
 
+      void GoUpByOne();
+
       StringView* Last();
     };
 
@@ -131,6 +133,7 @@ namespace mj
 
     void OnMouseMove(MouseMoveEvent* pMouseMoveEvent);
     void OnDoubleClick(int16_t x, int16_t y, uint16_t mkMask);
+    void OnBackButton();
     void OnMouseWheel(int16_t x, int16_t y, uint16_t mkMask, int16_t zDelta);
     void OnContextMenu(int16_t clientX, int16_t clientY, int16_t screenX, int16_t screenY);
     void Resize(int16_t x, int16_t y, int16_t width, int16_t height);

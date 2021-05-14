@@ -265,6 +265,8 @@ namespace mj
     /// <summary>
     /// Erases a range of elements.
     /// </summary>
+    /// <param name="index">Index of the first element to be erased</param>
+    /// <param name="num">Number of elements to erase</param>
     /// <returns>
     /// Pointer to the element at the specified index after erasure
     /// (can be the pEnd pointer if all trailing elements were erased)
