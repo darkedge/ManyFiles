@@ -70,6 +70,10 @@ bool mj::StringView::ParseNumber(uint32_t* pNumber) const
   return false;
 }
 
+/// <summary>
+/// FIXME: Returning -1 is very bad here, we should use an output parameter
+/// and return a bool.
+/// </summary>
 ptrdiff_t mj::StringView::FindLastOf(const wchar_t* pString) const
 {
   ptrdiff_t index = -1;

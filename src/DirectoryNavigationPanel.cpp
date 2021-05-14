@@ -343,6 +343,9 @@ namespace mj
         pThis->sbOpenFolder.Append(L"\\");
         pThis->sbOpenFolder.Append(pFolder);
 
+        mj::StringView str = pThis->sbOpenFolder.ToStringOpen();
+        pThis->breadcrumb.Add(str);
+
         OpenFolder(pThis);
       }
     }
@@ -470,6 +473,7 @@ namespace mj
       ZoneScoped;
 
       ClearEntries(pThis);
+      mj::InvalidateRect();
 
       // Note: If the folder is empty, we do nothing.
       // This is okay if we don't want to render anything, but this could change.
@@ -525,12 +529,6 @@ namespace mj
           pThis->listFolderContentsTaskResult.folders.Copy(pTask->folders) && //
           pThis->listFolderContentsTaskResult.stringCache.Copy(pTask->stringCache))
       {
-        // FIXME: This can trigger a reallocation so if we use the breadcrumb elsewhere we're screwed
-        mj::StringView str = pThis->sbOpenFolder.ToStringOpen();
-        str.Init(str.ptr, str.FindLastOf(L"\\*"));
-
-        pThis->breadcrumb.Add(str);
-
         // TODO: Start icon, TextFormat tasks if preconditions are met
         // pThis->TryLoadFolderContentIcons();
         TryCreateFolderContentTextLayouts(pThis);
@@ -588,12 +586,15 @@ void mj::DirectoryNavigationPanel::Init(mj::AllocatorBase* pAllocator)
 
   // FIXME: When opening a folder, add all parent folders to the breadcrumb
   this->breadcrumb.Init(pAllocator);
-  this->breadcrumb.Add(L"C:");
   this->sbOpenFolder.Init(pAllocator);
 
   // Start tasks
+  MJ_UNINITIALIZED mj::StringView str;
+  str.Init(L"C:");
   this->sbOpenFolder.Clear();
-  this->sbOpenFolder.Append(*this->breadcrumb.Last());
+  this->sbOpenFolder.Append(str);
+  this->breadcrumb.Add(str);
+
   detail::OpenFolder(this);
 
 #if 0
