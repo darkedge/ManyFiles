@@ -714,7 +714,9 @@ void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 {
   auto pBrush = res::d2d1::Brush();
   pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
-  pRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width, this->rect.height), pBrush);
+  pRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width - 1, this->rect.height - 1), pBrush);
+  pBrush->SetColor(D2D1::ColorF(0xFF0000));
+  pRenderTarget->DrawRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width - 1, this->rect.height - 1), pBrush);
 
   {
     auto childRect = PushRect(pRenderTarget, 0, 0, this->rect.width, ENTRY_HEIGHT);

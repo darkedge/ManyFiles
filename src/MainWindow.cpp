@@ -245,7 +245,10 @@ void mj::MainWindow::OnPaint()
     pContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     pContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
     // This line needs to be kept, otherwise painting will jump after receiving certain mouse move events.
-    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x, offset.y)));
+    // We offset it with another half pixel because Direct2D coordinates are based on the edges of pixels,
+    // instead of the center. As we're doing aliased drawing with integer coordinates, this should prevent
+    // any drawing from running off screen.
+    pContext->SetTransform(D2D1::Matrix3x2F::Translation(D2D1::SizeF(offset.x + 0.5f, offset.y + 0.5f)));
 
     // Something to do for every control
     {
@@ -333,6 +336,73 @@ namespace mj
   }
 } // namespace mj
 
+void mj::MainWindow::ExtendFrame(HWND hWnd)
+{
+  ZoneScoped;
+
+  HTHEME theme = ::OpenThemeData(hWnd, L"WINDOW");
+  MJ_DEFER(MJ_ERR_HRESULT(::CloseThemeData(theme)));
+
+  SIZE size = {};
+  MJ_ERR_HRESULT(::GetThemePartSize(theme, nullptr, WP_CAPTION, CS_ACTIVE, nullptr, TS_TRUE, &size));
+
+  this->margins.cyTopHeight = size.cy * ::GetDpiForWindow(hWnd) / 96 + 2; // 1 pixel border on top and bottom
+  MJ_ERR_HRESULT(::DwmExtendFrameIntoClientArea(hWnd, &this->margins));
+}
+
+/// <summary>
+/// https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
+/// </summary>
+LRESULT mj::MainWindow::DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM lParam, LONG captionHeight)
+{
+  POINTS mouse = MAKEPOINTS(lParam);
+
+  // Get the point coordinates for the hit test.
+
+  // Get the window rectangle.
+  MJ_UNINITIALIZED RECT window;
+  MJ_ERR_ZERO(::GetWindowRect(hWnd, &window));
+
+  // Get the frame rectangle, adjusted for the style without a caption.
+  RECT rcFrame = { 0 };
+  MJ_ERR_ZERO(::AdjustWindowRectEx(&rcFrame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL));
+
+  // Determine if the hit test is for resizing. Default middle (1,1).
+  USHORT uRow          = 1;
+  USHORT uCol          = 1;
+  bool fOnResizeBorder = false;
+
+  // Determine if the point is at the top or bottom of the window.
+  if (mouse.y >= window.top && mouse.y < window.top + this->margins.cyTopHeight)
+  {
+    fOnResizeBorder = (mouse.y < (window.top - rcFrame.top));
+    uRow            = 0;
+  }
+  else if (mouse.y < window.bottom && mouse.y >= window.bottom - this->margins.cyBottomHeight)
+  {
+    uRow = 2;
+  }
+
+  // Determine if the point is at the left or right of the window.
+  if (mouse.x >= window.left && mouse.x < window.left + this->margins.cxLeftWidth)
+  {
+    uCol = 0; // left side
+  }
+  else if (mouse.x < window.right && mouse.x >= window.right - this->margins.cxRightWidth)
+  {
+    uCol = 2; // right side
+  }
+
+  // Hit test (HTTOPLEFT, ... HTBOTTOMRIGHT)
+  LRESULT hitTests[3][3] = {
+    { HTTOPLEFT, fOnResizeBorder ? HTTOP : HTCAPTION, HTTOPRIGHT },
+    { HTLEFT, HTNOWHERE, HTRIGHT },
+    { HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT },
+  };
+
+  return hitTests[uRow][uCol];
+}
+
 /// <summary>
 /// Main WindowProc function
 /// </summary>
@@ -389,11 +459,31 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // BOOL ani = TRUE;
     // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
+    DWMNCRENDERINGPOLICY ncrp = DWMNCRP_DISABLED;
+    MJ_ERR_HRESULT(::DwmSetWindowAttribute(hWnd, DWMWA_NCRENDERING_POLICY, &ncrp, sizeof(ncrp)));
+
+    pMainWindow->ExtendFrame(hWnd);
+
     // Make sure a WM_NCCALCSIZE message is fired that resizes the frame (wParam = true).
     // This cannot be done inside WM_NCCREATE (probably makes sense)
     MJ_ERR_ZERO(::SetWindowPos(hWnd, nullptr, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE));
 
     return 0;
+  }
+  case WM_NCCALCSIZE:
+    if (wParam == TRUE)
+    {
+      return 0;
+    }
+    break;
+  case WM_NCHITTEST:
+  {
+    LRESULT result = pMainWindow->DetermineNonClientWindowArea(hWnd, wParam, lParam, pMainWindow->margins.cyTopHeight);
+    if (result != HTNOWHERE)
+    {
+      return result;
+    }
+    break; // Else, let DefWindowProcW handle WM_NCHITTEST
   }
   case WM_SIZE:
     pMainWindow->Resize();
@@ -610,8 +700,8 @@ void mj::MainWindow::Run()
     ZoneScopedN("CreateWindowExW");
     hWnd = ::CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP,               // Optional window styles.
                              classAtom,                               // Window class
-                             L"ManyFiles",                            // Window text
-                             WS_OVERLAPPEDWINDOW,                     // Window style
+                             L"",                                     // Window text
+                             WS_THICKFRAME,                           // Window style
                              CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, // Size and pCurrent
                              nullptr,                                 // Parent window
                              nullptr,                                 // Menu
