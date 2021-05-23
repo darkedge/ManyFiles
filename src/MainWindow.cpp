@@ -459,9 +459,6 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     // BOOL ani = TRUE;
     // ::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &ani, sizeof(ani));
 
-    DWMNCRENDERINGPOLICY ncrp = DWMNCRP_DISABLED;
-    MJ_ERR_HRESULT(::DwmSetWindowAttribute(hWnd, DWMWA_NCRENDERING_POLICY, &ncrp, sizeof(ncrp)));
-
     pMainWindow->ExtendFrame(hWnd);
 
     // Make sure a WM_NCCALCSIZE message is fired that resizes the frame (wParam = true).
