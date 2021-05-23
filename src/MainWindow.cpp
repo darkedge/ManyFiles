@@ -495,6 +495,9 @@ LRESULT CALLBACK mj::MainWindow::WindowProc(HWND hWnd, UINT message, WPARAM wPar
     case VK_DOWN:
       pMainWindow->panel.MoveSelectionDown();
       break;
+    case VK_BACK: // Backspace
+      pMainWindow->panel.OnBackButton();
+      break;
     default:
       break;
     }
