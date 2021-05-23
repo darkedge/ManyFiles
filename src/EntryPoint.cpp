@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "MainWindow.h"
 #include "mj_win32.h"
 #include "ErrorExit.h"
@@ -9,7 +10,6 @@ static void Main()
 }
 
 #ifdef TRACY_ENABLE
-#include <Windows.h>
 
 /// <summary>
 /// CRT entry point (required by Tracy for Profile build configuration)

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ncrt_memory.h"
 #include "ErrorExit.h"
 

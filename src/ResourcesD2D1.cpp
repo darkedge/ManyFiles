@@ -1,11 +1,10 @@
+#include "pch.h"
 #include "ResourcesD2D1.h"
-#include "../tracy/Tracy.hpp"
 #include "ErrorExit.h"
 #include "../vs/ManyFiles/resource.h"
 #include "Threadpool.h"
 #include "ServiceLocator.h"
 #include "stb_image.h"
-#include <d2d1.h>
 
 static ID2D1SolidColorBrush* pBrush;
 static ID2D1Bitmap* pFolderIcon;

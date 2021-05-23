@@ -1,9 +1,6 @@
 #pragma once
 #include "mj_allocator.h"
 #include "mj_macro.h"
-#include <string.h>
-#include <stdint.h>
-#include <strsafe.h>
 
 namespace mj
 {

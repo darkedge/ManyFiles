@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "HorizontalLayout.h"
 #include "ResourcesD2D1.h"
-#include <d2d1.h>
 
 void mj::HorizontalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
 {

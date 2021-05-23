@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "VerticalLayout.h"
 #include "ResourcesD2D1.h"
-#include <d2d1.h>
 
 void mj::VerticalLayout::Paint(ID2D1RenderTarget* pRenderTarget)
 {

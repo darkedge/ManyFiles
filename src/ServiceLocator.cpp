@@ -1,8 +1,8 @@
+#include "pch.h"
 #include "ServiceLocator.h"
 #include "ServiceProvider.h"
 #include "ErrorExit.h"
 #include "mj_common.h"
-#include "../3rdparty/tracy/Tracy.hpp"
 
 static IDWriteFactory* pDWriteFactory;
 static ID2D1RenderTarget* pD2D1RenderTarget;

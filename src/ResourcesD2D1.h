@@ -1,5 +1,4 @@
 #pragma once
-#include <stdint.h>
 
 struct ID2D1Bitmap;
 struct ID2D1SolidColorBrush;

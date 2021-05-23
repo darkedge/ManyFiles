@@ -29,7 +29,6 @@
   (this is the zlib license)
 */
 
-#include <xmmintrin.h>
 
 /* yes I know, the top of this file is quite ugly */
 

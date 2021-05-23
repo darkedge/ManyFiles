@@ -1,6 +1,5 @@
 #pragma once
 #include "mj_allocator.h"
-#include <Windows.h>
 
 struct IDWriteFactory;
 struct ID2D1RenderTarget;

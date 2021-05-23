@@ -1,9 +1,8 @@
+#include "pch.h"
 #include "Threadpool.h"
 #include "mj_win32.h"
 #include "mj_common.h"
 #include "ErrorExit.h"
-#include "../3rdparty/tracy/Tracy.hpp"
-#include "../3rdparty/tracy/common/TracySystem.hpp"
 
 static constexpr auto MAX_TASKS   = 1024;
 static constexpr auto NUM_THREADS = 8;

@@ -4,7 +4,6 @@
 #include "mj_string.h"
 #include "ServiceLocator.h"
 #include "Threadpool.h"
-#include <d2d1_1.h>
 #include "ResourcesD2D1.h"
 #include "mj_optional.h"
 

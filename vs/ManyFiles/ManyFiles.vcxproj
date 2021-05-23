@@ -60,7 +60,6 @@
     <CodeAnalysisRuleSet>..\ManyFiles.ruleset</CodeAnalysisRuleSet>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
@@ -71,7 +70,6 @@
     <CodeAnalysisRuleSet>..\ManyFiles.ruleset</CodeAnalysisRuleSet>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
@@ -82,7 +80,6 @@
     <CodeAnalysisRuleSet>..\ManyFiles.ruleset</CodeAnalysisRuleSet>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <Link>
@@ -117,6 +114,7 @@
     <ClInclude Include="..\..\src\mj_random.h" />
     <ClInclude Include="..\..\src\mj_win32.h" />
     <ClInclude Include="..\..\src\ncrt_memory.h" />
+    <ClInclude Include="..\..\src\pch.h" />
     <ClInclude Include="..\..\src\ResourcesD2D1.h" />
     <ClInclude Include="..\..\src\ResourcesWin32.h" />
     <ClInclude Include="..\..\src\Serialization.h" />
@@ -158,9 +156,22 @@
     <ClCompile Include="..\..\src\mj_common.cpp" />
     <ClCompile Include="..\..\src\mj_math.cpp" />
     <ClCompile Include="..\..\src\mj_random.cpp" />
-    <ClCompile Include="..\..\src\mj_stb_image.cpp" />
-    <ClCompile Include="..\..\src\ncrt_math_float.cpp" />
+    <ClCompile Include="..\..\src\mj_stb_image.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ncrt_math_float.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\ncrt_memory.cpp" />
+    <ClCompile Include="..\..\src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\ResourcesD2D1.cpp" />
     <ClCompile Include="..\..\src\ResourcesWin32.cpp" />
     <ClCompile Include="..\..\src\Serialization.cpp" />

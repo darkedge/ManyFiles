@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "mj_common.h"
 
 size_t mj::Kibibytes(size_t kib)

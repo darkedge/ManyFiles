@@ -1,3 +1,4 @@
+#include "pch.h"
 // Mouse cursors, et cetera.
 // Stored in static memory, loaded at run-time in the main thread.
 #include "ResourcesWin32.h"

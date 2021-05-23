@@ -1,5 +1,5 @@
+#include "pch.h"
 #include "mj_allocator.h"
-#include "../3rdparty/tracy/Tracy.hpp"
 #include "ErrorExit.h"
 
 bool mj::Allocation::Ok()

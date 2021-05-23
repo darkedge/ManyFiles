@@ -1,7 +1,6 @@
+#include "pch.h"
 #include "mj_string.h"
 #include "ErrorExit.h"
-#define STRSAFE_NO_CB_FUNCTIONS
-#include <strsafe.h>
 
 // The StringBuilder only adds a null terminator in the ToStringClosed() function.
 

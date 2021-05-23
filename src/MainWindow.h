@@ -2,8 +2,6 @@
 #include "ResourcesWin32.h"
 #include "DirectoryNavigationPanel.h"
 
-#include <Uxtheme.h>
-
 struct IDCompositionDesktopDevice;
 struct IDCompositionVirtualSurface;
 struct IDCompositionTarget;

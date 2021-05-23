@@ -1,5 +1,4 @@
 #pragma once
-#include <d2d1.h>
 
 // Null object implementation of ID2D1RenderTarget
 // This object can be used while the D2D1 device is not yet available

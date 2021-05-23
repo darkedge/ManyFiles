@@ -1,4 +1,4 @@
-#include <Windows.h>
+#include "pch.h"
 #include "ErrorExit.h"
 #include "ServiceProvider.h"
 #include "ServiceLocator.h"
@@ -14,6 +14,7 @@ static void CreateSerializationSourceCode()
   MJ_DEFER(sb.Destroy());
 
   // Content
+  sb.Append(L"#include \"pch.h\"\r\n");
   sb.Append(L"// Hello World!");
 
   mj::StringView sv = sb.ToStringOpen();

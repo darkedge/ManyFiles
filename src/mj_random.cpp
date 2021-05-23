@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "mj_random.h"
 
 /*  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)

@@ -1,16 +1,9 @@
+#include "pch.h"
 #include "DirectoryNavigationPanel.h"
 #include "ErrorExit.h"
 #include "ServiceLocator.h"
-#include <wincodec.h>
-#include "Everything.h"
-#include <d2d1_1.h>
-#include <dwrite.h>
-#include <shellapi.h>
-#include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "../vs/ManyFiles/resource.h"
-#define STRICT_TYPED_ITEMIDS
-#include <Shlobj.h>
 #include "InvalidateRect.h"
 
 // Measured from Windows Explorer

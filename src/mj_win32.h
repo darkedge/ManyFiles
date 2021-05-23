@@ -1,5 +1,4 @@
 #pragma once
-#include <Windows.h>
 #include "mj_allocator.h"
 #include "mj_macro.h"
 

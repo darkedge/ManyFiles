@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LinearLayout.h"
 #include "ResourcesD2D1.h"
 #include "ServiceLocator.h"

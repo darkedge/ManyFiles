@@ -1,9 +1,8 @@
+#include "pch.h"
 #include "Control.h"
 #include "ErrorExit.h"
-#include "../3rdparty/tracy/Tracy.hpp"
 #include "ServiceLocator.h"
 #include "ResourcesD2D1.h"
-#include <d2d1.h>
 
 bool mj::Control::TranslateClientPoint(int16_t* pX, int16_t* pY)
 {

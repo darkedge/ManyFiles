@@ -1,5 +1,5 @@
+#include "pch.h"
 #include "mj_math.h"
-#include <stdint.h>
 #define USE_SSE2
 #include "sse_mathfun.h"
 

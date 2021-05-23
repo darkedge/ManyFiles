@@ -26,6 +26,7 @@
     <ClCompile Include="..\..\src\VerticalLayout.cpp" />
     <ClCompile Include="..\..\src\WindowLayout.cpp" />
     <ClCompile Include="..\..\src\Serialization.cpp" />
+    <ClCompile Include="..\..\src\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ManyFiles.manifest" />
@@ -66,6 +67,7 @@
     <ClInclude Include="..\..\src\D2D1NullRenderTarget.h" />
     <ClInclude Include="..\..\src\InvalidateRect.h" />
     <ClInclude Include="..\..\src\mj_optional.h" />
+    <ClInclude Include="..\..\src\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />

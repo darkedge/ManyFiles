@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "WindowLayout.h"
 #include "Control.h"
 #include "ErrorExit.h"

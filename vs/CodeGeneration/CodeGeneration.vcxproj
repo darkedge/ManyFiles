@@ -15,8 +15,15 @@
     <ClCompile Include="..\..\src\ErrorExit.cpp" />
     <ClCompile Include="..\..\src\mj_allocator.cpp" />
     <ClCompile Include="..\..\src\mj_string.cpp" />
-    <ClCompile Include="..\..\src\ncrt_math_float.cpp" />
+    <ClCompile Include="..\..\src\ncrt_math_float.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\ncrt_memory.cpp" />
+    <ClCompile Include="..\..\src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\ServiceLocator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -64,7 +71,6 @@
     <CodeAnalysisRuleSet>..\ManyFiles.ruleset</CodeAnalysisRuleSet>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
@@ -74,7 +80,6 @@
     <CodeAnalysisRuleSet>..\ManyFiles.ruleset</CodeAnalysisRuleSet>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
-    <EnableUnitySupport>true</EnableUnitySupport>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile />

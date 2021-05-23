@@ -1,10 +1,8 @@
+#include "pch.h"
 #include "MainWindow.h"
 #include "ErrorExit.h"
 #include "ServiceProvider.h"
 #include "DirectoryNavigationPanel.h"
-#include <dwrite.h>
-#include <wincodec.h> // WIC
-#include "../3rdparty/tracy/Tracy.hpp"
 #include "Threadpool.h"
 #include "ResourcesD2D1.h"
 #include "ResourcesWin32.h"
@@ -13,12 +11,6 @@
 
 #include "HorizontalLayout.h"
 #include "VerticalLayout.h"
-
-#include <dwmapi.h>
-#include <d3d11.h>
-#include <dcomp.h>
-
-#include <vssym32.h>
 #include "InvalidateRect.h"
 
 #define WM_MJTASKFINISH (WM_USER + 1)

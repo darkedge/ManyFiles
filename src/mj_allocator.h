@@ -1,6 +1,4 @@
 #pragma once
-#include <stdint.h>
-#include <new>
 
 namespace mj
 {

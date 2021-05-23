@@ -1,6 +1,5 @@
 #pragma once
 #include "mj_macro.h"
-#include <stdint.h>
 
 namespace mj
 {
