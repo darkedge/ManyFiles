@@ -618,7 +618,7 @@ namespace mj
     }
     void PaintEntryList(DirectoryNavigationPanel* pThis, ID2D1RenderTarget* pRenderTarget)
     {
-      auto point  = D2D1::Point2F(16.0f, static_cast<FLOAT>(pThis->scrollOffset));
+      auto point  = D2D1::Point2F(16.5f, static_cast<FLOAT>(pThis->scrollOffset));
       auto pBrush = res::d2d1::Brush();
 
       if (pThis->pHoveredEntry)
@@ -713,9 +713,9 @@ namespace mj
 void mj::DirectoryNavigationPanel::Paint(ID2D1RenderTarget* pRenderTarget)
 {
   auto pBrush = res::d2d1::Brush();
-  pBrush->SetColor(D2D1::ColorF(0xFFFFFF));
+  pBrush->SetColor(D2D1::ColorF(0xE5E5E5));
   pRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width - 1, this->rect.height - 1), pBrush);
-  pBrush->SetColor(D2D1::ColorF(0xFF0000));
+  pBrush->SetColor(D2D1::ColorF(0x00FF00));
   pRenderTarget->DrawRectangle(D2D1::RectF(0.0f, 0.0f, this->rect.width - 1, this->rect.height - 1), pBrush);
 
   {

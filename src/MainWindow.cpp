@@ -346,7 +346,12 @@ void mj::MainWindow::ExtendFrame(HWND hWnd)
   SIZE size = {};
   MJ_ERR_HRESULT(::GetThemePartSize(theme, nullptr, WP_CAPTION, CS_ACTIVE, nullptr, TS_TRUE, &size));
 
-  this->margins.cyTopHeight = size.cy * ::GetDpiForWindow(hWnd) / 96 + 2; // 1 pixel border on top and bottom
+  this->margins = {
+    0,                                                 // left
+    0,                                                 // right
+    (int)(size.cy * ::GetDpiForWindow(hWnd) / 96 + 2), // 1 pixel border on top and bottom
+    0,                                                 // bottom
+  };
   MJ_ERR_HRESULT(::DwmExtendFrameIntoClientArea(hWnd, &this->margins));
 }
 
@@ -357,50 +362,62 @@ LRESULT mj::MainWindow::DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM l
 {
   POINTS mouse = MAKEPOINTS(lParam);
 
-  // Get the point coordinates for the hit test.
-
   // Get the window rectangle.
   MJ_UNINITIALIZED RECT window;
   MJ_ERR_ZERO(::GetWindowRect(hWnd, &window));
 
-  // Get the frame rectangle, adjusted for the style without a caption.
+  // Assume a desired client area of 0 x 0 at position (0, 0).
+  // AdjustWindowRectEx will give us the left, right, top, bottom offsets
+  // we need to indicate the resize area (for a default window).
+  // We are free to use other offsets, but this is a good starting point.
+  // Note: Offsets are signed (top/left are negative, right/bottom are positive).
   RECT rcFrame = { 0 };
   MJ_ERR_ZERO(::AdjustWindowRectEx(&rcFrame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL));
 
   // Determine if the hit test is for resizing. Default middle (1,1).
-  USHORT uRow          = 1;
-  USHORT uCol          = 1;
-  bool fOnResizeBorder = false;
+  int row              = 1;
+  int column           = 1;
+
+  if ((mouse.y >= (window.top - rcFrame.top)) &&              //
+      (mouse.y < (window.top + this->margins.cyTopHeight)) && //
+      (mouse.x >= (window.left - rcFrame.left)) &&            //
+      (mouse.x < (window.right - rcFrame.right)))
+  {
+    return HTCAPTION;
+  }
 
   // Determine if the point is at the top or bottom of the window.
-  if (mouse.y >= window.top && mouse.y < window.top + this->margins.cyTopHeight)
+  if (mouse.y >= window.top && mouse.y < (window.top - rcFrame.top))
   {
-    fOnResizeBorder = (mouse.y < (window.top - rcFrame.top));
-    uRow            = 0;
+    // Top
+    row = 0;
   }
-  else if (mouse.y < window.bottom && mouse.y >= window.bottom - this->margins.cyBottomHeight)
+  else if (mouse.y < window.bottom && mouse.y >= window.bottom - rcFrame.bottom)
   {
-    uRow = 2;
+    // Bottom
+    row = 2;
   }
 
   // Determine if the point is at the left or right of the window.
-  if (mouse.x >= window.left && mouse.x < window.left + this->margins.cxLeftWidth)
+  if (mouse.x >= window.left && mouse.x < window.left - rcFrame.left)
   {
-    uCol = 0; // left side
+    // Left
+    column = 0;
   }
-  else if (mouse.x < window.right && mouse.x >= window.right - this->margins.cxRightWidth)
+  else if (mouse.x < window.right && mouse.x >= window.right - rcFrame.right)
   {
-    uCol = 2; // right side
+    // Right
+    column = 2;
   }
 
   // Hit test (HTTOPLEFT, ... HTBOTTOMRIGHT)
   LRESULT hitTests[3][3] = {
-    { HTTOPLEFT, fOnResizeBorder ? HTTOP : HTCAPTION, HTTOPRIGHT },
+    { HTTOPLEFT, HTTOP, HTTOPRIGHT },
     { HTLEFT, HTNOWHERE, HTRIGHT },
     { HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT },
   };
 
-  return hitTests[uRow][uCol];
+  return hitTests[row][column];
 }
 
 /// <summary>
