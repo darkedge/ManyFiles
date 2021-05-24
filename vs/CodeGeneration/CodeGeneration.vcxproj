@@ -20,6 +20,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\ncrt_memory.cpp" />
+    <ClCompile Include="..\..\src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\ServiceLocator.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -29,11 +33,6 @@
     <ClInclude Include="..\..\src\ncrt_memory.h" />
     <ClInclude Include="..\..\src\ServiceLocator.h" />
     <ClInclude Include="..\..\src\ServiceProvider.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\pch\pch.vcxproj">
-      <Project>{5d4a0bba-c9b4-4c14-a617-0638713fe234}</Project>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

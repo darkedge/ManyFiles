@@ -167,6 +167,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\src\ncrt_memory.cpp" />
+    <ClCompile Include="..\..\src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\ResourcesD2D1.cpp" />
     <ClCompile Include="..\..\src\ResourcesWin32.cpp" />
     <ClCompile Include="..\..\src\Serialization.cpp" />
@@ -197,9 +202,6 @@
   <ItemGroup>
     <ProjectReference Include="..\CodeGeneration\CodeGeneration.vcxproj">
       <Project>{23f7bc60-552c-4307-9073-c679045ff9f3}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\pch\pch.vcxproj">
-      <Project>{5d4a0bba-c9b4-4c14-a617-0638713fe234}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ManyFiles", "ManyFiles\Many
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CodeGeneration", "CodeGeneration\CodeGeneration.vcxproj", "{23F7BC60-552C-4307-9073-C679045FF9F3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pch", "pch\pch.vcxproj", "{5D4A0BBA-C9B4-4C14-A617-0638713FE234}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -28,12 +26,6 @@ Global
 		{23F7BC60-552C-4307-9073-C679045FF9F3}.Profile|x64.Build.0 = Debug|x64
 		{23F7BC60-552C-4307-9073-C679045FF9F3}.Release|x64.ActiveCfg = Release|x64
 		{23F7BC60-552C-4307-9073-C679045FF9F3}.Release|x64.Build.0 = Release|x64
-		{5D4A0BBA-C9B4-4C14-A617-0638713FE234}.Debug|x64.ActiveCfg = Debug|x64
-		{5D4A0BBA-C9B4-4C14-A617-0638713FE234}.Debug|x64.Build.0 = Debug|x64
-		{5D4A0BBA-C9B4-4C14-A617-0638713FE234}.Profile|x64.ActiveCfg = Debug|x64
-		{5D4A0BBA-C9B4-4C14-A617-0638713FE234}.Profile|x64.Build.0 = Debug|x64
-		{5D4A0BBA-C9B4-4C14-A617-0638713FE234}.Release|x64.ActiveCfg = Release|x64
-		{5D4A0BBA-C9B4-4C14-A617-0638713FE234}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
