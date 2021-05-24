@@ -3,6 +3,8 @@
 #include "ResourcesD2D1.h"
 #include "ServiceLocator.h"
 
+static constexpr const int16_t s_ResizeControlWidth = 8;
+
 void mj::TabLayout::Init(AllocatorBase* pAllocator)
 {
   this->pAllocator = pAllocator;
