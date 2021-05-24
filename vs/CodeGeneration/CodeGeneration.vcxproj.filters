@@ -8,7 +8,6 @@
     <ClCompile Include="..\..\src\mj_string.cpp" />
     <ClCompile Include="..\..\src\ErrorExit.cpp" />
     <ClCompile Include="..\..\src\ServiceLocator.cpp" />
-    <ClCompile Include="..\..\src\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ncrt_memory.h" />

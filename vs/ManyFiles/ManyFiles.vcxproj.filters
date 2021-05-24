@@ -26,7 +26,6 @@
     <ClCompile Include="..\..\src\VerticalLayout.cpp" />
     <ClCompile Include="..\..\src\WindowLayout.cpp" />
     <ClCompile Include="..\..\src\Serialization.cpp" />
-    <ClCompile Include="..\..\src\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ManyFiles.manifest" />

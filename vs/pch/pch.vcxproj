@@ -11,48 +11,32 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\CodeGeneration.cpp" />
-    <ClCompile Include="..\..\src\ErrorExit.cpp" />
-    <ClCompile Include="..\..\src\mj_allocator.cpp" />
-    <ClCompile Include="..\..\src\mj_string.cpp" />
-    <ClCompile Include="..\..\src\ncrt_math_float.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    <ClCompile Include="..\..\src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\ncrt_memory.cpp" />
-    <ClCompile Include="..\..\src\ServiceLocator.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\ErrorExit.h" />
-    <ClInclude Include="..\..\src\mj_allocator.h" />
-    <ClInclude Include="..\..\src\mj_string.h" />
-    <ClInclude Include="..\..\src\ncrt_memory.h" />
-    <ClInclude Include="..\..\src\ServiceLocator.h" />
-    <ClInclude Include="..\..\src\ServiceProvider.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\pch\pch.vcxproj">
-      <Project>{5d4a0bba-c9b4-4c14-a617-0638713fe234}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\..\src\pch.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{23f7bc60-552c-4307-9073-c679045ff9f3}</ProjectGuid>
-    <RootNamespace>CodeGeneration</RootNamespace>
+    <ProjectGuid>{5D4A0BBA-C9B4-4C14-A617-0638713FE234}</ProjectGuid>
+    <RootNamespace>pch</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -84,15 +68,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile />
-    <PostBuildEvent>
-      <Command>$(TargetPath)</Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile />
-    <PostBuildEvent>
-      <Command>$(TargetPath)</Command>
-    </PostBuildEvent>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
