@@ -240,7 +240,9 @@ void mj::MainWindow::OnPaint()
     MJ_UNINITIALIZED ID2D1DeviceContext* pContext;
     MJ_UNINITIALIZED POINT offset;
     MJ_ERR_HRESULT(this->pSurface->BeginDraw(nullptr, IID_PPV_ARGS(&pContext), &offset));
-    MJ_DEFER(pContext->Release());
+    MJ_DEFER(MJ_ERR_HRESULT(this->dcompDevice->Commit()));
+    MJ_DEFER(MJ_ERR_HRESULT(this->pSurface->EndDraw()));
+    MJ_DEFER(static_cast<void>(pContext->Release()));
 
     pContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     pContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
@@ -278,11 +280,13 @@ void mj::MainWindow::OnPaint()
 #endif
     }
 
-    {
-      ZoneScopedN("EndDraw");
-      MJ_ERR_HRESULT(this->pSurface->EndDraw());
-      MJ_ERR_HRESULT(this->dcompDevice->Commit());
-    }
+#if 0
+    auto* pButton = res::d2d1::ThemeButton();
+    auto size     = pButton->GetSize();
+    float x       = 300.0f;
+    float y       = 50.0f;
+    pContext->DrawBitmap(pButton, D2D1::RectF(x, y, x + size.width, y + size.height));
+#endif
   }
 }
 
@@ -375,8 +379,8 @@ LRESULT mj::MainWindow::DetermineNonClientWindowArea(HWND hWnd, WPARAM, LPARAM l
   MJ_ERR_ZERO(::AdjustWindowRectEx(&rcFrame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL));
 
   // Determine if the hit test is for resizing. Default middle (1,1).
-  int row              = 1;
-  int column           = 1;
+  int row    = 1;
+  int column = 1;
 
   if ((mouse.y >= (window.top - rcFrame.top)) &&              //
       (mouse.y < (window.top + this->margins.cyTopHeight)) && //

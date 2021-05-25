@@ -67,6 +67,55 @@ void LoadBitmapFromResource(DWORD resource, ID2D1Bitmap** ppBitmap)
       D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)), ppBitmap));
 }
 
+#if 0
+void LoadThemeBitmap()
+{
+  ZoneScopedN("LoadThemeBitmap");
+
+  auto* pRenderTarget = svc::D2D1RenderTarget();
+  MJ_UNINITIALIZED ID2D1Bitmap* pBitmap;
+
+  HTHEME hTheme = ::OpenThemeData(nullptr, L"DWMWINDOW");
+  if (hTheme)
+  {
+    MJ_DEFER(::CloseThemeData(hTheme));
+
+    wchar_t buf[MAX_PATH] = { 0 };
+    // C:\Windows\resources\themes\Aero\Aero.msstyles
+    ::SHRegGetPathW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ThemeManager", L"DllName", buf,
+                    0);
+    HMODULE hInstance = ::LoadLibraryExW(buf, nullptr, LOAD_LIBRARY_AS_DATAFILE);
+    if (hInstance)
+    {
+      MJ_DEFER(::FreeLibrary(hInstance));
+      MJ_UNINITIALIZED const stbi_uc* pStream;
+      MJ_UNINITIALIZED DWORD streamLength;
+      MJ_ERR_HRESULT(::GetThemeStream(hTheme, 0, 0, TMT_DISKSTREAM, (void**)&pStream, &streamLength, hInstance));
+
+      const int numComponents = 4;
+      MJ_UNINITIALIZED int x, y, n;
+      uint32_t* pAtlas =
+          reinterpret_cast<uint32_t*>(::stbi_load_from_memory(pStream, streamLength, &x, &y, &n, numComponents));
+      MJ_DEFER(::stbi_image_free(pAtlas));
+
+      MJ_UNINITIALIZED RECT rect;
+      const int part = 10;
+      MJ_ERR_HRESULT(::GetThemeRect(hTheme, part, 0, TMT_ATLASRECT, &rect));
+
+      LONG width  = rect.right - rect.left;
+      LONG height = rect.bottom - rect.top;
+      MJ_ERR_HRESULT(pRenderTarget->CreateBitmap(
+          D2D1::SizeU(width, height), nullptr, width * numComponents,
+          D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_R8G8B8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)),
+          &pThemeButton));
+
+      D2D1_RECT_U dstRect = { 0, 0, width, height };
+      pThemeButton->CopyFromMemory(&dstRect, pAtlas + rect.top * x + rect.left, x * numComponents);
+    }
+  }
+}
+#endif
+
 // Requires: D2D1RenderTarget
 struct LoadIconBitmapTask : public mj::Task
 {
